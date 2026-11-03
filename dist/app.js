@@ -237,6 +237,7 @@
     const r = game.round, open = isOpenRound(), rolling = performance.now() < rollingUntil;
     const stake = currentStake(), valid = Number.isInteger(stake) && stake >= 5 && stake <= 99 && stake <= game.wallet;
     const won = r?.won || 0, remaining = r?.remaining || 0;
+    $('launchConsole').classList.toggle('has-round', open);
     $('walletCount').textContent = game.wallet;
     $('cardCount').textContent = game.cards;
     $('inventoryCount').textContent = Object.values(game.inventory).reduce((sum, count) => sum + count, 0);
@@ -357,7 +358,26 @@
   }
   function goToSetup() {
     if (game.round?.phase === 'settled') prepareRound();
-    document.querySelector('.stake-section').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+    const first = document.querySelector('.stake-section');
+    const behavior = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    if (!matchMedia('(max-width:650px)').matches) { first.scrollIntoView({ behavior, block: 'center' }); return; }
+    const start = first.getBoundingClientRect(), end = document.querySelector('.multiplier-section').getBoundingClientRect();
+    const space = mobilePlayHeight();
+    window.scrollTo({ top: window.scrollY + start.top - Math.max(12, (space - (end.bottom - start.top)) / 2), behavior });
+  }
+  function mobilePlayHeight() {
+    return (window.visualViewport?.height || window.innerHeight) - $('launchConsole').getBoundingClientRect().height - 20;
+  }
+  function revealBoard(behavior = 'auto') {
+    if (!matchMedia('(max-width:650px)').matches) return;
+    const board = document.querySelector('.machine-section').getBoundingClientRect();
+    const top = Math.max(10, (mobilePlayHeight() - board.height) / 2);
+    window.scrollTo({ top: window.scrollY + board.top - top, behavior });
+  }
+  function measureLaunchConsole() {
+    if (matchMedia('(max-width:650px)').matches) {
+      document.documentElement.style.setProperty('--mobile-dock-height', `${$('launchConsole').getBoundingClientRect().height}px`);
+    }
   }
   function toast(message) {
     clearTimeout(toastTimer); $('toast').textContent = message; $('toast').classList.add('visible');
@@ -397,6 +417,7 @@
         if ((e.clientX - bounds.left) / bounds.width * W > 535) source = 'lever-canvas';
       }
       if (!beginCharge(source)) return;
+      if (mode !== 'canvas') revealBoard();
       activePointer = e.pointerId; dragStartY = e.clientY; element.setPointerCapture(e.pointerId);
     });
     element.addEventListener('pointermove', e => {
@@ -412,7 +433,7 @@
       if (e.detail !== 0 || charging) return;
       if (element === launchButton && !isOpenRound()) { goToSetup(); return; }
       if (element === launchButton && autoFire) { autoFire = false; updateUI(); return; }
-      if (beginCharge('accessible')) { power = lastPower; releaseCharge(); }
+      if (beginCharge('accessible')) { revealBoard(); power = lastPower; releaseCharge(); }
     });
   }
   bindLauncher(launchButton, 'pointer');
@@ -438,6 +459,7 @@
   $('autoLaunchButton').addEventListener('click', () => {
     if (!canLaunch()) return;
     const enable = !autoFire; cancelCharge(); autoFire = enable; nextAutoFire = 0; initAudio(); updateUI();
+    if (enable) revealBoard();
   });
   $('resetButton').addEventListener('click', endOrPrepare);
   $('playAgain').addEventListener('click', prepareRound);
@@ -464,7 +486,13 @@
     const r = dialog.getBoundingClientRect();
     if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dialog.close();
   }));
-  $('startPlaying').addEventListener('click', () => { $('helpDialog').close(); (canLaunch() ? launchButton : $('stakeInput')).focus({ preventScroll: true }); });
+  $('startPlaying').addEventListener('click', () => {
+    $('helpDialog').close();
+    if (canLaunch()) {
+      revealBoard();
+      (matchMedia('(max-width:650px)').matches ? $('leverHandle') : launchButton).focus({ preventScroll: true });
+    } else $('stakeInput').focus({ preventScroll: true });
+  });
 
   function frame(now) {
     const dt = Math.min((now - lastFrame) / 1000, .05); lastFrame = now;
@@ -476,7 +504,7 @@
       } else {
         rollingUntil = 0; updateUI(); playSound('score', game.round.multiplier);
         $('boardHint').innerHTML = '<span class="hint-star">✦</span> 拉动拉杆 · 瞄准亮灯轨道 <span class="hint-star">✦</span>';
-        if (matchMedia('(max-width:650px)').matches) document.querySelector('.machine-section').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+        revealBoard(matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
         toast(`${game.round.multiplier} 倍好运 · ${game.round.litSlots.length} 条中奖轨道已亮灯`);
       }
     }
@@ -486,6 +514,9 @@
     }
     engine.step(dt); draw(now, dt); finishRound(); requestAnimationFrame(frame);
   }
+  new ResizeObserver(measureLaunchConsole).observe($('launchConsole'));
+  window.addEventListener('resize', measureLaunchConsole);
+  measureLaunchConsole();
   saveProgress(); drawBackground(); updatePower(); updateUI(); updateSound(); requestAnimationFrame(frame);
   if (game.recovered) toast(`已保留上局奖励，退回 ${game.recovered.refunded} 颗未落袋弹珠`);
   window.PiggyGame = { getState: () => ({ ...game.serialize(), charging, power, autoFire, activeBalls: activeCount() }), engine };
