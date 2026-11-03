@@ -6,7 +6,7 @@ const root = dirname(fileURLToPath(import.meta.url));
 const source = join(root, 'dist');
 let html = readFileSync(join(source, 'index.html'), 'utf8');
 html = html.replace('<link rel="stylesheet" href="style.css">', () => `<style>\n${readFileSync(join(source, 'style.css'), 'utf8')}\n</style>`);
-for (const file of ['physics.js', 'app.js']) {
+for (const file of ['physics.js', 'rules.js', 'app.js']) {
   html = html.replace(`<script src="${file}"></script>`, () => `<script>\n${readFileSync(join(source, file), 'utf8')}\n</script>`);
 }
 writeFileSync(join(root, '好运弹珠社.html'), html, 'utf8');

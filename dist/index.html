@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#191a17">
-  <meta name="description" content="好运弹珠社：一台装进口袋的复古弹珠机。按住蓄力，松开发射，让好运一路叮叮当当。">
+  <meta name="description" content="好运弹珠社潮弹玩法：投入5至99颗弹珠，抽取2至12倍倍率，拉杆发射，命中亮灯轨道赢弹珠、攒积分卡兑礼品。">
   <title>好运弹珠社 · PIGGY PINBALL</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -26,12 +26,18 @@
     <section class="intro-panel" aria-labelledby="hero-title">
       <div class="eyebrow"><span class="mini-star">✳</span> GOOD LUCK, HAVE FUN</div>
       <h1 id="hero-title">把好运，<br><span>弹出来。</span></h1>
-      <p class="intro-copy">一颗小弹珠，一场小冒险。<br>找好手感，让快乐叮当作响。</p>
-      <div class="edition-label"><span class="edition-dot"></span> 经典小猪机台 <span class="edition-number">NO. 001</span></div>
+      <p class="intro-copy">投下弹珠，点亮一份期待。<br>让好运落袋，把小礼物带回家。</p>
+      <div class="edition-label"><span class="edition-dot"></span> 潮弹玩法 · 经典小猪机台 <span class="edition-number">NO. 001</span></div>
+      <div class="wallet-card">
+        <div class="wallet-heading">我的弹珠口袋 <span>MY POCKET</span></div>
+        <div class="wallet-balances"><div><span class="wallet-label">弹珠余额</span><strong id="walletCount">990</strong><small>颗</small></div><div><span class="wallet-label">积分卡</span><strong id="cardCount">0</strong><small>张</small></div></div>
+        <button class="shop-button" type="button" id="shopButton"><span>✧ 礼品兑换</span><span>藏品 <b id="inventoryCount">0</b> ↗</span></button>
+        <button class="rescue-button" type="button" id="rescueButton" hidden>领取 50 颗弹珠补给</button>
+      </div>
       <div class="best-card">
-        <div class="small-label"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 2 2.4 4.9 5.4.8-3.9 3.8.9 5.4L10 14.4l-4.8 2.5.9-5.4L2.2 7.7l5.4-.8Z"/></svg> 个人最高纪录</div>
-        <div class="best-value"><span id="bestScore">0000</span><small>PTS</small></div>
-        <div class="best-bottom"><span>下一个纪录，由你创造</span><span>↗</span></div>
+        <div class="small-label"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 2 2.4 4.9 5.4.8-3.9 3.8.9 5.4L10 14.4l-4.8 2.5.9-5.4L2.2 7.7l5.4-.8Z"/></svg> 单局最佳返珠</div>
+        <div class="best-value"><span id="bestScore">0000</span><small>BALLS</small></div>
+        <div class="best-bottom"><span>每满 30 颗中奖珠，收获 1 张卡</span><span>✧</span></div>
       </div>
       <div class="history-section"><div class="section-caption">最近的好运 <span>RECENT SHOTS</span></div><ol id="recentShots"><li class="history-empty">第一颗好运，正在等你 <span>↘</span></li></ol></div>
       <div class="decor-ticket" aria-hidden="true"><span>好</span><span>运</span><span>入</span><span>场</span><b>ADMIT ONE · ∞</b></div>
@@ -43,37 +49,58 @@
         <div class="cabinet-bolt bolt-tl"></div><div class="cabinet-bolt bolt-tr"></div>
         <div class="marquee"><div class="marquee-side">★<br>★</div><div><span class="marquee-kicker">THE LITTLE BALL OF LUCK</span><h2>PIGGY <span>PINBALL</span></h2></div><div class="marquee-side">★<br>★</div></div>
         <div class="scoreboard">
-          <div class="score-display"><span>本局得分 <small>SCORE</small></span><strong id="scoreDigits" aria-label="本局得分">00000</strong></div>
-          <div class="score-display balls-display"><span>剩余弹珠 <small>BALLS</small></span><strong id="ballDigits" aria-label="剩余弹珠">20</strong></div>
+          <div class="score-display"><span>中奖返珠 <small>WIN</small></span><strong id="scoreDigits" aria-label="本局中奖返珠">0000</strong></div>
+          <div class="score-display balls-display"><span>待发射 <small>BALLS</small></span><strong id="ballDigits" aria-label="待发射弹珠">00</strong></div>
+          <div class="score-display multiplier-display"><span>本局倍率 <small>LUCK</small></span><strong id="multiplierDigits" aria-label="本局倍率">--×</strong></div>
         </div>
-        <div class="board-surround"><div class="led-strip led-left"></div><div class="led-strip led-right"></div><div class="board-window"><canvas id="gameCanvas" width="600" height="760" aria-label="弹珠台面。按住空格或发射按钮蓄力，松开发射。"></canvas><div class="board-hint" id="boardHint"><span class="hint-star">✦</span> 按住台面蓄力 · 松开发射 <span class="hint-star">✦</span></div><div class="floating-scores" id="floatingScores" aria-hidden="true"></div></div></div>
+        <div class="board-surround"><div class="led-strip led-left"></div><div class="led-strip led-right"></div><div class="board-window"><canvas id="gameCanvas" width="600" height="760" aria-label="弹珠台面。先投入弹珠抽倍率，再拉动拉杆或按住空格蓄力，松开发射。"></canvas><div class="board-hint" id="boardHint"><span class="hint-star">✦</span> 先投珠抽倍率 · 亮灯轨道中奖 <span class="hint-star">✦</span></div><div class="floating-scores" id="floatingScores" aria-hidden="true"></div></div></div>
         <div class="machine-bottom"><span>CHERISHED TIME & LITTLE PIG</span><span class="machine-serial">PPC—001</span></div>
         <div class="cabinet-bolt bolt-bl"></div><div class="cabinet-bolt bolt-br"></div>
       </div>
       <div class="machine-shadow" aria-hidden="true"></div>
-      <div class="keyboard-tip"><kbd>SPACE</kbd><span>按住蓄力，松开发射</span><span class="tip-divider"></span><span>也可以点击右侧按钮</span></div>
+      <div class="keyboard-tip"><kbd>SPACE</kbd><span>按住蓄力，松开发射</span><span class="tip-divider"></span><span>也可向下拉动拉杆</span></div>
     </section>
 
     <aside class="control-panel" aria-label="游戏控制">
-      <div class="session-heading"><span class="live-dot"></span> 快乐营业中 <span>FREE PLAY</span></div>
-      <div class="round-label">你的好运回合 <span id="roundNumber">01 / ∞</span></div>
-      <div class="session-score"><span id="sessionScore">0</span><span class="score-unit">积分<br><small>POINTS</small></span></div>
-      <div class="session-divider"></div>
-      <div class="balls-summary"><span>口袋里的弹珠</span><span><b id="remainingBalls">20</b> <small>/ 20</small></span></div>
-      <div class="ball-dots" id="ballDots" aria-hidden="true"></div>
-      <div class="power-section"><div class="power-heading"><span>发射力度</span><b id="powerLabel">等待蓄力</b></div><div class="power-meter" id="powerMeter" role="progressbar" aria-label="发射力度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="powerFill"></span><i></i><i></i><i></i><i></i></div><div class="power-scale"><span>轻轻一弹</span><span>全力出击</span></div></div>
-      <button type="button" class="launch-button" id="launchButton"><span class="launch-icon">↗</span><span><b id="launchLabel">按住 · 蓄力发射</b><small id="launchSublabel">HOLD TO CHARGE</small></span><span class="launch-end">●</span></button>
-      <button type="button" class="reset-button" id="resetButton"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5v5h5M4.3 9a6 6 0 1 1 1.4 5.1"/></svg> 再来一局<span>↺</span></button>
-      <div class="how-to"><div class="section-caption">好运小贴士 <span>HOW TO PLAY</span></div><div class="instruction"><span>01</span><p><b>按住，积攒一点能量</b><small>力度不同，开启不同的弹珠轨迹</small></p></div><div class="instruction"><span>02</span><p><b>松手，让好运自由落下</b><small>碰撞钉阵，落进下方奖励槽</small></p></div><div class="instruction"><span>03</span><p><b>瞄准中间，收获惊喜</b><small>金色奖励槽，最高可得 200 分</small></p></div></div>
-      <div class="luck-note"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3v26M3 16h26M7 7l18 18M7 25 25 7"/></svg><p>不必每次都满分<br><span>开心就已经很幸运。</span></p></div>
+      <div class="session-heading"><span class="live-dot"></span> 潮弹玩法 <span>LIGHT UP YOUR LUCK</span></div>
+      <div class="round-label">本局中奖返珠 <span id="roundNumber">01 / ∞</span></div>
+      <div class="session-score"><span id="sessionScore">0</span><span class="score-unit">颗弹珠<br><small>BALLS WON</small></span></div>
+      <div class="round-status" id="roundStatus" role="status" aria-live="polite">选好投入，开启你的好运回合</div>
+
+      <section class="stake-section" aria-labelledby="stakeLabel">
+        <div class="step-label"><span>01</span><label id="stakeLabel" for="stakeInput">本局投入</label><small>5—99 颗</small></div>
+        <div class="stake-stepper"><button type="button" id="stakeMinus" aria-label="减少投入">−</button><input id="stakeInput" type="number" min="5" max="99" step="1" value="5" inputmode="numeric" aria-describedby="stakeHint"><span>颗</span><button type="button" id="stakePlus" aria-label="增加投入">+</button></div>
+        <div class="stake-presets" aria-label="快速选择投入"><button type="button" data-stake="5" class="selected">5 颗</button><button type="button" data-stake="10">10 颗</button><button type="button" data-stake="30">30 颗</button><button type="button" data-stake="99">99 颗</button></div>
+        <p class="field-hint" id="stakeHint">抽取倍率时投入弹珠，本局开始后锁定。</p>
+      </section>
+
+      <section class="multiplier-section" aria-labelledby="multiplierLabel">
+        <div class="step-label"><span>02</span><b id="multiplierLabel">抽取倍率</b><small>随机 2—12 倍</small></div>
+        <div class="multiplier-panel"><strong id="multiplierValue">--×</strong><div><span id="litCount">未抽取</span><small>倍率越低，亮灯洞口越多</small></div></div>
+        <button type="button" class="draw-button" id="drawMultiplier">投入 5 颗 · 抽倍率 <span>✦</span></button>
+      </section>
+
+      <section class="launcher-section" aria-labelledby="launcherLabel">
+        <div class="step-label"><span>03</span><b id="launcherLabel">拉杆发射</b><small>落入亮灯轨道即中奖</small></div>
+        <div class="lever-controls">
+          <div class="lever-track" id="leverTrack"><div class="lever-rail" aria-hidden="true"></div><div class="lever-spring" aria-hidden="true"></div><button type="button" class="lever-handle" id="leverHandle" aria-label="向下拉动拉杆蓄力，松开发射" disabled><span>•••</span></button><span class="lever-arrow" aria-hidden="true">↓</span></div>
+          <div class="lever-information"><p>向下拉动，松手发射</p><div class="power-section"><div class="power-heading"><span>发射力度</span><b id="powerLabel">等待蓄力</b></div><div class="power-meter" id="powerMeter" role="progressbar" aria-label="发射力度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="powerFill"></span><i></i><i></i><i></i><i></i></div><div class="power-scale"><span>轻轻一弹</span><span>全力出击</span></div></div><div class="balls-summary"><span>待发射</span><span><b id="remainingBalls">0</b> <small>颗</small></span></div></div>
+        </div>
+        <div class="round-meter" aria-hidden="true"><span id="roundProgress"></span></div><p class="round-progress-text" id="roundProgressText">等待投入弹珠</p>
+      </section>
+      <button type="button" class="launch-button" id="launchButton" disabled><span class="launch-icon">↗</span><span><b id="launchLabel">先投珠 · 抽倍率</b><small id="launchSublabel">READY FOR YOUR LUCK</small></span><span class="launch-end">●</span></button>
+      <div class="round-actions"><button type="button" class="auto-button" id="autoLaunchButton" aria-pressed="false" disabled>连续发射本局</button><button type="button" class="reset-button" id="resetButton" disabled>结束本局</button></div>
+      <div class="card-tip"><span>✧</span><p>中奖弹珠每满 <b>30 颗</b>，获得 <b>1 张积分卡</b><small>收集积分卡，去礼品柜兑换小惊喜。</small></p></div>
     </aside>
   </main>
   <footer class="site-footer"><span>© 2026 好运弹珠社</span><span>一点复古，一点随机，很多快乐。<i>✦</i></span><button type="button" data-dialog="helpDialog">玩法与说明 ↗</button></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <dialog id="helpDialog" class="game-dialog"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">WELCOME TO THE CLUB</div><h2>好运，从这一弹开始。</h2><p>每局有 20 颗弹珠。按住发射按钮或空格键蓄力，松手即可发射；快速点击也能发射一颗。</p><div class="help-slots"><span>10</span><span>20</span><span>50</span><span>100</span><span>200</span></div><p>弹珠经过钉阵自由落下，落进哪个槽，就获得对应积分。力度会影响初始轨迹，每一次碰撞也会带来变化。</p><p>支持连续发射，最多同时有 10 颗弹珠在台面上。最高分会保存在当前浏览器中。按 <kbd>M</kbd> 开关音效，按 <kbd>Esc</kbd> 关闭说明。</p><button class="dialog-primary" type="button" id="startPlaying">知道了，开玩！ ↗</button></dialog>
-  <dialog id="endDialog" class="game-dialog end-dialog"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">A LITTLE BALL, A LOT OF JOY</div><div class="end-star">✦</div><h2>这局好运，收下啦！</h2><strong id="finalScore">0</strong><span class="final-unit">本局积分</span><p id="recordMessage">快乐已经到账，再来收集一份好运。</p><button class="dialog-primary" type="button" id="playAgain">再来一局 ↗</button></dialog>
+  <dialog id="helpDialog" class="game-dialog"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">THE CHAODAN WAY TO PLAY</div><h2>五步，接住你的好运。</h2><ol class="help-steps"><li><b>投珠</b><p>每局投入 5—99 颗弹珠。点击“投入并抽倍率”后扣除投入，本局数量和倍率锁定。</p></li><li><b>选倍率</b><p>按钮随机抽出 2—12 倍，随后亮起本局中奖轨道。倍率越低，亮灯洞口越多。</p></li><li><b>拉杆发射</b><p>向下拉动拉杆，松手发射。也可以按住空格、发射按钮或台面蓄力；开启连续发射可发完本局弹珠。</p></li><li><b>中奖收卡</b><p>每颗进入亮灯轨道的弹珠，返还本局倍率对应的弹珠。本局中奖弹珠每满 30 颗得 1 张积分卡，余数不跨局累计。</p></li><li><b>积分卡兑礼</b><p>进入礼品柜，用积分卡兑换贴纸、挂件、公仔等游戏内藏品。弹珠、积分卡和藏品保存在当前浏览器中。</p></li></ol><div class="help-slots"><span>30 颗<small>1 张卡</small></span><span>60 颗<small>2 张卡</small></span><span>90 颗<small>3 张卡</small></span></div><p class="help-shortcuts"><kbd>M</kbd> 开关音效 · <kbd>SPACE</kbd> 蓄力发射 · <kbd>Esc</kbd> 关闭说明</p><button class="dialog-primary" type="button" id="startPlaying">知道了，开玩！ ↗</button></dialog>
+  <dialog id="endDialog" class="game-dialog end-dialog"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">YOUR LUCK, COLLECTED</div><div class="end-star">✦</div><h2>这局好运，收下啦！</h2><strong id="finalScore">0</strong><span class="final-unit">本局中奖返珠</span><div class="result-summary"><div><span>投入弹珠</span><b id="finalStake">0</b></div><div><span>命中亮灯</span><b id="finalHits">0</b></div><div><span>获得积分卡</span><b id="finalCards">0</b></div></div><p id="recordMessage">快乐已经到账，再来收集一份好运。</p><button class="dialog-primary" type="button" id="playAgain">再来一局 ↗</button></dialog>
+  <dialog id="shopDialog" class="game-dialog shop-dialog"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">LITTLE GIFTS, BIG SMILES</div><h2>把好运，装进礼品柜。</h2><div class="shop-balance"><span>可用积分卡</span><strong id="shopCardCount">0</strong><small>张</small></div><p class="shop-note">选择喜欢的小礼物，兑换后会加入你的游戏内收藏。</p><div class="prize-list" id="prizeList"></div><div class="inventory-heading">我的收藏 <span>COLLECTION</span></div><div id="inventoryList" class="inventory-list"><p>礼品柜还空着，第一份惊喜等你来。</p></div></dialog>
   <script src="physics.js"></script>
+  <script src="rules.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

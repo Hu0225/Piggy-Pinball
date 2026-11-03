@@ -6,6 +6,7 @@ on:
     paths:
       - 'dist/**'
       - 'test-physics.cjs'
+      - 'test-rules.cjs'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -31,7 +32,9 @@ jobs:
         run: |
           node --check dist/app.js
           node --check dist/physics.js
+          node --check dist/rules.js
           node test-physics.cjs
+          node test-rules.cjs
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload game files
