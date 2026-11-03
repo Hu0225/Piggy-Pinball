@@ -35,7 +35,7 @@
   function normalizePower(value) { return Math.max(.01, Math.min(1, Math.round(value * 100) / 100)); }
   function loadPractice() {
     try {
-      const saved = JSON.parse(readStorage('piggyPracticeClassicV1', '[]'));
+      const saved = JSON.parse(readStorage('piggyPracticeReboundV1', '[]'));
       if (!Array.isArray(saved)) return [];
       return saved.filter(s => s && Number.isFinite(s.power) && s.power >= .01 && s.power <= 1 && Number.isInteger(s.slot) && s.slot >= 1 && s.slot <= 10 && typeof s.hit === 'boolean' && Number.isSafeInteger(s.reward) && s.reward >= 0).slice(0, 3);
     } catch { return []; }
@@ -262,7 +262,7 @@
     saveProgress();
     recent.unshift({ hit: result.hit, reward: result.reward, slot: event.slotIndex + 1, power: event.power ?? lastPower });
     recent.length = Math.min(3, recent.length);
-    saveStorage('piggyPracticeClassicV1', JSON.stringify(recent)); renderPractice();
+    saveStorage('piggyPracticeReboundV1', JSON.stringify(recent)); renderPractice();
     if (result.hit) {
       slotFlashes.set(event.slotIndex, performance.now());
       const pop = document.createElement('span'); pop.className = 'score-pop big';

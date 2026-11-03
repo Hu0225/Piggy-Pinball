@@ -8,9 +8,8 @@
   const GRAVITY = 780;
   const EXIT_SPEED_MIN = 12;
   const EXIT_SPEED_RANGE = 928;
-  const PEG_RESTITUTION = 0.15;
-  const LIP_RESTITUTION = 0.05;
-  const CONTACT_DAMPING = 0.15;
+  const PEG_RESTITUTION = 0.74;
+  const LIP_RESTITUTION = 0.4;
   const LAUNCH_RAIL = Object.freeze({
     centerX: 506, centerY: 112, radius: 56, halfWidth: 14,
     angle: Math.PI / 2, startX: 562, startY: 112, exitX: 506, exitY: 56
@@ -203,10 +202,8 @@
           if (normalSpeed < 0) {
             ball.vx -= (1 + PEG_RESTITUTION) * normalSpeed * nx;
             ball.vy -= (1 + PEG_RESTITUTION) * normalSpeed * ny;
-            // Cushioned contact only removes energy. There are no random or
-            // ball-ID-dependent impulses and no steering toward a target.
-            ball.vx *= CONTACT_DAMPING;
-            ball.vy *= CONTACT_DAMPING;
+            // Match the original lively rebound: retain tangential velocity
+            // and reflect the normal component without extra contact damping.
             const previousHit = ball.hitCooldown.get(peg.id) ?? -100;
             if (this.time - previousHit > 0.085 && -normalSpeed > 28) {
               ball.hitCooldown.set(peg.id, this.time);
@@ -235,8 +232,6 @@
                 if (dot < 0) {
                   ball.vx -= (1 + LIP_RESTITUTION) * dot * nx;
                   ball.vy -= (1 + LIP_RESTITUTION) * dot * ny;
-                  ball.vx *= CONTACT_DAMPING;
-                  ball.vy *= CONTACT_DAMPING;
                   this._impact(ball, 'divider', -dot, x, 649);
                 }
               }
