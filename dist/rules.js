@@ -54,7 +54,9 @@
         cardsAwarded: 0, refunded: 0, phase: 'activated'
       };
       this.recovered = null;
-      return { ok: true, round: this.round };
+      // The first deposit activates the round and locks its targets immediately.
+      // Later deposits only increase the same round's principal.
+      return this.drawMultiplier();
     }
 
     addStake(amount) {

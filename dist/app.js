@@ -287,7 +287,6 @@
     const stake = currentStake(), limit = depositLimit(), editable = canDeposit();
     const valid = Number.isInteger(stake) && stake >= 1 && stake <= limit;
     const won = r?.won || 0, principal = r?.stake || 0;
-    $('launchConsole').classList.toggle('has-round', open);
     $('walletCount').textContent = game.wallet;
     $('cardCount').textContent = game.cards;
     $('inventoryCount').textContent = Object.values(game.inventory).reduce((sum, count) => sum + count, 0);
@@ -310,33 +309,35 @@
     $('litCount').textContent = r?.multiplier ? `${r.litSlots.length} / 10 条轨道亮灯` : '低倍率亮灯轨道更多';
     $('roundProgress').style.width = `${r?.phase === 'settled' ? 100 : 0}%`;
     $('roundProgressText').textContent = !r ? '每局本金 1–99 颗 · 只发射一次' : r.phase === 'playing' ? '已发射 1 / 1 次 · 等待落袋' : r.phase === 'settled' ? '本局已结束' : '剩余发射机会 1 / 1';
-    $('roundStatus').textContent = rolling ? '倍率抽取中…' : !r ? '投入任意数量弹珠，激活游戏' : r.phase === 'activated' ? `已投入 ${principal} 颗，请确定本局倍率` : r.phase === 'settled' ? '本局已结算，积分卡已入账' : r.phase === 'playing' ? '本金已锁定，等待这唯一一发落袋' : `可继续加注 · 命中返还 ${principal} × ${r.multiplier} = ${principal * r.multiplier} 颗`;
+    $('roundStatus').textContent = rolling ? '首次投珠成功，自动获取倍率…' : !r ? '点击投珠，自动激活并获取倍率' : r.phase === 'settled' ? '本局已结算，积分卡已入账' : r.phase === 'playing' ? '本金已锁定，等待这唯一一发落袋' : `可继续投珠加注 · 命中返还 ${principal} × ${r.multiplier} = ${principal * r.multiplier} 颗`;
     $('stakeInput').disabled = !editable || limit === 0;
     $('stakeInput').max = Math.max(1, limit);
     $('stakeSlider').max = Math.max(1, limit);
     $('stakeSlider').value = Number.isFinite(stake) ? Math.max(1, Math.min(limit, stake)) : 1;
     $('stakeSlider').disabled = !editable || limit === 0;
+    $('stakeSlider').parentElement.hidden = limit === 0;
     $('stakeRangeMax').textContent = `${limit} 颗`;
-    $('stakeDialogTitle').textContent = open ? '继续加注' : '投入弹珠';
+    $('stakeDialogTitle').textContent = '设置投珠数量';
     $('stakeMinus').disabled = !editable || limit === 0 || stake <= 1;
     $('stakePlus').disabled = !editable || stake >= limit;
     $('stakeLimit').textContent = r?.phase === 'playing' ? '发射后本金已锁定' : open ? `还可加注 ${limit} 颗` : '本金共 1—99 颗';
     document.querySelectorAll('[data-stake]').forEach(button => { button.disabled = !editable || Number(button.dataset.stake) > limit; button.classList.toggle('selected', Number(button.dataset.stake) === stake); });
-    $('stakeHint').textContent = r?.phase === 'playing' ? '已发射，本局不能再加注或发射' : charging ? '蓄力中，本金暂时锁定' : rolling ? '等待倍率确定后可继续加注' : limit === 0 ? '已达本局上限或弹珠余额不足' : !Number.isInteger(stake) || stake < 1 ? '请输入至少 1 颗的整数' : stake > limit ? `本次最多可投入 ${limit} 颗` : open ? `再投 ${stake} 颗，本金合计 ${principal + stake} 颗 · ${r.multiplier ? '倍率不变' : '倍率待确定'}` : `投入 ${stake} 颗激活游戏，再确定倍率`;
+    $('stakeHint').textContent = r?.phase === 'playing' ? '已发射，本局不能再加注或发射' : charging ? '蓄力中，本金暂时锁定' : rolling ? '等待倍率确定后可继续加注' : limit === 0 ? '已达本局上限或弹珠余额不足' : !Number.isInteger(stake) || stake < 1 ? '请输入至少 1 颗的整数' : stake > limit ? `本次最多可投入 ${limit} 颗` : '设置数量不会扣珠，回到台面点击投珠按钮后投入。';
     $('depositButton').disabled = !editable || !valid;
-    $('depositButton').textContent = `${open ? '加注' : '投入'} ${Number.isFinite(stake) ? stake : '—'} 颗${open ? '' : ' · 激活游戏'}`;
-    $('drawMultiplier').disabled = r?.phase !== 'activated' || charging || rolling;
-    $('drawMultiplier').textContent = rolling ? '正在抽取…' : r?.multiplier ? `已锁定 ${r.multiplier} 倍${r.phase === 'ready' ? ' · 可加注' : ''}` : r?.phase === 'activated' ? '确定倍率 · 随机 2—12 倍' : '先投入弹珠激活';
-    launchButton.disabled = rolling || r?.phase === 'playing';
+    $('depositButton').textContent = `投珠 ${Number.isFinite(stake) ? stake : '—'} 颗`;
+    $('saveStakeButton').disabled = !editable || (limit > 0 && !valid);
+    $('saveStakeButton').textContent = limit === 0 ? '返回台面' : `完成 · 每次投 ${Number.isFinite(stake) ? stake : '—'} 颗`;
+    $('multiplierStatus').textContent = rolling ? '首次投珠成功，正在获取倍率…' : r?.multiplier ? `已锁定 ${r.multiplier} 倍 · 加注不改变倍率` : '首次投珠自动抽取 2—12 倍，发射前加注倍率不变。';
+    launchButton.disabled = !canLaunch();
     $('leverHandle').disabled = !canLaunch();
-    $('addStakeButton').disabled = !editable || (limit === 0 && r?.phase !== 'activated');
-    $('addStakeButton').textContent = r?.phase === 'activated' ? '确定倍率 ✦' : limit === 0 ? '无法继续加注' : '继续加注 ↗';
-    $('leverInstruction').textContent = !r ? '先投珠激活游戏' : rolling ? '正在确定倍率…' : r.phase === 'activated' ? '请先确定本局倍率' : r.phase === 'playing' ? '本局已发射 · 等待落袋' : r.phase === 'settled' ? '本局完成 · 可开始下一局' : '下拉松手 · 本局仅此一发';
-    $('resetButton').disabled = rolling || activeCount() > 0 || !r;
-    $('resetButton').textContent = !r || r.phase === 'settled' ? '准备下一局 ↗' : activeCount() ? '等待弹珠落袋…' : `取消 · 退回 ${principal} 颗`;
+    $('addStakeButton').disabled = !editable;
+    $('leverInstruction').textContent = rolling ? '投珠成功 · 正在获取倍率' : !r ? '投珠后自动获取倍率' : r.phase === 'playing' ? '本局已发射 · 等待落袋' : r.phase === 'settled' ? '投珠开始下一局' : '下拉松手 · 本局仅此一发';
+    $('resetButton').hidden = !open;
+    $('resetButton').disabled = charging || rolling || activeCount() > 0 || !open;
+    $('resetButton').textContent = `取消本局 · 退回 ${principal} 颗`;
     $('rescueButton').hidden = game.wallet >= 1 || open;
     if (!charging) {
-      $('launchLabel').textContent = !r ? '选择投珠 · 激活游戏' : rolling ? '正在抽取倍率…' : r.phase === 'activated' ? '前往确定倍率 ↗' : r.phase === 'settled' ? '本局完成 · 准备下一局' : r.phase === 'playing' ? '等待弹珠落袋…' : '按住蓄力 · 仅发射一次';
+      $('launchLabel').textContent = rolling ? '正在获取倍率…' : !r || r.phase === 'settled' ? '先投珠 · 自动激活游戏' : r.phase === 'playing' ? '等待弹珠落袋…' : '按住蓄力 · 仅发射一次';
       $('launchSublabel').textContent = !r ? '1–99 PRINCIPAL / ONE SHOT' : canLaunch() ? `本金 ${principal} 颗 · ${r.multiplier} 倍好运` : 'PIGGY PINBALL CLUB';
     }
     $('shopCardCount').textContent = game.cards;
@@ -387,7 +388,7 @@
     engine.reset(); hits.clear(); slotFlashes.clear(); particles.length = 0; roundAnnounced = false;
     $('floatingScores').replaceChildren();
     $('boardHint').classList.remove('hide'); $('endDialog').close();
-    $('boardHint').innerHTML = '<span class="hint-star">✦</span> 投珠激活 · 确定倍率 · 一发定局 <span class="hint-star">✦</span>';
+    $('boardHint').innerHTML = '<span class="hint-star">✦</span> 投珠自动获取倍率 · 一发定局 <span class="hint-star">✦</span>';
     saveProgress(); cancelCharge(); drawBackground();
   }
   function depositStake() {
@@ -401,20 +402,14 @@
       engine.reset(); hits.clear(); slotFlashes.clear(); particles.length = 0;
       $('floatingScores').replaceChildren();
       $('boardHint').classList.remove('hide');
-      $('boardHint').innerHTML = '<span class="hint-star">✦</span> 游戏已激活 · 请确定倍率 <span class="hint-star">✦</span>';
+      $('boardHint').innerHTML = '<span class="hint-star">✦</span> 首次投珠成功 · 自动获取倍率 <span class="hint-star">✦</span>';
+      rollingUntil = performance.now() + 750; lastRollDigit = -1;
     }
     const limit = depositLimit();
     if (limit > 0 && currentStake() > limit) $('stakeInput').value = limit;
     saveProgress(); initAudio(); drawBackground(); updateUI();
     if ($('stakeDialog').open) $('stakeDialog').close();
-    toast(adding ? `加注成功，本金共 ${game.round.stake} 颗 · 发射前还可加注` : `已投入 ${game.round.stake} 颗，请点击确定倍率`);
-  }
-  function drawMultiplier() {
-    if (charging || performance.now() < rollingUntil) return;
-    const result = game.drawMultiplier();
-    if (!result.ok) { toast(result.error); return; }
-    rollingUntil = performance.now() + 750; lastRollDigit = -1;
-    saveProgress(); initAudio(); drawBackground(); updateUI();
+    toast(adding ? `加注成功，本金共 ${game.round.stake} 颗 · 倍率保持 ${game.round.multiplier} 倍` : `已投入 ${game.round.stake} 颗，自动获取倍率…`);
   }
   function finishRound() {
     const r = game.round;
@@ -437,6 +432,7 @@
     cancelCharge();
     const result = game.refundUnlaunched();
     if (!result.ok) { toast(result.error); return; }
+    if ($('stakeDialog').open) $('stakeDialog').close();
     saveProgress(); updateUI(); finishRound();
   }
   function renderShop() {
@@ -466,6 +462,8 @@
     }
     $('stakeInput').readOnly = mobile;
     $('stakeInput').setAttribute('inputmode', mobile ? 'none' : 'numeric');
+    if (mobile) $('addStakeButton').setAttribute('aria-haspopup', 'dialog');
+    else $('addStakeButton').removeAttribute('aria-haspopup');
     if (mobile) {
       const board = document.querySelector('.machine-section').getBoundingClientRect();
       const width = Math.max(0, Math.min(board.width - 12, (board.height - 33) * W / H));
@@ -573,17 +571,20 @@
   $('soundButton').addEventListener('click', toggleSound);
   $('hapticButton').addEventListener('click', toggleHaptics);
   $('depositButton').addEventListener('click', depositStake);
-  $('drawMultiplier').addEventListener('click', drawMultiplier);
+  $('saveStakeButton').addEventListener('click', () => {
+    if ($('saveStakeButton').disabled) return;
+    if ($('stakeDialog').open) $('stakeDialog').close();
+    if (depositLimit() === 0) { (canLaunch() ? $('leverHandle') : $('addStakeButton')).focus({ preventScroll: true }); return; }
+    $('depositButton').focus({ preventScroll: true });
+    toast(`已设定每次投入 ${currentStake()} 颗，点击投珠按钮后投入`);
+  });
   $('stakeInput').addEventListener('input', updateUI);
   $('stakeSlider').addEventListener('input', () => adjustStake(Number($('stakeSlider').value)));
   function adjustStake(value) { if (!canDeposit() || depositLimit() < 1) return; $('stakeInput').value = Math.max(1, Math.min(depositLimit(), value)); updateUI(); }
   $('stakeMinus').addEventListener('click', () => adjustStake((currentStake() || 1) - 1));
   $('stakePlus').addEventListener('click', () => adjustStake((currentStake() || 1) + 1));
   document.querySelectorAll('[data-stake]').forEach(button => button.addEventListener('click', () => adjustStake(Number(button.dataset.stake))));
-  $('addStakeButton').addEventListener('click', () => {
-    if (game.round?.phase === 'activated') drawMultiplier();
-    else goToSetup();
-  });
+  $('addStakeButton').addEventListener('click', goToSetup);
   $('resetButton').addEventListener('click', endOrPrepare);
   $('playAgain').addEventListener('click', prepareRound);
   $('rescueButton').addEventListener('click', () => {
@@ -613,7 +614,7 @@
     $('helpDialog').close();
     if (canLaunch()) {
       (isMobile() ? $('leverHandle') : launchButton).focus({ preventScroll: true });
-    } else (isMobile() ? isOpenRound() ? $('addStakeButton') : launchButton : $('stakeInput')).focus({ preventScroll: true });
+    } else $('depositButton').focus({ preventScroll: true });
   });
   $('helpPrev').addEventListener('click', () => showHelpPage(helpPage - 1));
   $('helpNext').addEventListener('click', () => showHelpPage(helpPage + 1));

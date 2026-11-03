@@ -5,7 +5,7 @@ const forMultiplier = multiplier => () => (multiplier - 2 + 0.01) / 11;
 const readyGame = (stake, multiplier = 2, saved) => {
   const game = new PinballRules(saved, forMultiplier(multiplier));
   assert.equal(game.startRound(stake).ok, true);
-  assert.equal(game.drawMultiplier().ok, true);
+  assert.equal(game.round.phase, 'ready');
   return game;
 };
 const finish = (game, hit = true, id = 'shot') => {
@@ -15,33 +15,41 @@ const finish = (game, hit = true, id = 'shot') => {
   return game.landBall(id, hit ? lit : dark);
 };
 
-// Investing activates a round; neither the multiplier nor a launch happens yet.
+// The first investment immediately activates the round and locks its multiplier.
+// Invalid investments cannot spend the wallet or consume randomness.
 let randomCalls = 0;
 const game = new PinballRules(undefined, () => { randomCalls++; return 0; });
 assert.equal(game.drawMultiplier().ok, false);
 assert.equal(game.addStake(1).ok, false);
+assert.equal(game.launchBall('too-early'), false);
 for (const invalid of [undefined, null, '5', NaN, Infinity, -1, 0, 1.5, 100]) assert.equal(game.startRound(invalid).ok, false);
 assert.equal(game.wallet, 990);
-assert.equal(game.startRound(1).ok, true);
-assert.equal(game.wallet, 989);
-assert.equal(game.round.phase, 'activated');
-assert.equal(game.round.multiplier, null);
-assert.deepEqual(game.round.litSlots, []);
-assert.equal(game.round.remaining, 1);
 assert.equal(randomCalls, 0);
-assert.equal(game.launchBall('too-early'), false);
+assert.equal(game.round, null);
+const activated = game.startRound(1);
+assert.equal(activated.ok, true);
+assert.equal(activated.round, game.round);
+assert.equal(game.wallet, 989);
+assert.equal(game.round.phase, 'ready');
+assert.equal(game.round.multiplier, 2);
+assert.equal(game.round.litSlots.length, PinballRules.LIT_COUNTS[2]);
+assert.equal(game.round.remaining, 1);
+assert.equal(game.round.launched, 0);
+assert.equal(randomCalls, 10);
 assert.equal(game.startRound(99).ok, false);
+assert.equal(game.wallet, 989);
+assert.equal(randomCalls, 10);
 assert.equal(game.clearRound(), false);
+const fixedLanes = [...game.round.litSlots];
 assert.equal(game.addStake(4).ok, true);
 assert.equal(game.round.stake, 5);
 assert.equal(game.wallet, 985);
-assert.equal(game.drawMultiplier().ok, true);
+assert.equal(game.drawMultiplier().ok, false);
 assert.equal(game.round.phase, 'ready');
 assert.equal(game.round.multiplier, 2);
 assert.equal(randomCalls, 10);
 
 // Additional investments change principal, but never redraw lamps or grant shots.
-const fixedLanes = [...game.round.litSlots];
 assert.equal(game.addStake(10).ok, true);
 assert.equal(game.round.stake, 15);
 assert.equal(game.wallet, 975);
@@ -52,6 +60,16 @@ assert.deepEqual(game.round.litSlots, fixedLanes);
 for (const invalid of [undefined, null, '5', NaN, Infinity, -1, 0, 0.5, 85, 100]) assert.equal(game.addStake(invalid).ok, false);
 assert.equal(game.wallet, 975);
 assert.equal(game.round.stake, 15);
+assert.equal(randomCalls, 10);
+assert.deepEqual(game.round.litSlots, fixedLanes);
+
+let poorRandomCalls = 0;
+const rejectedFirstStake = new PinballRules({ wallet: 2 }, () => { poorRandomCalls++; return 0; });
+assert.equal(rejectedFirstStake.startRound(3).ok, false);
+assert.equal(rejectedFirstStake.wallet, 2);
+assert.equal(rejectedFirstStake.round, null);
+assert.equal(rejectedFirstStake.roundNumber, 0);
+assert.equal(poorRandomCalls, 0);
 
 // Exactly one valid ball may launch. Invalid or duplicate landing events cannot pay.
 assert.equal(game.landBall('missing', 0).accepted, false);
@@ -96,7 +114,7 @@ for (let multiplier = 2; multiplier <= 12; multiplier++) {
 for (const [random, expected] of [[() => 1, 12], [() => 0, 2], [() => NaN, 7], [() => { throw Error(); }, 7]]) {
   const sample = new PinballRules(undefined, random);
   sample.startRound(1);
-  assert.equal(sample.drawMultiplier().round.multiplier, expected);
+  assert.equal(sample.round.multiplier, expected);
 }
 
 // The total stake is bounded, independently of how many investments were made.
@@ -136,14 +154,15 @@ for (const [multiplier, stake, cards] of [[2,14,0],[6,5,1],[12,5,2],[10,9,3],[12
 }
 const remainder = readyGame(5);
 finish(remainder);
-for (let i = 0; i < 2; i++) { remainder.startRound(5); remainder.drawMultiplier(); finish(remainder); }
+for (let i = 0; i < 2; i++) { remainder.startRound(5); finish(remainder); }
 assert.equal(remainder.cards, 0);
 
 // Before firing, cancellation returns every investment once, including top-ups.
-for (const shouldDraw of [false, true]) {
+for (const oldUndrawnRound of [false, true]) {
   const canceled = new PinballRules();
   canceled.startRound(3);
-  if (shouldDraw) canceled.drawMultiplier();
+  // A pre-change activated round remains refundable for backward compatibility.
+  if (oldUndrawnRound) Object.assign(canceled.round, { phase: 'activated', multiplier: null, litSlots: [] });
   canceled.addStake(7);
   assert.deepEqual(canceled.refundUnlaunched(), { ok: true, refunded: 10, cardsAwarded: 0 });
   assert.equal(canceled.wallet, 990);
@@ -169,7 +188,7 @@ assert.equal(collected.recovered, null);
 for (const phase of ['activated', 'ready', 'playing']) {
   const interrupted = new PinballRules(undefined, forMultiplier(12));
   interrupted.startRound(10);
-  if (phase !== 'activated') interrupted.drawMultiplier();
+  if (phase === 'activated') Object.assign(interrupted.round, { phase, multiplier: null, litSlots: [] });
   interrupted.addStake(15);
   if (phase === 'playing') interrupted.launchBall('flying');
   assert.equal(interrupted.serialize().version, 2);
@@ -236,4 +255,4 @@ for (const corrupt of [
   assert.equal(sample.wallet, 980);
   assert.equal(sample.cards, 0);
 }
-console.log('Rules passed: activation, locked multipliers, 1–99 total principal, pre-shot top-ups, single-shot settlement, cards, gifts, v1 migration, recovery and duplicate protection.');
+console.log('Rules passed: automatic first-deposit multiplier, locked targets on top-ups, rejected-deposit atomicity, 1–99 total principal, single-shot settlement, cards, gifts, v1/undrawn-round migration, recovery and duplicate protection.');
