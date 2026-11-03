@@ -295,7 +295,9 @@
     $('scoreDigits').textContent = String(settled ? won : possibleReturn).padStart(5, '0');
     $('scoreDisplayLabel').textContent = settled ? '本局返珠' : '命中可返';
     $('scoreDigits').setAttribute('aria-label', settled ? '本局实际返珠' : '命中亮灯轨道可返弹珠');
-    $('ballDigits').textContent = String(principal).padStart(2, '0');
+    $('rewardCardDigits').textContent = String(settled ? r.cardsAwarded : Math.floor(possibleReturn / 30)).padStart(2, '0');
+    $('rewardCardDigits').setAttribute('aria-label', settled ? '本局实际获得积分卡，单位张' : '命中亮灯轨道可获积分卡，单位张');
+    $('rewardCardLabel').innerHTML = `${settled ? '本局得卡' : '可获积分卡'} <small>CARDS</small>`;
     $('remainingBalls').textContent = principal;
     $('principalAmount').textContent = principal;
     $('potentialWin').textContent = r?.multiplier && !rolling ? possibleReturn : '—';

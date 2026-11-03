@@ -50,7 +50,7 @@
         <div class="marquee"><div class="marquee-side">★<br>★</div><div><span class="marquee-kicker">THE LITTLE BALL OF LUCK</span><h2>PIGGY <span>PINBALL</span></h2></div><div class="marquee-side">★<br>★</div></div>
         <div class="scoreboard">
           <div class="score-display"><span id="scoreDisplayLabel">命中可返</span><strong id="scoreDigits" aria-label="命中可返弹珠">0000</strong></div>
-          <div class="score-display balls-display"><span>本局本金 <small>STAKE</small></span><strong id="ballDigits" aria-label="本局本金">00</strong></div>
+          <div class="score-display balls-display"><span id="rewardCardLabel">可获积分卡 <small>CARDS</small></span><strong id="rewardCardDigits" aria-label="命中亮灯轨道可获积分卡，单位张">00</strong></div>
           <div class="score-display multiplier-display"><span>本局倍率 <small>LUCK</small></span><strong id="multiplierDigits" aria-label="本局倍率">--×</strong></div>
         </div>
         <div class="board-surround"><div class="led-strip led-left"></div><div class="led-strip led-right"></div><div class="board-window"><canvas id="gameCanvas" width="600" height="760" aria-label="弹珠台面。首次投珠自动激活并获取倍率，发射前可以继续投珠加注。每局仅发射一次，命中亮灯轨道按总本金乘倍率返珠。"></canvas><div class="board-hint" id="boardHint"><span class="hint-star">✦</span> 投珠激活 · 每局只发射一次 <span class="hint-star">✦</span></div><div class="floating-scores" id="floatingScores" aria-hidden="true"></div></div></div>
@@ -117,6 +117,6 @@
   <script src="rules.js?v=20261103-deposit"></script>
   <script src="haptics.js"></script>
   <script src="audio.js?v=20261103-safari"></script>
-  <script src="app.js?v=20261103-deposit"></script>
+  <script src="app.js?v=20261103-cards"></script>
 </body>
 </html>
