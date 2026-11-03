@@ -158,17 +158,6 @@ button:disabled{opacity:.45}
 .help-button{font-family:var(--mono);font-size:20px;font-weight:700}
 .haptic-button[aria-pressed=true]{color:var(--yellow);border-color:#77764c}
 .haptic-button.muted{opacity:.55}
-.power-adjust{display:flex;align-items:center;gap:6px}
-.power-adjust button{width:32px;height:30px;padding:0;border:1px solid #697452;border-radius:5px;background:#35412b;color:#f3d188;font:18px/1 var(--mono);touch-action:manipulation}
-.power-adjust button:active:not(:disabled){background:#596440}
-.power-adjust button:disabled{opacity:.4}
-.power-adjust b{min-width:40px;text-align:center;font-variant-numeric:tabular-nums}
-.lever-information .power-adjust b{font-size:14px;color:#f3d188}
-.shot-summary{display:flex;align-items:center;justify-content:space-between;gap:7px;margin-top:9px;font-size:10px;color:#c5d0ae;white-space:nowrap}
-.shot-summary>span:last-child{color:#94a285;font-size:9px}
-.shot-summary b{color:#e1d5ae;font-family:var(--mono)}
-.power-meter .last-power-marker{position:absolute;top:0;bottom:0;width:2px;background:#fff3b6;transform:translateX(-1px);z-index:2}
-.power-meter .last-power-marker[hidden]{display:none}
 .mobile-stake-slider{display:none}
 #setupHome,#setupControls{min-width:0}
 #helpDialog{overflow:hidden}
@@ -218,11 +207,8 @@ button:disabled{opacity:.45}
   .launch-console{position:relative;inset:auto;display:block;width:100%;height:128px;min-height:0;padding:8px 12px;margin:0;border:1px solid #4c5b3a;border-width:1px 0 0;background:#222b1ef5;box-shadow:none;backdrop-filter:none;border-radius:12px 12px 0 0}
   .launch-console .lever-controls{gap:14px;margin:0;align-items:flex-start}.launch-console .lever-track{width:58px;flex-basis:58px;height:112px;margin:0}
   .launch-console .lever-information>p{font-size:12px;line-height:16px;letter-spacing:0;white-space:nowrap}
-  .launch-console .power-section{margin-top:2px}.launch-console .power-heading{font-size:9px;line-height:12px;min-height:30px}.launch-console .power-heading b{font-size:12px}
-  .launch-console .power-adjust{gap:5px}.launch-console .power-adjust button{width:32px;height:30px}
-  .launch-console .power-meter{margin-top:1px;height:5px}
-  .launch-console .shot-summary{margin-top:3px;font-size:10px;line-height:13px}
-  .launch-console .power-meter{height:5px;margin-top:1px}.launch-console .balls-summary{margin-top:5px;font-size:10px;line-height:15px}.launch-console .balls-summary b{font-size:14px}
+  .launch-console .power-section{margin-top:6px}.launch-console .power-heading{font-size:9px;line-height:12px}.launch-console .power-heading b{font-size:10px}
+  .launch-console .power-meter{height:7px;margin-top:4px}.launch-console .balls-summary{margin-top:5px;font-size:10px;line-height:15px}.launch-console .balls-summary b{font-size:14px}
   .launch-console .launch-button,.launch-console .round-actions{inset:auto 84px 8px 12px;height:34px;min-height:0;padding:0;margin:0;max-width:none;box-shadow:none}
   .launch-console .launch-button{padding:4px 8px;border-bottom-width:2px;gap:7px}.launch-console .launch-button b{font-size:11px;letter-spacing:0}.launch-console .launch-icon{font-size:21px}
   .launch-console .round-actions{padding:0;gap:7px}.launch-console .round-actions>button{height:34px;padding:4px 5px;font-size:10px;border-radius:5px}
@@ -346,8 +332,8 @@ button:disabled{opacity:.45}
       <section class="launcher-section" aria-labelledby="launcherLabel">
         <div class="step-label"><span>03</span><b id="launcherLabel">拉杆发射</b><small>每局仅一次 · 发射后锁定本金</small></div>
         <div class="lever-controls">
-          <div class="lever-track" id="leverTrack"><div class="lever-rail" aria-hidden="true"></div><div class="lever-spring" aria-hidden="true"></div><button type="button" class="lever-handle" id="leverHandle" aria-label="以50%力度发射，拖动拉杆可调整力度" disabled><span>•••</span></button><span class="lever-arrow" aria-hidden="true">↓</span></div>
-          <div class="lever-information"><p id="leverInstruction">先投珠激活，再确定倍率</p><div class="power-section"><div class="power-heading"><span>发射力度</span><div class="power-adjust"><button type="button" id="powerMinus" aria-label="力度减少1%" disabled>−</button><b id="powerLabel">50%</b><button type="button" id="powerPlus" aria-label="力度增加1%" disabled>＋</button></div></div><div class="power-meter" id="powerMeter" role="progressbar" aria-label="发射力度" aria-valuemin="1" aria-valuemax="100" aria-valuenow="50"><span id="powerFill"></span><i></i><i></i><i></i><i></i><b class="last-power-marker" id="lastPowerMarker" aria-hidden="true" hidden></b></div><div class="power-scale"><span>小力偏右</span><span>大力偏左</span></div></div><div class="shot-summary"><span id="shotMemory">落袋后记录力度与轨道</span><span>本金 <b id="remainingBalls">0</b></span></div></div>
+          <div class="lever-track" id="leverTrack"><div class="lever-rail" aria-hidden="true"></div><div class="lever-spring" aria-hidden="true"></div><button type="button" class="lever-handle" id="leverHandle" aria-label="向下拉动拉杆蓄力，松开发射" disabled><span>•••</span></button><span class="lever-arrow" aria-hidden="true">↓</span></div>
+          <div class="lever-information"><p id="leverInstruction">先投珠激活，再确定倍率</p><div class="power-section"><div class="power-heading"><span>发射力度</span><b id="powerLabel">等待蓄力</b></div><div class="power-meter" id="powerMeter" role="progressbar" aria-label="发射力度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="powerFill"></span><i></i><i></i><i></i><i></i></div><div class="power-scale"><span>轻轻一弹</span><span>全力出击</span></div></div><div class="balls-summary"><span>本局本金</span><span><b id="remainingBalls">0</b> <small>颗</small></span></div></div>
         </div>
         <div class="round-meter" aria-hidden="true"><span id="roundProgress"></span></div><p class="round-progress-text" id="roundProgressText">等待投入弹珠</p>
       </section>
@@ -363,7 +349,7 @@ button:disabled{opacity:.45}
   <dialog id="stakeDialog" class="game-dialog stake-dialog" aria-labelledby="stakeDialogTitle"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">YOUR NEXT SHOT</div><h2 id="stakeDialogTitle">投入弹珠</h2><div id="stakeDialogContent"></div></dialog>
   <dialog id="helpDialog" class="game-dialog" aria-labelledby="helpTitle"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">HOW TO PLAY</div><h2 id="helpTitle">一发，接住好运。</h2>
     <section class="help-page" aria-label="投珠与倍率"><span class="help-page-icon" aria-hidden="true">①</span><h3>先投珠，再确定倍率</h3><p>投入 <b>1—99 颗</b>弹珠激活游戏，点击“确定倍率”随机抽取 <b>2—12 倍</b>。</p><p>发射前可继续加注，所有投入都算本金，合计最多 99 颗。倍率和亮灯轨道不会改变。</p><p class="help-note">倍率越低，亮灯轨道越多。</p></section>
-    <section class="help-page" aria-label="发射与返珠" hidden><span class="help-page-icon" aria-hidden="true">②</span><h3>调准力度，一发定局</h3><p>用 <b>± 每次微调 1%</b>，轻点拉杆按设定力度发射；也可上下拖动拉杆，松手发射。</p><p>同力度可复现落点，力度越大整体越偏左。参考上次的力度与轨道，瞄准本局亮灯位置。</p><div class="help-example">亮灯命中返还 <b>本金 × 倍率</b><br>每局仅一发，未命中不返珠</div></section>
+    <section class="help-page" aria-label="发射与返珠" hidden><span class="help-page-icon" aria-hidden="true">②</span><h3>调准力度，一发定局</h3><p>下拉蓄力，松手发射。每局仅一次发射机会，同力度可复现落点。</p><p>参考上次记录练习。密集碰撞下，加力不一定让落点向同一方向移动。</p><p class="help-note" id="shotMemory">落袋后记录力度与轨道</p><div class="help-example">亮灯命中返还 <b>本金 × 倍率</b><br>每局仅一发，未命中不返珠</div></section>
     <section class="help-page" aria-label="积分与礼品" hidden><span class="help-page-icon" aria-hidden="true">③</span><h3>攒积分卡，兑换小礼品</h3><p>中奖返珠每满 <b>30 颗</b>得 <b>1 张卡</b>，余数不跨局累计。礼品柜可兑换游戏内藏品。</p><div class="help-slots"><span>30 颗<small>1 张卡</small></span><span>60 颗<small>2 张卡</small></span><span>90 颗<small>3 张卡</small></span></div><p class="help-note">余额和藏品自动保存在当前浏览器。发射前取消或刷新未结算回合，可退回本金。</p></section>
     <div class="help-pagination"><button id="helpPrev" type="button" disabled>← 上一页</button><span id="helpPageCount" aria-live="polite">1 / 3</span><button id="helpNext" type="button">下一页 →</button></div><button class="dialog-primary" type="button" id="startPlaying">知道了，开玩！ ↗</button>
   </dialog>
@@ -379,7 +365,7 @@ button:disabled{opacity:.45}
   const BALL_RADIUS = 8.5;
   const GRAVITY = 780;
   const EXIT_SPEED_MIN = 12;
-  const EXIT_SPEED_RANGE = 518;
+  const EXIT_SPEED_RANGE = 928;
   const PEG_RESTITUTION = 0.15;
   const LIP_RESTITUTION = 0.05;
   const CONTACT_DAMPING = 0.15;
@@ -401,12 +387,13 @@ button:disabled{opacity:.45}
       this.radius = BALL_RADIUS;
       this.pegs = [];
       let id = 0;
-      // Seven rows of cushioned guide pins line up with the scoring dividers.
-      // The open upper field lets launch speed select a region before contact;
-      // aligned lower rows avoid amplifying small aim changes across the table.
-      for (let row = 0; row < 7; row++) {
-        for (let column = 0; column < 9; column++) {
-          this.pegs.push({ id: id++, x: 88 + column * 48, y: 360 + row * 45, radius: 6.2, row, column });
+      // Preserve the original staggered playfield, including pin positions,
+      // spacing and radii. Repeatability comes from deterministic contacts.
+      for (let row = 0; row < 8; row++) {
+        const count = row % 2 === 0 ? 9 : 8;
+        const start = row % 2 === 0 ? 62 : 90;
+        for (let column = 0; column < count; column++) {
+          this.pegs.push({ id: id++, x: start + column * 54, y: 170 + row * 60, radius: 6.2, row, column });
         }
       }
       this.slots = VALUES.map((value, index) => ({ x: 40 + index * 48, y: 650, width: 48, height: 80, value, index }));
@@ -1281,13 +1268,12 @@ button:disabled{opacity:.45}
   let sound = readStorage('piggySound', 'true') !== 'false';
   let charging = false, chargeStart = 0, power = 0, chargeSource = '', activePointer = null;
   let lastFrame = performance.now(), toastTimer, endTimer, roundAnnounced = false;
-  let rollingUntil = 0, lastRollDigit = -1, lastPower = .5, dragStartY = 0, dragStartPower = 0;
+  let rollingUntil = 0, lastRollDigit = -1, lastPower = .65, dragStartY = 0;
   let helpPage = 0, layoutFrame = 0;
   const audio = new PinballAudio({ enabled: sound });
   const haptics = new PinballHaptics({ enabled: readStorage('piggyHaptics', 'true') !== 'false' });
   const hits = new Map(), slotFlashes = new Map(), particles = [], recent = loadPractice();
-  let selectedPower = normalizePower(recent[0]?.power ?? .5);
-  lastPower = selectedPower;
+  lastPower = normalizePower(recent[0]?.power ?? .65);
   const engine = new PinballPhysics({ onPegHit, onScore, onImpact, onLaunch: event => { playSound('launch'); haptics.launch(event.power); } });
 
   function readStorage(key, fallback) { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } }
@@ -1295,7 +1281,7 @@ button:disabled{opacity:.45}
   function normalizePower(value) { return Math.max(.01, Math.min(1, Math.round(value * 100) / 100)); }
   function loadPractice() {
     try {
-      const saved = JSON.parse(readStorage('piggyPracticeSkillV1', '[]'));
+      const saved = JSON.parse(readStorage('piggyPracticeClassicV1', '[]'));
       if (!Array.isArray(saved)) return [];
       return saved.filter(s => s && Number.isFinite(s.power) && s.power >= .01 && s.power <= 1 && Number.isInteger(s.slot) && s.slot >= 1 && s.slot <= 10 && typeof s.hit === 'boolean' && Number.isSafeInteger(s.reward) && s.reward >= 0).slice(0, 3);
     } catch { return []; }
@@ -1304,8 +1290,6 @@ button:disabled{opacity:.45}
     const previous = recent[0];
     $('shotMemory').textContent = previous ? `上次 ${Math.round(previous.power * 100)}% → ${String(previous.slot).padStart(2, '0')}轨` : '落袋后记录力度与轨道';
     $('shotMemory').setAttribute('aria-label', previous ? `上次力度 ${Math.round(previous.power * 100)}%，落入从左数第 ${previous.slot} 条轨道` : '完成一次发射后记录力度与轨道');
-    $('lastPowerMarker').hidden = !previous;
-    if (previous) $('lastPowerMarker').style.left = `${previous.power * 100}%`;
     $('recentShots').innerHTML = recent.length ? recent.map(s => `<li><span><span class="shot-num">${Math.round(s.power * 100)}% → ${String(s.slot).padStart(2, '0')} 轨</span>${s.hit ? '亮灯命中' : '已记录落点'}</span><span class="shot-points">${s.hit ? `+${s.reward} 珠` : '未中奖'}</span></li>`).join('') : '<li class="history-empty">练习力度，记住落点 <span>↘</span></li>';
   }
   function saveProgress() { saveStorage('piggyArcadeV2', JSON.stringify(game.serialize())); }
@@ -1524,7 +1508,7 @@ button:disabled{opacity:.45}
     saveProgress();
     recent.unshift({ hit: result.hit, reward: result.reward, slot: event.slotIndex + 1, power: event.power ?? lastPower });
     recent.length = Math.min(3, recent.length);
-    saveStorage('piggyPracticeSkillV1', JSON.stringify(recent)); renderPractice();
+    saveStorage('piggyPracticeClassicV1', JSON.stringify(recent)); renderPractice();
     if (result.hit) {
       slotFlashes.set(event.slotIndex, performance.now());
       const pop = document.createElement('span'); pop.className = 'score-pop big';
@@ -1593,33 +1577,30 @@ button:disabled{opacity:.45}
     $('leverHandle').disabled = !canLaunch();
     $('addStakeButton').disabled = !editable || (limit === 0 && r?.phase !== 'activated');
     $('addStakeButton').textContent = r?.phase === 'activated' ? '确定倍率 ✦' : limit === 0 ? '无法继续加注' : '继续加注 ↗';
-    $('leverInstruction').textContent = !r ? '先投珠激活游戏' : rolling ? '正在确定倍率…' : r.phase === 'activated' ? '请先确定本局倍率' : r.phase === 'playing' ? `${Math.round(lastPower * 100)}% 已发射 · 等待落袋` : r.phase === 'settled' ? '本局完成 · 可开始下一局' : '轻点拉杆发射 · 拖动可调力度';
-    $('powerMinus').disabled = !canLaunch() || charging || selectedPower <= .01;
-    $('powerPlus').disabled = !canLaunch() || charging || selectedPower >= 1;
+    $('leverInstruction').textContent = !r ? '先投珠激活游戏' : rolling ? '正在确定倍率…' : r.phase === 'activated' ? '请先确定本局倍率' : r.phase === 'playing' ? '本局已发射 · 等待落袋' : r.phase === 'settled' ? '本局完成 · 可开始下一局' : '下拉松手 · 本局仅此一发';
     $('resetButton').disabled = rolling || activeCount() > 0 || !r;
     $('resetButton').textContent = !r || r.phase === 'settled' ? '准备下一局 ↗' : activeCount() ? '等待弹珠落袋…' : `取消 · 退回 ${principal} 颗`;
     $('rescueButton').hidden = game.wallet >= 1 || open;
     if (!charging) {
-      $('launchLabel').textContent = !r ? '选择投珠 · 激活游戏' : rolling ? '正在抽取倍率…' : r.phase === 'activated' ? '前往确定倍率 ↗' : r.phase === 'settled' ? '本局完成 · 准备下一局' : r.phase === 'playing' ? '等待弹珠落袋…' : `轻点 ${Math.round(selectedPower * 100)}% 发射 · 按住加力`;
+      $('launchLabel').textContent = !r ? '选择投珠 · 激活游戏' : rolling ? '正在抽取倍率…' : r.phase === 'activated' ? '前往确定倍率 ↗' : r.phase === 'settled' ? '本局完成 · 准备下一局' : r.phase === 'playing' ? '等待弹珠落袋…' : '按住蓄力 · 仅发射一次';
       $('launchSublabel').textContent = !r ? '1–99 PRINCIPAL / ONE SHOT' : canLaunch() ? `本金 ${principal} 颗 · ${r.multiplier} 倍好运` : 'PIGGY PINBALL CLUB';
     }
     $('shopCardCount').textContent = game.cards;
     if ($('shopDialog').open) renderShop();
   }
   function updatePower() {
-    const shownPower = charging ? power : selectedPower;
-    powerFill.style.width = `${shownPower * 100}%`;
-    $('powerMeter').setAttribute('aria-valuenow', Math.round(shownPower * 100));
-    powerLabel.textContent = `${Math.round(shownPower * 100)}%`;
-    $('leverHandle').setAttribute('aria-label', `以 ${Math.round(shownPower * 100)}% 力度发射，拖动拉杆可调整力度`);
-    $('leverTrack').style.setProperty('--pull', String(shownPower));
+    powerFill.style.width = `${power * 100}%`;
+    $('powerMeter').setAttribute('aria-valuenow', Math.round(power * 100));
+    powerLabel.textContent = charging ? `${Math.round(power * 100)}%` : '等待拉动';
+    $('leverHandle').setAttribute('aria-label', charging ? `当前力度 ${Math.round(power * 100)}%，松开发射` : '向下拉动拉杆蓄力，松开发射');
+    $('leverTrack').style.setProperty('--pull', String(power));
     if (charging) $('launchLabel').textContent = `${Math.round(power * 100)}% · 松手发射`;
     if (charging) haptics.pull(power);
   }
   function beginCharge(source) {
     if (charging || !canLaunch() || document.querySelector('dialog[open]')) return false;
     if (activeCount() > 0) return false;
-    initAudio(); charging = true; chargeSource = source; chargeStart = performance.now(); power = selectedPower;
+    initAudio(); charging = true; chargeSource = source; chargeStart = performance.now(); power = source.startsWith('lever') ? 0 : .08;
     haptics.beginCharge();
     launchButton.classList.add('charging'); $('launchSublabel').textContent = 'RELEASE TO LAUNCH'; updatePower(); updateUI(); return true;
   }
@@ -1642,10 +1623,9 @@ button:disabled{opacity:.45}
     // A touch release is a valid Safari audio gesture, even when pointerdown
     // did not unlock playback. Do this before the launch sound is requested.
     initAudio();
-    const force = normalizePower(power);
-    selectedPower = force;
+    const force = normalizePower(power), dragged = !chargeSource.startsWith('lever') || power >= .01;
     cancelCharge();
-    fire(force);
+    if (dragged) fire(force);
   }
   function prepareRound() {
     clearTimeout(endTimer); endTimer = undefined; rollingUntil = 0;
@@ -1789,12 +1769,12 @@ button:disabled{opacity:.45}
         if ((e.clientX - bounds.left) / bounds.width * W > 535) source = 'lever-canvas';
       }
       if (!beginCharge(source)) return;
-      activePointer = e.pointerId; dragStartY = e.clientY; dragStartPower = power; element.setPointerCapture(e.pointerId);
+      activePointer = e.pointerId; dragStartY = e.clientY; element.setPointerCapture(e.pointerId);
     });
     element.addEventListener('pointermove', e => {
       if (activePointer !== e.pointerId || !chargeSource.startsWith('lever')) return;
       const distance = mode === 'canvas' ? canvas.getBoundingClientRect().height / H * 110 : 70;
-      power = normalizePower(dragStartPower + (e.clientY - dragStartY) / distance); updatePower();
+      power = Math.max(0, Math.min(1, Math.round((e.clientY - dragStartY) / distance * 100) / 100)); updatePower();
     });
     element.addEventListener('pointerup', e => { if (activePointer === e.pointerId) { e.preventDefault(); releaseCharge(); } });
     element.addEventListener('pointercancel', e => { if (activePointer === e.pointerId) cancelCharge(); });
@@ -1803,7 +1783,7 @@ button:disabled{opacity:.45}
     if (mode !== 'canvas') element.addEventListener('click', e => {
       if (e.detail !== 0 || charging) return;
       if (element === launchButton && (!isOpenRound() || game.round.phase === 'activated')) { goToSetup(); return; }
-      if (beginCharge('accessible')) releaseCharge();
+      if (beginCharge('accessible')) { power = lastPower; releaseCharge(); }
     });
   }
   bindLauncher(launchButton, 'pointer');
@@ -1837,13 +1817,6 @@ button:disabled{opacity:.45}
   window.addEventListener('pageshow', () => audio.recover());
   window.addEventListener('focus', () => audio.recover());
   $('soundButton').addEventListener('click', toggleSound);
-  function adjustPower(delta) {
-    if (!canLaunch() || charging) return;
-    selectedPower = normalizePower(selectedPower + delta);
-    updatePower(); updateUI();
-  }
-  $('powerMinus').addEventListener('click', () => adjustPower(-.01));
-  $('powerPlus').addEventListener('click', () => adjustPower(.01));
   $('hapticButton').addEventListener('click', toggleHaptics);
   $('depositButton').addEventListener('click', depositStake);
   $('drawMultiplier').addEventListener('click', drawMultiplier);
@@ -1893,7 +1866,7 @@ button:disabled{opacity:.45}
 
   function frame(now) {
     const dt = Math.min((now - lastFrame) / 1000, .05); lastFrame = now;
-    if (charging && !chargeSource.startsWith('lever')) { power = normalizePower(selectedPower + Math.max(0, now - chargeStart - 180) / 1800); updatePower(); }
+    if (charging && !chargeSource.startsWith('lever')) { const t = (now - chargeStart) / 1300; power = normalizePower(.08 + .92 * (1 - Math.abs((t % 2) - 1))); updatePower(); }
     if (rollingUntil > 0) {
       if (now < rollingUntil) {
         const digit = 2 + Math.floor(now / 65) % 11;

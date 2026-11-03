@@ -22,13 +22,12 @@
   let sound = readStorage('piggySound', 'true') !== 'false';
   let charging = false, chargeStart = 0, power = 0, chargeSource = '', activePointer = null;
   let lastFrame = performance.now(), toastTimer, endTimer, roundAnnounced = false;
-  let rollingUntil = 0, lastRollDigit = -1, lastPower = .5, dragStartY = 0, dragStartPower = 0;
+  let rollingUntil = 0, lastRollDigit = -1, lastPower = .65, dragStartY = 0;
   let helpPage = 0, layoutFrame = 0;
   const audio = new PinballAudio({ enabled: sound });
   const haptics = new PinballHaptics({ enabled: readStorage('piggyHaptics', 'true') !== 'false' });
   const hits = new Map(), slotFlashes = new Map(), particles = [], recent = loadPractice();
-  let selectedPower = normalizePower(recent[0]?.power ?? .5);
-  lastPower = selectedPower;
+  lastPower = normalizePower(recent[0]?.power ?? .65);
   const engine = new PinballPhysics({ onPegHit, onScore, onImpact, onLaunch: event => { playSound('launch'); haptics.launch(event.power); } });
 
   function readStorage(key, fallback) { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } }
@@ -36,7 +35,7 @@
   function normalizePower(value) { return Math.max(.01, Math.min(1, Math.round(value * 100) / 100)); }
   function loadPractice() {
     try {
-      const saved = JSON.parse(readStorage('piggyPracticeSkillV1', '[]'));
+      const saved = JSON.parse(readStorage('piggyPracticeClassicV1', '[]'));
       if (!Array.isArray(saved)) return [];
       return saved.filter(s => s && Number.isFinite(s.power) && s.power >= .01 && s.power <= 1 && Number.isInteger(s.slot) && s.slot >= 1 && s.slot <= 10 && typeof s.hit === 'boolean' && Number.isSafeInteger(s.reward) && s.reward >= 0).slice(0, 3);
     } catch { return []; }
@@ -45,8 +44,6 @@
     const previous = recent[0];
     $('shotMemory').textContent = previous ? `上次 ${Math.round(previous.power * 100)}% → ${String(previous.slot).padStart(2, '0')}轨` : '落袋后记录力度与轨道';
     $('shotMemory').setAttribute('aria-label', previous ? `上次力度 ${Math.round(previous.power * 100)}%，落入从左数第 ${previous.slot} 条轨道` : '完成一次发射后记录力度与轨道');
-    $('lastPowerMarker').hidden = !previous;
-    if (previous) $('lastPowerMarker').style.left = `${previous.power * 100}%`;
     $('recentShots').innerHTML = recent.length ? recent.map(s => `<li><span><span class="shot-num">${Math.round(s.power * 100)}% → ${String(s.slot).padStart(2, '0')} 轨</span>${s.hit ? '亮灯命中' : '已记录落点'}</span><span class="shot-points">${s.hit ? `+${s.reward} 珠` : '未中奖'}</span></li>`).join('') : '<li class="history-empty">练习力度，记住落点 <span>↘</span></li>';
   }
   function saveProgress() { saveStorage('piggyArcadeV2', JSON.stringify(game.serialize())); }
@@ -265,7 +262,7 @@
     saveProgress();
     recent.unshift({ hit: result.hit, reward: result.reward, slot: event.slotIndex + 1, power: event.power ?? lastPower });
     recent.length = Math.min(3, recent.length);
-    saveStorage('piggyPracticeSkillV1', JSON.stringify(recent)); renderPractice();
+    saveStorage('piggyPracticeClassicV1', JSON.stringify(recent)); renderPractice();
     if (result.hit) {
       slotFlashes.set(event.slotIndex, performance.now());
       const pop = document.createElement('span'); pop.className = 'score-pop big';
@@ -334,33 +331,30 @@
     $('leverHandle').disabled = !canLaunch();
     $('addStakeButton').disabled = !editable || (limit === 0 && r?.phase !== 'activated');
     $('addStakeButton').textContent = r?.phase === 'activated' ? '确定倍率 ✦' : limit === 0 ? '无法继续加注' : '继续加注 ↗';
-    $('leverInstruction').textContent = !r ? '先投珠激活游戏' : rolling ? '正在确定倍率…' : r.phase === 'activated' ? '请先确定本局倍率' : r.phase === 'playing' ? `${Math.round(lastPower * 100)}% 已发射 · 等待落袋` : r.phase === 'settled' ? '本局完成 · 可开始下一局' : '轻点拉杆发射 · 拖动可调力度';
-    $('powerMinus').disabled = !canLaunch() || charging || selectedPower <= .01;
-    $('powerPlus').disabled = !canLaunch() || charging || selectedPower >= 1;
+    $('leverInstruction').textContent = !r ? '先投珠激活游戏' : rolling ? '正在确定倍率…' : r.phase === 'activated' ? '请先确定本局倍率' : r.phase === 'playing' ? '本局已发射 · 等待落袋' : r.phase === 'settled' ? '本局完成 · 可开始下一局' : '下拉松手 · 本局仅此一发';
     $('resetButton').disabled = rolling || activeCount() > 0 || !r;
     $('resetButton').textContent = !r || r.phase === 'settled' ? '准备下一局 ↗' : activeCount() ? '等待弹珠落袋…' : `取消 · 退回 ${principal} 颗`;
     $('rescueButton').hidden = game.wallet >= 1 || open;
     if (!charging) {
-      $('launchLabel').textContent = !r ? '选择投珠 · 激活游戏' : rolling ? '正在抽取倍率…' : r.phase === 'activated' ? '前往确定倍率 ↗' : r.phase === 'settled' ? '本局完成 · 准备下一局' : r.phase === 'playing' ? '等待弹珠落袋…' : `轻点 ${Math.round(selectedPower * 100)}% 发射 · 按住加力`;
+      $('launchLabel').textContent = !r ? '选择投珠 · 激活游戏' : rolling ? '正在抽取倍率…' : r.phase === 'activated' ? '前往确定倍率 ↗' : r.phase === 'settled' ? '本局完成 · 准备下一局' : r.phase === 'playing' ? '等待弹珠落袋…' : '按住蓄力 · 仅发射一次';
       $('launchSublabel').textContent = !r ? '1–99 PRINCIPAL / ONE SHOT' : canLaunch() ? `本金 ${principal} 颗 · ${r.multiplier} 倍好运` : 'PIGGY PINBALL CLUB';
     }
     $('shopCardCount').textContent = game.cards;
     if ($('shopDialog').open) renderShop();
   }
   function updatePower() {
-    const shownPower = charging ? power : selectedPower;
-    powerFill.style.width = `${shownPower * 100}%`;
-    $('powerMeter').setAttribute('aria-valuenow', Math.round(shownPower * 100));
-    powerLabel.textContent = `${Math.round(shownPower * 100)}%`;
-    $('leverHandle').setAttribute('aria-label', `以 ${Math.round(shownPower * 100)}% 力度发射，拖动拉杆可调整力度`);
-    $('leverTrack').style.setProperty('--pull', String(shownPower));
+    powerFill.style.width = `${power * 100}%`;
+    $('powerMeter').setAttribute('aria-valuenow', Math.round(power * 100));
+    powerLabel.textContent = charging ? `${Math.round(power * 100)}%` : '等待拉动';
+    $('leverHandle').setAttribute('aria-label', charging ? `当前力度 ${Math.round(power * 100)}%，松开发射` : '向下拉动拉杆蓄力，松开发射');
+    $('leverTrack').style.setProperty('--pull', String(power));
     if (charging) $('launchLabel').textContent = `${Math.round(power * 100)}% · 松手发射`;
     if (charging) haptics.pull(power);
   }
   function beginCharge(source) {
     if (charging || !canLaunch() || document.querySelector('dialog[open]')) return false;
     if (activeCount() > 0) return false;
-    initAudio(); charging = true; chargeSource = source; chargeStart = performance.now(); power = selectedPower;
+    initAudio(); charging = true; chargeSource = source; chargeStart = performance.now(); power = source.startsWith('lever') ? 0 : .08;
     haptics.beginCharge();
     launchButton.classList.add('charging'); $('launchSublabel').textContent = 'RELEASE TO LAUNCH'; updatePower(); updateUI(); return true;
   }
@@ -383,10 +377,9 @@
     // A touch release is a valid Safari audio gesture, even when pointerdown
     // did not unlock playback. Do this before the launch sound is requested.
     initAudio();
-    const force = normalizePower(power);
-    selectedPower = force;
+    const force = normalizePower(power), dragged = !chargeSource.startsWith('lever') || power >= .01;
     cancelCharge();
-    fire(force);
+    if (dragged) fire(force);
   }
   function prepareRound() {
     clearTimeout(endTimer); endTimer = undefined; rollingUntil = 0;
@@ -530,12 +523,12 @@
         if ((e.clientX - bounds.left) / bounds.width * W > 535) source = 'lever-canvas';
       }
       if (!beginCharge(source)) return;
-      activePointer = e.pointerId; dragStartY = e.clientY; dragStartPower = power; element.setPointerCapture(e.pointerId);
+      activePointer = e.pointerId; dragStartY = e.clientY; element.setPointerCapture(e.pointerId);
     });
     element.addEventListener('pointermove', e => {
       if (activePointer !== e.pointerId || !chargeSource.startsWith('lever')) return;
       const distance = mode === 'canvas' ? canvas.getBoundingClientRect().height / H * 110 : 70;
-      power = normalizePower(dragStartPower + (e.clientY - dragStartY) / distance); updatePower();
+      power = Math.max(0, Math.min(1, Math.round((e.clientY - dragStartY) / distance * 100) / 100)); updatePower();
     });
     element.addEventListener('pointerup', e => { if (activePointer === e.pointerId) { e.preventDefault(); releaseCharge(); } });
     element.addEventListener('pointercancel', e => { if (activePointer === e.pointerId) cancelCharge(); });
@@ -544,7 +537,7 @@
     if (mode !== 'canvas') element.addEventListener('click', e => {
       if (e.detail !== 0 || charging) return;
       if (element === launchButton && (!isOpenRound() || game.round.phase === 'activated')) { goToSetup(); return; }
-      if (beginCharge('accessible')) releaseCharge();
+      if (beginCharge('accessible')) { power = lastPower; releaseCharge(); }
     });
   }
   bindLauncher(launchButton, 'pointer');
@@ -578,13 +571,6 @@
   window.addEventListener('pageshow', () => audio.recover());
   window.addEventListener('focus', () => audio.recover());
   $('soundButton').addEventListener('click', toggleSound);
-  function adjustPower(delta) {
-    if (!canLaunch() || charging) return;
-    selectedPower = normalizePower(selectedPower + delta);
-    updatePower(); updateUI();
-  }
-  $('powerMinus').addEventListener('click', () => adjustPower(-.01));
-  $('powerPlus').addEventListener('click', () => adjustPower(.01));
   $('hapticButton').addEventListener('click', toggleHaptics);
   $('depositButton').addEventListener('click', depositStake);
   $('drawMultiplier').addEventListener('click', drawMultiplier);
@@ -634,7 +620,7 @@
 
   function frame(now) {
     const dt = Math.min((now - lastFrame) / 1000, .05); lastFrame = now;
-    if (charging && !chargeSource.startsWith('lever')) { power = normalizePower(selectedPower + Math.max(0, now - chargeStart - 180) / 1800); updatePower(); }
+    if (charging && !chargeSource.startsWith('lever')) { const t = (now - chargeStart) / 1300; power = normalizePower(.08 + .92 * (1 - Math.abs((t % 2) - 1))); updatePower(); }
     if (rollingUntil > 0) {
       if (now < rollingUntil) {
         const digit = 2 + Math.floor(now / 65) % 11;

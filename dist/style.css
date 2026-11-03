@@ -149,17 +149,6 @@ button:disabled{opacity:.45}
 .help-button{font-family:var(--mono);font-size:20px;font-weight:700}
 .haptic-button[aria-pressed=true]{color:var(--yellow);border-color:#77764c}
 .haptic-button.muted{opacity:.55}
-.power-adjust{display:flex;align-items:center;gap:6px}
-.power-adjust button{width:32px;height:30px;padding:0;border:1px solid #697452;border-radius:5px;background:#35412b;color:#f3d188;font:18px/1 var(--mono);touch-action:manipulation}
-.power-adjust button:active:not(:disabled){background:#596440}
-.power-adjust button:disabled{opacity:.4}
-.power-adjust b{min-width:40px;text-align:center;font-variant-numeric:tabular-nums}
-.lever-information .power-adjust b{font-size:14px;color:#f3d188}
-.shot-summary{display:flex;align-items:center;justify-content:space-between;gap:7px;margin-top:9px;font-size:10px;color:#c5d0ae;white-space:nowrap}
-.shot-summary>span:last-child{color:#94a285;font-size:9px}
-.shot-summary b{color:#e1d5ae;font-family:var(--mono)}
-.power-meter .last-power-marker{position:absolute;top:0;bottom:0;width:2px;background:#fff3b6;transform:translateX(-1px);z-index:2}
-.power-meter .last-power-marker[hidden]{display:none}
 .mobile-stake-slider{display:none}
 #setupHome,#setupControls{min-width:0}
 #helpDialog{overflow:hidden}
@@ -209,11 +198,8 @@ button:disabled{opacity:.45}
   .launch-console{position:relative;inset:auto;display:block;width:100%;height:128px;min-height:0;padding:8px 12px;margin:0;border:1px solid #4c5b3a;border-width:1px 0 0;background:#222b1ef5;box-shadow:none;backdrop-filter:none;border-radius:12px 12px 0 0}
   .launch-console .lever-controls{gap:14px;margin:0;align-items:flex-start}.launch-console .lever-track{width:58px;flex-basis:58px;height:112px;margin:0}
   .launch-console .lever-information>p{font-size:12px;line-height:16px;letter-spacing:0;white-space:nowrap}
-  .launch-console .power-section{margin-top:2px}.launch-console .power-heading{font-size:9px;line-height:12px;min-height:30px}.launch-console .power-heading b{font-size:12px}
-  .launch-console .power-adjust{gap:5px}.launch-console .power-adjust button{width:32px;height:30px}
-  .launch-console .power-meter{margin-top:1px;height:5px}
-  .launch-console .shot-summary{margin-top:3px;font-size:10px;line-height:13px}
-  .launch-console .power-meter{height:5px;margin-top:1px}.launch-console .balls-summary{margin-top:5px;font-size:10px;line-height:15px}.launch-console .balls-summary b{font-size:14px}
+  .launch-console .power-section{margin-top:6px}.launch-console .power-heading{font-size:9px;line-height:12px}.launch-console .power-heading b{font-size:10px}
+  .launch-console .power-meter{height:7px;margin-top:4px}.launch-console .balls-summary{margin-top:5px;font-size:10px;line-height:15px}.launch-console .balls-summary b{font-size:14px}
   .launch-console .launch-button,.launch-console .round-actions{inset:auto 84px 8px 12px;height:34px;min-height:0;padding:0;margin:0;max-width:none;box-shadow:none}
   .launch-console .launch-button{padding:4px 8px;border-bottom-width:2px;gap:7px}.launch-console .launch-button b{font-size:11px;letter-spacing:0}.launch-console .launch-icon{font-size:21px}
   .launch-console .round-actions{padding:0;gap:7px}.launch-console .round-actions>button{height:34px;padding:4px 5px;font-size:10px;border-radius:5px}

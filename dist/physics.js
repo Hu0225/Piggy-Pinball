@@ -7,7 +7,7 @@
   const BALL_RADIUS = 8.5;
   const GRAVITY = 780;
   const EXIT_SPEED_MIN = 12;
-  const EXIT_SPEED_RANGE = 518;
+  const EXIT_SPEED_RANGE = 928;
   const PEG_RESTITUTION = 0.15;
   const LIP_RESTITUTION = 0.05;
   const CONTACT_DAMPING = 0.15;
@@ -29,12 +29,13 @@
       this.radius = BALL_RADIUS;
       this.pegs = [];
       let id = 0;
-      // Seven rows of cushioned guide pins line up with the scoring dividers.
-      // The open upper field lets launch speed select a region before contact;
-      // aligned lower rows avoid amplifying small aim changes across the table.
-      for (let row = 0; row < 7; row++) {
-        for (let column = 0; column < 9; column++) {
-          this.pegs.push({ id: id++, x: 88 + column * 48, y: 360 + row * 45, radius: 6.2, row, column });
+      // Preserve the original staggered playfield, including pin positions,
+      // spacing and radii. Repeatability comes from deterministic contacts.
+      for (let row = 0; row < 8; row++) {
+        const count = row % 2 === 0 ? 9 : 8;
+        const start = row % 2 === 0 ? 62 : 90;
+        for (let column = 0; column < count; column++) {
+          this.pegs.push({ id: id++, x: start + column * 54, y: 170 + row * 60, radius: 6.2, row, column });
         }
       }
       this.slots = VALUES.map((value, index) => ({ x: 40 + index * 48, y: 650, width: 48, height: 80, value, index }));
