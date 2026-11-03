@@ -251,6 +251,22 @@ button:disabled{opacity:.45}
   .shop-dialog .shop-balance{margin-bottom:8px}.shop-dialog .inventory-heading{margin-top:8px;padding-top:7px}.shop-dialog .inventory-list{margin-top:6px}
 }
 
+/* A connected, compact feed tray below the playfield. */
+.feeder-panel{position:relative;line-height:1;pointer-events:none}
+.feeder-panel>span:not(.sr-only){position:absolute;color:#f6d8a4;font-size:clamp(7px,.65vw,10px);font-weight:700;white-space:nowrap;text-shadow:0 1px 2px #1b2018}
+.feeder-inlet{left:13%;top:8%}.feeder-collector{left:50%;bottom:5%;transform:translateX(-50%)}.feeder-ready{right:11%;top:10%}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.floating-scores{height:calc(100% * 760 / 872);bottom:auto}
+.wallet-balances{grid-template-columns:1.25fr 1fr 1fr;gap:9px}.wallet-balances>div+div{padding-left:9px}
+.wallet-balances strong{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom;font-size:25px}.wallet-balances small{display:none}
+@media(max-width:950px){
+  .wallet-card{gap:8px}.wallet-balances{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:7px}
+  .wallet-balances>div{gap:4px}.wallet-balances>div+div{padding-left:7px}
+  .wallet-label{font-size:8px;flex:none}.wallet-balances strong{font-size:18px;letter-spacing:-.7px}
+  .shop-button{font-size:9px}.feeder-panel>span:not(.sr-only){font-size:clamp(6px,1.8vw,8px)}
+}
+@media(max-width:350px){.wallet-card{padding:6px 7px;gap:6px}.wallet-balances{gap:5px}.wallet-balances>div+div{padding-left:5px}.wallet-balances>div{gap:3px}.wallet-balances strong{font-size:16px}}
+
 </style>
 </head>
 <body>
@@ -275,8 +291,8 @@ button:disabled{opacity:.45}
       <div class="edition-label"><span class="edition-dot"></span> 潮弹玩法 · 经典小猪机台 <span class="edition-number">NO. 001</span></div>
       <div class="wallet-card">
         <div class="wallet-heading">我的弹珠口袋 <span>MY POCKET</span></div>
-        <div class="wallet-balances"><div><span class="wallet-label">弹珠余额</span><strong id="walletCount">990</strong><small>颗</small></div><div><span class="wallet-label">积分卡</span><strong id="cardCount">0</strong><small>张</small></div></div>
-        <button class="shop-button" type="button" id="shopButton"><span>✧ 礼品兑换</span><span>藏品 <b id="inventoryCount">0</b> ↗</span></button>
+        <div class="wallet-balances"><div><span class="wallet-label">弹珠</span><strong id="walletCount">990</strong><small>颗</small></div><div><span class="wallet-label">积分</span><strong id="pointCount">0</strong><small>分</small></div><div><span class="wallet-label">积分卡</span><strong id="cardCount">0</strong><small>张</small></div></div>
+        <button class="shop-button" type="button" id="shopButton"><span>✧ 兑礼</span><span>藏品 <b id="inventoryCount">0</b> ↗</span></button>
         <button class="rescue-button" type="button" id="rescueButton" hidden>领取 50 颗弹珠补给</button>
       </div>
       <div class="best-card">
@@ -298,7 +314,13 @@ button:disabled{opacity:.45}
           <div class="score-display balls-display"><span id="rewardCardLabel">可获积分卡 <small>CARDS</small></span><strong id="rewardCardDigits" aria-label="命中亮灯轨道可获积分卡，单位张">00</strong></div>
           <div class="score-display multiplier-display"><span>本局倍率 <small>LUCK</small></span><strong id="multiplierDigits" aria-label="本局倍率">--×</strong></div>
         </div>
-        <div class="board-surround"><div class="led-strip led-left"></div><div class="led-strip led-right"></div><div class="board-window"><canvas id="gameCanvas" width="600" height="760" aria-label="弹珠台面。首次投珠自动激活并获取倍率，发射前可以继续投珠加注。每局仅发射一次，命中亮灯轨道按总本金乘倍率返珠。"></canvas><div class="board-hint" id="boardHint"><span class="hint-star">✦</span> 投珠激活 · 每局只发射一次 <span class="hint-star">✦</span></div><div class="floating-scores" id="floatingScores" aria-hidden="true"></div></div></div>
+        <div class="board-surround"><div class="led-strip led-left"></div><div class="led-strip led-right"></div><div class="board-window"><canvas id="gameCanvas" width="600" height="760" aria-label="弹珠台面。首次投珠自动激活并获取倍率，发射前可以继续投珠加注。每局仅发射一次，命中亮灯轨道按总本金乘倍率返珠。"></canvas>
+          <div class="feeder-panel" aria-label="投珠槽，首颗送入右侧发射轨道，其余入洞获得独立积分">
+            <canvas id="feederCanvas" width="600" height="112" aria-hidden="true"></canvas>
+            <span class="feeder-inlet">进珠口 ↓</span><span class="feeder-collector">积分收集口</span><span class="feeder-ready" id="feederReady">待发射 0 颗</span>
+            <span class="sr-only" id="feederStatus" role="status" aria-live="polite">等待投珠</span>
+          </div>
+          <div class="board-hint" id="boardHint"><span class="hint-star">✦</span> 投珠激活 · 每局只发射一次 <span class="hint-star">✦</span></div><div class="floating-scores" id="floatingScores" aria-hidden="true"></div></div></div>
         <div class="machine-bottom"><span>CHERISHED TIME & LITTLE PIG</span><span class="machine-serial">PPC—001</span></div>
         <div class="cabinet-bolt bolt-bl"></div><div class="cabinet-bolt bolt-br"></div>
       </div>
@@ -321,7 +343,6 @@ button:disabled{opacity:.45}
         <p class="field-hint" id="stakeHint">设置数量不会扣珠，点击底部投珠按钮后投入。</p>
         <button type="button" class="draw-button deposit-button" id="saveStakeButton">完成 · 每次投 5 颗</button>
         <div class="principal-summary"><div><span>本局总本金</span><strong id="principalAmount">0</strong><small>颗</small></div><div><span>命中可返</span><strong id="potentialWin">—</strong><small>颗</small></div></div>
-        <button type="button" class="reset-button stake-reset" id="resetButton" hidden>取消本局</button>
       </section>
 
       <section class="multiplier-section" aria-labelledby="multiplierLabel">
@@ -351,9 +372,9 @@ button:disabled{opacity:.45}
 
   <dialog id="stakeDialog" class="game-dialog stake-dialog" aria-labelledby="stakeDialogTitle"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">YOUR NEXT SHOT</div><h2 id="stakeDialogTitle">设置投珠数量</h2><div id="stakeDialogContent"></div></dialog>
   <dialog id="helpDialog" class="game-dialog" aria-labelledby="helpTitle"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">HOW TO PLAY</div><h2 id="helpTitle">一发，接住好运。</h2>
-    <section class="help-page" aria-label="投珠与倍率"><span class="help-page-icon" aria-hidden="true">①</span><h3>一键投珠，自动获取倍率</h3><p>“设置数量”选择每次投几颗；点击 <b>“投珠 N 颗”</b> 才会扣珠。首次投入立即激活，自动抽取 <b>2—12 倍</b>。</p><p>发射前再点投珠即可加注，合计最多 99 颗，倍率和亮灯轨道不变。</p><p class="help-note">倍率越低，亮灯轨道越多。设置中可取消本局，退回未发射的本金。</p></section>
+    <section class="help-page" aria-label="投珠与倍率"><span class="help-page-icon" aria-hidden="true">①</span><h3>一键投珠，自动获取倍率</h3><p>“设置数量”选择每次投几颗，点击 <b>“投珠 N 颗”</b> 才扣珠。首次投入自动抽取 <b>2—12 倍</b>。</p><p>弹珠从左侧进珠口流入，首颗进入右侧发射轨道，其余进入收集口，每颗立即获得 <b>1 积分</b>。</p><p class="help-note">发射前可继续加注，新增弹珠全部入洞计分；合计最多 99 颗，倍率与亮灯轨道不变。</p></section>
     <section class="help-page" aria-label="发射与返珠" hidden><span class="help-page-icon" aria-hidden="true">②</span><h3>调准力度，一发定局</h3><p>下拉蓄力，松手发射。每局仅一次发射机会，同力度可复现落点。</p><p>参考上次记录练习。密集碰撞下，加力不一定让落点向同一方向移动。</p><p class="help-note" id="shotMemory">落袋后记录力度与轨道</p><div class="help-example">亮灯命中返还 <b>本金 × 倍率</b><br>每局仅一发，未命中不返珠</div></section>
-    <section class="help-page" aria-label="积分与礼品" hidden><span class="help-page-icon" aria-hidden="true">③</span><h3>攒积分卡，兑换小礼品</h3><p>中奖返珠每满 <b>30 颗</b>得 <b>1 张卡</b>，余数不跨局累计。礼品柜可兑换游戏内藏品。</p><div class="help-slots"><span>30 颗<small>1 张卡</small></span><span>60 颗<small>2 张卡</small></span><span>90 颗<small>3 张卡</small></span></div><p class="help-note">余额和藏品自动保存在当前浏览器。发射前取消或刷新未结算回合，可退回本金。</p></section>
+    <section class="help-page" aria-label="积分与礼品" hidden><span class="help-page-icon" aria-hidden="true">③</span><h3>积分与积分卡，分别积攒</h3><p>入洞得到的 <b>积分</b> 独立累计，本局未中奖也保留。中奖返珠每满 <b>30 颗</b>得 <b>1 张积分卡</b>，余数不跨局累计。</p><div class="help-slots"><span>30 颗<small>1 张卡</small></span><span>60 颗<small>2 张卡</small></span><span>90 颗<small>3 张卡</small></span></div><p class="help-note">积分卡可兑换游戏内藏品；独立积分暂不参与兑换。进度自动保存在当前浏览器。</p></section>
     <div class="help-pagination"><button id="helpPrev" type="button" disabled>← 上一页</button><span id="helpPageCount" aria-live="polite">1 / 3</span><button id="helpNext" type="button">下一页 →</button></div><button class="dialog-primary" type="button" id="startPlaying">知道了，开玩！ ↗</button>
   </dialog>
   <dialog id="endDialog" class="game-dialog end-dialog"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">YOUR LUCK, COLLECTED</div><div class="end-star">✦</div><h2>这局好运，收下啦！</h2><strong id="finalScore">0</strong><span class="final-unit">本局中奖返珠</span><div class="result-summary"><div><span>本局本金</span><b id="finalStake">0</b></div><div><span>命中结果</span><b id="finalHits">0</b></div><div><span>获得积分卡</span><b id="finalCards">0</b></div></div><p id="recordMessage">快乐已经到账，再来收集一份好运。</p><button class="dialog-primary" type="button" id="playAgain">再来一局 ↗</button></dialog>
@@ -405,15 +426,16 @@ button:disabled{opacity:.45}
       this.time = 0;
     }
 
-    launch(power = 0.65) {
+    launch(power = 0.65, { startY = 704 } = {}) {
       if (this.balls.filter(ball => ball.phase !== 'scored').length >= 10) return false;
       const force = clamp(Number(power) || 0, 0, 1);
+      const originY = Number.isFinite(startY) && startY >= 704 && startY <= 900 ? startY : 704;
       // Spring energy pays for the climb first. The remaining exit speed is
       // linear in the user's power; the rail still conserves that energy.
       const exitSpeed = EXIT_SPEED_MIN + force * EXIT_SPEED_RANGE;
       const ball = {
-        id: this._nextId++, x: LAUNCH_RAIL.startX, y: 704, vx: 0,
-        vy: -Math.sqrt(2 * GRAVITY * (704 - LAUNCH_RAIL.exitY) + exitSpeed * exitSpeed), radius: BALL_RADIUS,
+        id: this._nextId++, x: LAUNCH_RAIL.startX, y: originY, vx: 0,
+        vy: -Math.sqrt(2 * GRAVITY * (originY - LAUNCH_RAIL.exitY) + exitSpeed * exitSpeed), radius: BALL_RADIUS,
         power: force, phase: 'launch', age: 0, trail: [],
         railAngle: 0, trailClock: 0, hitCooldown: new Map(),
         scored: false, fade: 1, slotIndex: -1
@@ -673,6 +695,7 @@ button:disabled{opacity:.45}
       this._resolvedIds = new Set();
       this.wallet = 990;
       this.cards = 0;
+      this.points = 0;
       this.bestWin = 0;
       this.roundNumber = 0;
       this.round = null;
@@ -705,7 +728,7 @@ button:disabled{opacity:.45}
       this.round = {
         stake, multiplier: null, litSlots: [],
         remaining: 1, launched: 0, resolved: 0, hits: 0, won: 0,
-        cardsAwarded: 0, refunded: 0, phase: 'activated'
+        cardsAwarded: 0, refunded: 0, pointsEarned: 0, pointTokens: [], phase: 'activated'
       };
       this.recovered = null;
       // The first deposit activates the round and locks its targets immediately.
@@ -739,10 +762,27 @@ button:disabled{opacity:.45}
       return { ok: true, round };
     }
 
+    collectPoint(tokenIndex) {
+      const round = this.round;
+      if (!round || round.phase !== 'ready' || !Number.isInteger(tokenIndex)
+          || tokenIndex < 1 || tokenIndex >= round.stake || round.pointTokens.includes(tokenIndex)) {
+        return { ok: false, pointsAdded: 0 };
+      }
+      // Credit only when a particular deposited ball crosses the collection
+      // opening. A duplicate animation callback can never award it twice.
+      round.pointTokens.push(tokenIndex);
+      const previous = this.points;
+      this.points = add(this.points, 1);
+      const pointsAdded = this.points - previous;
+      round.pointsEarned += pointsAdded;
+      return { ok: true, pointsAdded };
+    }
+
     launchBall(ballId) {
       const round = this.round;
       const key = this._ballKey(ballId);
       if (!round || round.phase !== 'ready' || round.remaining !== 1 || round.launched !== 0 || key === null || this._launchedIds.has(key)) return false;
+      if (round.pointTokens.length !== round.stake - 1) return false;
       this._launchedIds.add(key);
       round.remaining--;
       round.launched++;
@@ -797,6 +837,8 @@ button:disabled{opacity:.45}
       if (!['activated', 'ready'].includes(round.phase) || round.launched !== 0) return { ok: false, refunded: 0, cardsAwarded: 0, error: '已经发射，请等待本局结算' };
       const refunded = round.stake;
       this.wallet = add(this.wallet, refunded);
+      this.points -= round.pointsEarned;
+      round.pointsEarned = 0;
       round.refunded = refunded;
       round.remaining = 0;
       const cardsAwarded = this._settle();
@@ -821,10 +863,10 @@ button:disabled{opacity:.45}
 
     serialize() {
       return {
-        version: 2,
-        wallet: this.wallet, cards: this.cards, bestWin: this.bestWin,
+        version: 3,
+        wallet: this.wallet, cards: this.cards, points: this.points, bestWin: this.bestWin,
         roundNumber: this.roundNumber, inventory: { ...this.inventory },
-        round: this.round ? { ...this.round, litSlots: [...this.round.litSlots] } : null
+        round: this.round ? { ...this.round, litSlots: [...this.round.litSlots], pointTokens: [...this.round.pointTokens] } : null
       };
     }
 
@@ -834,17 +876,19 @@ button:disabled{opacity:.45}
         try { saved = JSON.parse(saved); } catch { return; }
       }
       if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return;
-      if (saved.version !== undefined && saved.version !== 1 && saved.version !== 2) return;
+      if (saved.version !== undefined && saved.version !== 1 && saved.version !== 2 && saved.version !== 3) return;
       this.wallet = integer(saved.wallet, 990);
       this.cards = integer(saved.cards);
+      this.points = saved.version === 3 ? integer(saved.points) : 0;
       this.bestWin = integer(saved.bestWin);
       this.roundNumber = integer(saved.roundNumber);
       if (saved.inventory && typeof saved.inventory === 'object') {
         for (const prize of PRIZES) this.inventory[prize.id] = integer(saved.inventory[prize.id]);
       }
       const round = saved.round;
-      const legacy = saved.version !== 2;
+      const legacy = saved.version !== 2 && saved.version !== 3;
       if (!(legacy ? this._validLegacyRound(round) : this._validSavedRound(round))) return;
+      if (saved.version === 3 && !this._validPointRound(round)) return;
       this.bestWin = Math.max(this.bestWin, round.won);
       // A settled round's rewards are already in the saved balances.
       if (round.phase === 'settled') return;
@@ -854,7 +898,23 @@ button:disabled{opacity:.45}
       const cardsAwarded = legacy ? Math.max(0, Math.floor(round.won / 30) - round.cardsAwarded) : 0;
       this.wallet = add(this.wallet, refunded);
       this.cards = add(this.cards, cardsAwarded);
+      // Keep completed rounds' independent points, but roll back the points of
+      // an unresolved round whose principal is being returned on recovery.
+      if (saved.version === 3) this.points -= round.pointsEarned;
       this.recovered = { refunded, cardsAwarded };
+    }
+
+    _validPointRound(round) {
+      const tokens = round.pointTokens;
+      if (!Array.isArray(tokens) || tokens.length > round.stake - 1
+          || new Set(tokens).size !== tokens.length
+          || !tokens.every(token => Number.isInteger(token) && token >= 1 && token < round.stake)) return false;
+      if (!Number.isSafeInteger(round.pointsEarned) || round.pointsEarned < 0
+          || round.pointsEarned > tokens.length || round.pointsEarned > this.points) return false;
+      if (round.refunded > 0) return round.pointsEarned === 0;
+      if (round.phase === 'activated' && tokens.length !== 0) return false;
+      if (round.launched === 1 && tokens.length !== round.stake - 1) return false;
+      return this.points === Number.MAX_SAFE_INTEGER || round.pointsEarned === tokens.length;
     }
 
     _validSavedRound(round) {
@@ -908,6 +968,145 @@ button:disabled{opacity:.45}
   PinballRules.LIT_COUNTS = LIT_COUNTS;
   if (typeof module !== 'undefined' && module.exports) module.exports = PinballRules;
   root.PinballRules = PinballRules;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+  <script>
+(function (root) {
+  'use strict';
+
+  const WIDTH = 600, HEIGHT = 112;
+  const LAUNCH_X = 562, LAUNCH_Y = 78;
+  const DROP_TIME = .16, ROLL_TIME = .32;
+  const BRANCH_TIME = DROP_TIME + ROLL_TIME;
+  const POINT_LIFE = BRANCH_TIME + .22;
+  const LAUNCH_LIFE = BRANCH_TIME + .36;
+  const FIRST_POINT_DELAY = .26;
+  const GATE_DELAY = .11, GATE_TURN_TIME = .12;
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+  class PinballFeeder {
+    constructor(callbacks = {}) {
+      this.onCollect = typeof callbacks.onCollect === 'function' ? callbacks.onCollect : function () {};
+      this.onReady = typeof callbacks.onReady === 'function' ? callbacks.onReady : function () {};
+      this.onComplete = typeof callbacks.onComplete === 'function' ? callbacks.onComplete : function () {};
+      this._run = 0;
+      this.reset();
+    }
+
+    get busy() { return this._busy; }
+
+    start({ count, launchBall = false, pointOffset = 0 } = {}) {
+      if (this._busy || !Number.isInteger(count) || count < 1 || count > 99
+          || typeof launchBall !== 'boolean' || !Number.isSafeInteger(pointOffset)
+          || pointOffset < 0 || pointOffset > Number.MAX_SAFE_INTEGER - count) return false;
+      this.reset();
+      this._busy = true;
+      this._hasLaunch = launchBall;
+      const pointCount = count - Number(launchBall);
+      // Small batches remain individually readable. Large batches overlap in
+      // a continuous stream, but every ball still has its own arrival event.
+      const interval = pointCount > 1 ? Math.min(.085, 1 / (pointCount - 1)) : 0;
+      for (let index = 0; index < count; index++) {
+        const kind = launchBall && index === 0 ? 'launch' : 'point';
+        const pointIndex = index - Number(launchBall);
+        const born = kind === 'launch' ? 0 : (launchBall ? FIRST_POINT_DELAY : 0) + pointIndex * interval;
+        const life = kind === 'launch' ? LAUNCH_LIFE : POINT_LIFE;
+        const ball = {
+          id: index + 1, kind, born, life, done: false,
+          tokenIndex: kind === 'point' ? pointOffset + index + Number(!launchBall) : null,
+          lane: kind === 'point' ? (pointIndex % 3) - 1 : 0,
+          scale: kind === 'launch' ? 1 : count >= 40 ? .72 : count > 16 ? .9 : 1
+        };
+        this._balls.push(ball);
+        this._events.push({ due: born + life, ball });
+      }
+      this._events.sort((a, b) => a.due - b.due || a.ball.id - b.ball.id);
+      this._duration = this._events[this._events.length - 1].due;
+      this._lastEntry = Math.max(...this._balls.map(ball => ball.born)) + DROP_TIME;
+      return true;
+    }
+
+    step(dt) {
+      if (!this._busy || !Number.isFinite(dt) || dt <= 0) return;
+      const run = this._run;
+      this._elapsed = Math.min(this._duration, this._elapsed + dt);
+      while (this._eventIndex < this._events.length && this._events[this._eventIndex].due <= this._elapsed + 1e-10) {
+        const { ball } = this._events[this._eventIndex++];
+        // Mark before calling out, so repeated frames or a callback-triggered
+        // reset can never credit this arrival for a second time.
+        ball.done = true;
+        if (ball.kind === 'launch') this.onReady();
+        else this.onCollect(ball.tokenIndex);
+        if (run !== this._run) return;
+      }
+      if (this._eventIndex === this._events.length) {
+        this._busy = false;
+        this.onComplete();
+      }
+    }
+
+    _position(ball) {
+      const age = clamp(this._elapsed - ball.born, 0, ball.life);
+      let x, y, opacity = 1;
+      if (age < DROP_TIME) {
+        const fall = (age / DROP_TIME) ** 2;
+        x = 48 + 8 * fall;
+        y = -12 + 44 * fall;
+        // The ball becomes visible as it emerges from the dark inlet, instead
+        // of materializing halfway along the trough.
+        opacity = clamp((y + 10) / 18, 0, 1);
+      } else if (age < BRANCH_TIME) {
+        const t = (age - DROP_TIME) / ROLL_TIME;
+        const roll = .65 * t + .35 * t * t;
+        x = 56 + 204 * roll;
+        y = 32 + 24 * roll + ball.lane * 1.9 * Math.sin(Math.PI * roll);
+      } else if (ball.kind === 'launch') {
+        const t = (age - BRANCH_TIME) / (LAUNCH_LIFE - BRANCH_TIME);
+        x = 260 + (LAUNCH_X - 260) * t;
+        y = 56 + (LAUNCH_Y - 56) * t;
+      } else {
+        const t = (age - BRANCH_TIME) / (POINT_LIFE - BRANCH_TIME);
+        x = 260 + 40 * Math.sin(t * Math.PI / 2);
+        y = 56 + 39 * t * t;
+        opacity = 1 - clamp((y - 78) / 17, 0, 1);
+      }
+      return { id: ball.id, kind: ball.kind, x, y, opacity, scale: ball.scale };
+    }
+
+    getSnapshot() {
+      return {
+        busy: this._busy,
+        balls: this._balls.filter(ball => !ball.done && this._elapsed >= ball.born).map(ball => this._position(ball)),
+        // 0 bridges the hole for the first ball; 1 opens the collection route.
+        // Wait until the whole launch ball clears the bridge at x=336, then
+        // open it completely before the first point ball reaches the split.
+        gate: this._hasLaunch ? clamp((this._elapsed - BRANCH_TIME - GATE_DELAY) / GATE_TURN_TIME, 0, 1) : 1,
+        inletOpen: this._busy && this._elapsed <= this._lastEntry,
+        elapsed: this._elapsed,
+        duration: this._duration
+      };
+    }
+
+    reset() {
+      this._run++;
+      this._busy = false;
+      this._elapsed = 0;
+      this._duration = 0;
+      this._lastEntry = 0;
+      this._hasLaunch = false;
+      this._balls = [];
+      this._events = [];
+      this._eventIndex = 0;
+    }
+  }
+
+  PinballFeeder.WIDTH = WIDTH;
+  PinballFeeder.HEIGHT = HEIGHT;
+  PinballFeeder.LAUNCH_X = LAUNCH_X;
+  PinballFeeder.LAUNCH_Y = LAUNCH_Y;
+  if (typeof module !== 'undefined' && module.exports) module.exports = PinballFeeder;
+  root.PinballFeeder = PinballFeeder;
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
@@ -1251,6 +1450,11 @@ button:disabled{opacity:.45}
   const ctx = canvas.getContext('2d');
   const W = 600, H = 760;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const feederCanvas = $('feederCanvas');
+  const feederCtx = feederCanvas.getContext('2d');
+  feederCanvas.width = W * dpr;
+  feederCanvas.height = PinballFeeder.HEIGHT * dpr;
+  feederCtx.scale(dpr, dpr);
   canvas.width = W * dpr;
   canvas.height = H * dpr;
   ctx.scale(dpr, dpr);
@@ -1270,18 +1474,21 @@ button:disabled{opacity:.45}
   let lastFrame = performance.now(), toastTimer, endTimer, roundAnnounced = false;
   let rollingUntil = 0, lastRollDigit = -1, lastPower = .65, dragStartY = 0;
   let helpPage = 0, layoutFrame = 0;
+  let launchReady = false, feedRound = null, feedDirty = false, feedCollected = 0;
+  let feedPointAt = -Infinity, lastFeedSound = -Infinity;
   const audio = new PinballAudio({ enabled: sound });
   const haptics = new PinballHaptics({ enabled: readStorage('piggyHaptics', 'true') !== 'false' });
   const hits = new Map(), slotFlashes = new Map(), particles = [], recent = loadPractice();
   lastPower = normalizePower(recent[0]?.power ?? .65);
   const engine = new PinballPhysics({ onPegHit, onScore, onImpact, onLaunch: event => { playSound('launch'); haptics.launch(event.power); } });
+  const feeder = new PinballFeeder({ onCollect: collectFeedPoint, onReady: readyFeedBall, onComplete: finishFeed });
 
   function readStorage(key, fallback) { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } }
   function saveStorage(key, value) { try { localStorage.setItem(key, String(value)); } catch { /* Game remains playable without storage. */ } }
   function normalizePower(value) { return Math.max(.01, Math.min(1, Math.round(value * 100) / 100)); }
   function loadPractice() {
     try {
-      const saved = JSON.parse(readStorage('piggyPracticeReboundV1', '[]'));
+      const saved = JSON.parse(readStorage('piggyPracticeFeederV1', '[]'));
       if (!Array.isArray(saved)) return [];
       return saved.filter(s => s && Number.isFinite(s.power) && s.power >= .01 && s.power <= 1 && Number.isInteger(s.slot) && s.slot >= 1 && s.slot <= 10 && typeof s.hit === 'boolean' && Number.isSafeInteger(s.reward) && s.reward >= 0).slice(0, 3);
     } catch { return []; }
@@ -1365,7 +1572,7 @@ button:disabled{opacity:.45}
     // The painted channel and the simulation share one quarter-turn centerline.
     // Paint over the cabinet edge so the outlet is visibly open to the playfield.
     bg.save(); bg.lineCap = 'butt';
-    bg.beginPath(); bg.moveTo(rail.startX, 729); bg.lineTo(rail.startX, rail.startY);
+    bg.beginPath(); bg.moveTo(rail.startX, H); bg.lineTo(rail.startX, rail.startY);
     bg.arc(rail.centerX, rail.centerY, rail.radius, 0, -rail.angle, true);
     bg.strokeStyle = '#795132'; bg.lineWidth = rail.halfWidth * 2 + 4; bg.stroke();
     bg.strokeStyle = chute; bg.lineWidth = rail.halfWidth * 2; bg.stroke();
@@ -1381,7 +1588,7 @@ button:disabled{opacity:.45}
     bg.lineCap = 'round'; bg.lineJoin = 'round';
     for (const side of [-1, 1]) {
       const radius = rail.radius + side * rail.halfWidth;
-      bg.beginPath(); bg.moveTo(rail.centerX + radius, 729); bg.lineTo(rail.centerX + radius, rail.centerY);
+      bg.beginPath(); bg.moveTo(rail.centerX + radius, H); bg.lineTo(rail.centerX + radius, rail.centerY);
       bg.arc(rail.centerX, rail.centerY, radius, 0, -rail.angle, true);
       const endY = rail.centerY - radius;
       bg.bezierCurveTo(rail.exitX - 6, endY, rail.exitX - 10, endY - side * 6, rail.exitX - 20, endY - side * 6);
@@ -1397,7 +1604,7 @@ button:disabled{opacity:.45}
     text(bg, 'LET THE GOOD', 279, 84, 18, '#fff0be', 'Arial Black, sans-serif', '900');
     bg.save(); bg.translate(279, 120); bg.rotate(-.035); text(bg, 'TIMES ROLL', 0, 0, 45, '#fff1c7', 'Impact, Arial Black, sans-serif', '900'); bg.restore();
     line(bg, 152, 148, 403, 148, '#a9522f55', 1);
-    text(bg, game.round?.multiplier ? `${game.round.multiplier} 倍好运 · ${game.round.litSlots.length} 条亮灯轨道` : '投 珠 激 活  ·  确 定 倍 率', 279, 151, 11, '#9b472b', 'Microsoft YaHei, sans-serif');
+    text(bg, game.round?.multiplier ? `${game.round.multiplier} 倍好运 · ${game.round.litSlots.length} 条亮灯轨道` : '投 珠 激 活  ·  自 动 获 取 倍 率', 279, 151, 11, '#9b472b', 'Microsoft YaHei, sans-serif');
     bg.save(); bg.globalAlpha = .82; drawPig(bg); bg.restore();
     text(bg, 'GOOD LUCK!', 279, 606, 17, '#ffdb9b', 'Arial Black, sans-serif', '900');
     // Every round has a fixed, clearly illuminated set of winning lanes.
@@ -1408,8 +1615,8 @@ button:disabled{opacity:.45}
       rounded(bg, slot.x + 4, 653, slot.width - 8, 72, 13, dark, '#67482e', 2);
       rounded(bg, slot.x + 12, 660, slot.width - 24, 40, 7, '#443e2d', '#c1a570', 1.3);
       line(bg, slot.x + 16, 665, slot.x + 16, 692, '#e1d2a681', 2);
-      text(bg, String(i + 1).padStart(2, '0'), slot.x + 24, 713, 20, gold ? '#fff5c2' : '#ead5ab', 'monospace', '700');
-      if (gold) text(bg, '★', slot.x + 24, 678, 15, '#d9b657', 'sans-serif');
+      text(bg, String(i + 1).padStart(2, '0'), slot.x + 24, 713, 14, gold ? '#fff5c2' : '#ead5ab', 'monospace', '700');
+      text(bg, gold ? `×${game.round.multiplier}` : '—', slot.x + 24, 678, game.round?.multiplier >= 10 ? 19 : 23, gold ? '#fff1a0' : '#9e947a', 'monospace', '700');
       ellipse(bg, slot.x + 24, 638, 11, 8, '#75442d', '#b66c3c', 2);
       ellipse(bg, slot.x + 24, 636, 7.5, 5, gold ? '#de7e36' : '#b67142');
     });
@@ -1445,13 +1652,7 @@ button:disabled{opacity:.45}
 
   function draw(now, dt) {
     ctx.clearRect(0, 0, W, H); ctx.drawImage(background, 0, 0, W, H);
-    // The plunger spring compresses as power builds.
-    const springTop = 725 + power * 13;
-    ctx.beginPath(); ctx.moveTo(553, springTop);
-    for (let i = 0; i < 9; i++) ctx.lineTo(i % 2 ? 553 : 572, springTop + i * (751 - springTop) / 9);
-    ctx.strokeStyle = '#4f5340'; ctx.lineWidth = 3; ctx.stroke();
-    line(ctx, 551, springTop - 1, 574, springTop - 1, '#f8e6b7', 4);
-    if (game.round?.remaining > 0 && !engine.balls.some(b => b.phase === 'launch' && b.y > 620)) drawBall(ctx, 562, 712 + power * 12, 8.5);
+    // The waiting ball and spring now live in the connected lower feed tray.
     const rolling = now < rollingUntil;
     engine.slots.forEach((slot, i) => {
       const lit = rolling ? i === Math.floor(now / 65) % 10 : game.round?.litSlots.includes(i);
@@ -1494,6 +1695,82 @@ button:disabled{opacity:.45}
     }
   }
 
+  function collectFeedPoint(tokenIndex) {
+    if (game.round !== feedRound) return;
+    const result = game.collectPoint(tokenIndex);
+    if (!result.ok) return;
+    feedCollected++; feedDirty = true;
+    feedPointAt = performance.now();
+    if (!document.hidden && feedPointAt - lastFeedSound > 85) {
+      lastFeedSound = feedPointAt; playSound('peg', 2);
+    }
+  }
+  function readyFeedBall() {
+    if (game.round !== feedRound) return;
+    launchReady = true; $('feederReady').textContent = '待发射 1 颗';
+  }
+  function finishFeed() {
+    if (game.round !== feedRound) return;
+    feedDirty = true;
+    $('feederStatus').textContent = `入珠完成，本次增加 ${feedCollected} 积分，待发射 1 颗`;
+    updateUI();
+  }
+  function flushFeedPoints() {
+    if (!feedDirty) return;
+    feedDirty = false;
+    $('pointCount').textContent = game.points;
+    $('pointCount').title = `${game.points} 积分`;
+    saveProgress();
+  }
+  function drawFeeder(now) {
+    const c = feederCtx, snapshot = feeder.getSnapshot(), height = PinballFeeder.HEIGHT;
+    c.clearRect(0, 0, W, height);
+    const copper = c.createLinearGradient(0, 0, 0, height);
+    copper.addColorStop(0, '#d99355'); copper.addColorStop(.45, '#94512f'); copper.addColorStop(1, '#c47b46');
+    c.fillStyle = copper; c.fillRect(0, 0, W, height);
+    rounded(c, 7, 5, 586, 102, 9, '#5e3e29', '#f0b576', 2);
+    rounded(c, 14, 12, 572, 88, 7, '#302c24', '#6e5037', 2);
+    // Recessed downward trough: the first ball crosses the bridge to the right.
+    c.save(); c.lineCap = 'round'; c.lineJoin = 'round';
+    c.beginPath(); c.moveTo(48, 15); c.lineTo(56, 32); c.lineTo(260, 56); c.lineTo(562, 78);
+    c.strokeStyle = '#1b211d'; c.lineWidth = 29; c.stroke();
+    c.strokeStyle = '#8b754d'; c.lineWidth = 23; c.stroke();
+    c.strokeStyle = '#b6a57d'; c.lineWidth = 15; c.stroke();
+    line(c, 58, 44, 260, 68, '#f6d899', 3);
+    line(c, 337, 73.5, 548, 89, '#eed399', 3);
+    // Collection well beneath the switch. Balls disappear into its depth.
+    ellipse(c, 300, 80, 39, 23, '#ae7e47', '#e3b779', 2);
+    ellipse(c, 300, 80, 33, 18, '#111b18', '#493b29', 3);
+    ellipse(c, 300, 84, 25, 10, '#090f0d');
+    // The shared right shaft continues directly into the playfield above.
+    const shaft = c.createLinearGradient(548, 0, 576, 0);
+    shaft.addColorStop(0, '#dfcf9c'); shaft.addColorStop(.2, '#b8a473'); shaft.addColorStop(.7, '#d0b47d'); shaft.addColorStop(1, '#7c603d');
+    c.fillStyle = shaft; c.fillRect(548, 0, 28, 100);
+    line(c, 548, 0, 548, 63, '#ffdf9f', 2);
+    line(c, 576, 0, 576, 101, '#dac99b', 2);
+    // Hinged bridge closes for the first ball, opens before the next arrives.
+    c.save(); c.translate(264, 65); c.rotate(snapshot.gate * .9);
+    rounded(c, 0, -3, 72, 6, 3, '#b49b69', '#f1d799', 1.5); c.restore();
+    ellipse(c, 264, 65, 4, 4, '#e5d5a9', '#66442b', 1);
+    const springTop = 89 + (charging ? power * 10 : 0);
+    c.beginPath(); c.moveTo(552, springTop);
+    for (let i = 0; i <= 9; i++) c.lineTo(i % 2 ? 571 : 553, springTop + i * (106 - springTop) / 9);
+    c.strokeStyle = '#766b50'; c.lineWidth = 2.5; c.stroke();
+    line(c, 551, springTop - 2, 573, springTop - 2, '#efe0b6', 3);
+    snapshot.balls.forEach(ball => drawBall(c, ball.x, ball.y, 8.5 * ball.scale, ball.opacity));
+    if (launchReady) drawBall(c, PinballFeeder.LAUNCH_X, PinballFeeder.LAUNCH_Y + (charging ? power * 10 : 0), 8.5);
+    for (const ball of engine.balls) if (ball.y + ball.radius >= H) drawBall(c, ball.x, ball.y - H, ball.radius, Math.max(0, ball.fade));
+    // Opaque mouth and front lip provide a clear origin and occlusion.
+    rounded(c, 33, -6, 31, 24, 4, '#20271f', '#dbaf73', 2);
+    line(c, 35, 17, 62, 17, '#d6ac71', 3);
+    c.beginPath(); c.ellipse(300, 80, 36, 22, 0, 0, Math.PI);
+    c.strokeStyle = '#b7854e'; c.lineWidth = 5; c.stroke();
+    [ [19, 19], [582, 103], [19, 94] ].forEach(([x, y]) => { ellipse(c, x, y, 3, 3, '#ddbb83'); line(c, x - 1, y + 1, x + 1, y - 1, '#685036'); });
+    const age = (now - feedPointAt) / 650;
+    if (age >= 0 && age < 1) { c.globalAlpha = 1 - age; text(c, '+1', 302, 54 - age * 22, 20, '#fff5b2', 'monospace'); }
+    c.restore();
+  }
+
   function onPegHit(event) {
     hits.set(event.pegId, { x: event.x, y: event.y, time: performance.now() });
     playSound('peg', event.peg.row);
@@ -1508,7 +1785,7 @@ button:disabled{opacity:.45}
     saveProgress();
     recent.unshift({ hit: result.hit, reward: result.reward, slot: event.slotIndex + 1, power: event.power ?? lastPower });
     recent.length = Math.min(3, recent.length);
-    saveStorage('piggyPracticeReboundV1', JSON.stringify(recent)); renderPractice();
+    saveStorage('piggyPracticeFeederV1', JSON.stringify(recent)); renderPractice();
     if (result.hit) {
       slotFlashes.set(event.slotIndex, performance.now());
       const pop = document.createElement('span'); pop.className = 'score-pop big';
@@ -1523,8 +1800,8 @@ button:disabled{opacity:.45}
   }
   function activeCount() { return engine.balls.filter(ball => !ball.scored).length; }
   function isOpenRound() { return !!game.round && game.round.phase !== 'settled'; }
-  function canLaunch() { return game.round?.phase === 'ready' && game.round.remaining === 1 && performance.now() >= rollingUntil; }
-  function canDeposit() { return !charging && performance.now() >= rollingUntil && (!isOpenRound() || ['activated', 'ready'].includes(game.round.phase)); }
+  function canLaunch() { return launchReady && !feeder.busy && game.round?.phase === 'ready' && game.round.remaining === 1 && performance.now() >= rollingUntil; }
+  function canDeposit() { return !charging && !feeder.busy && performance.now() >= rollingUntil && (!isOpenRound() || ['activated', 'ready'].includes(game.round.phase)); }
   function depositLimit() { return Math.min(game.wallet, 99 - (isOpenRound() ? game.round.stake : 0)); }
   function currentStake() { return Number($('stakeInput').value); }
   function isMobile() { return matchMedia('(max-width:650px), (max-width:950px) and (max-height:500px)').matches; }
@@ -1534,6 +1811,8 @@ button:disabled{opacity:.45}
     const valid = Number.isInteger(stake) && stake >= 1 && stake <= limit;
     const won = r?.won || 0, principal = r?.stake || 0;
     $('walletCount').textContent = game.wallet;
+    $('pointCount').textContent = game.points;
+    $('pointCount').title = `${game.points} 积分`;
     $('cardCount').textContent = game.cards;
     $('inventoryCount').textContent = Object.values(game.inventory).reduce((sum, count) => sum + count, 0);
     const settled = r?.phase === 'settled';
@@ -1557,7 +1836,7 @@ button:disabled{opacity:.45}
     $('litCount').textContent = r?.multiplier ? `${r.litSlots.length} / 10 条轨道亮灯` : '低倍率亮灯轨道更多';
     $('roundProgress').style.width = `${r?.phase === 'settled' ? 100 : 0}%`;
     $('roundProgressText').textContent = !r ? '每局本金 1–99 颗 · 只发射一次' : r.phase === 'playing' ? '已发射 1 / 1 次 · 等待落袋' : r.phase === 'settled' ? '本局已结束' : '剩余发射机会 1 / 1';
-    $('roundStatus').textContent = rolling ? '首次投珠成功，自动获取倍率…' : !r ? '点击投珠，自动激活并获取倍率' : r.phase === 'settled' ? '本局已结算，积分卡已入账' : r.phase === 'playing' ? '本金已锁定，等待这唯一一发落袋' : `可继续投珠加注 · 命中返还 ${principal} × ${r.multiplier} = ${principal * r.multiplier} 颗`;
+    $('roundStatus').textContent = feeder.busy ? '弹珠正从进珠口流入 · 入洞即时加分' : rolling ? '首次投珠成功，自动获取倍率…' : !r ? '点击投珠，自动激活并获取倍率' : r.phase === 'settled' ? '本局已结算，积分卡已入账' : r.phase === 'playing' ? '本金已锁定，等待这唯一一发落袋' : `可继续投珠加注 · 命中返还 ${principal} × ${r.multiplier} = ${principal * r.multiplier} 颗`;
     $('stakeInput').disabled = !editable || limit === 0;
     $('stakeInput').max = Math.max(1, limit);
     $('stakeSlider').max = Math.max(1, limit);
@@ -1579,13 +1858,10 @@ button:disabled{opacity:.45}
     launchButton.disabled = !canLaunch();
     $('leverHandle').disabled = !canLaunch();
     $('addStakeButton').disabled = !editable;
-    $('leverInstruction').textContent = rolling ? '投珠成功 · 正在获取倍率' : !r ? '投珠后自动获取倍率' : r.phase === 'playing' ? '本局已发射 · 等待落袋' : r.phase === 'settled' ? '投珠开始下一局' : '下拉松手 · 本局仅此一发';
-    $('resetButton').hidden = !open;
-    $('resetButton').disabled = charging || rolling || activeCount() > 0 || !open;
-    $('resetButton').textContent = `取消本局 · 退回 ${principal} 颗`;
+    $('leverInstruction').textContent = feeder.busy ? '正在入珠 · 请稍候' : rolling ? '投珠成功 · 正在获取倍率' : !r ? '投珠后自动获取倍率' : r.phase === 'playing' ? '本局已发射 · 等待落袋' : r.phase === 'settled' ? '投珠开始下一局' : '下拉松手 · 本局仅此一发';
     $('rescueButton').hidden = game.wallet >= 1 || open;
     if (!charging) {
-      $('launchLabel').textContent = rolling ? '正在获取倍率…' : !r || r.phase === 'settled' ? '先投珠 · 自动激活游戏' : r.phase === 'playing' ? '等待弹珠落袋…' : '按住蓄力 · 仅发射一次';
+      $('launchLabel').textContent = feeder.busy ? '弹珠入槽中…' : rolling ? '正在获取倍率…' : !r || r.phase === 'settled' ? '先投珠 · 自动激活游戏' : r.phase === 'playing' ? '等待弹珠落袋…' : '按住蓄力 · 仅发射一次';
       $('launchSublabel').textContent = !r ? '1–99 PRINCIPAL / ONE SHOT' : canLaunch() ? `本金 ${principal} 颗 · ${r.multiplier} 倍好运` : 'PIGGY PINBALL CLUB';
     }
     $('shopCardCount').textContent = game.cards;
@@ -1615,9 +1891,10 @@ button:disabled{opacity:.45}
   function fire(force) {
     if (!canLaunch() || document.querySelector('dialog[open]')) return false;
     force = normalizePower(force);
-    if (!engine.launch(force)) return false;
+    if (!engine.launch(force, { startY: H + PinballFeeder.LAUNCH_Y + force * 10 })) return false;
     const ball = engine.balls[engine.balls.length - 1];
     if (!game.launchBall(ball.id)) { engine.balls.pop(); return false; }
+    launchReady = false; $('feederReady').textContent = '已发射'; $('feederStatus').textContent = '弹珠已发射，等待落袋';
     lastPower = force; saveProgress(); $('boardHint').classList.add('hide');
     updateUI(); return true;
   }
@@ -1633,6 +1910,8 @@ button:disabled{opacity:.45}
   function prepareRound() {
     clearTimeout(endTimer); endTimer = undefined; rollingUntil = 0;
     if (!game.clearRound()) return;
+    feeder.reset(); launchReady = false; feedRound = null; feedPointAt = -Infinity; feedDirty = false;
+    $('feederReady').textContent = '待发射 0 颗'; $('feederStatus').textContent = '等待投珠';
     engine.reset(); hits.clear(); slotFlashes.clear(); particles.length = 0; roundAnnounced = false;
     $('floatingScores').replaceChildren();
     $('boardHint').classList.remove('hide'); $('endDialog').close();
@@ -1641,9 +1920,11 @@ button:disabled{opacity:.45}
   }
   function depositStake() {
     if (!canDeposit()) return;
+    clearTimeout(toastTimer); $('toast').classList.remove('visible');
     const adding = isOpenRound();
     if (!adding && game.round) prepareRound();
-    const result = adding ? game.addStake(currentStake()) : game.startRound(currentStake());
+    const amount = currentStake(), pointOffset = adding ? game.round.stake - 1 : 0;
+    const result = adding ? game.addStake(amount) : game.startRound(amount);
     if (!result.ok) { toast(result.error); return; }
     if (!adding) {
       clearTimeout(endTimer); endTimer = undefined; roundAnnounced = false;
@@ -1653,11 +1934,14 @@ button:disabled{opacity:.45}
       $('boardHint').innerHTML = '<span class="hint-star">✦</span> 首次投珠成功 · 自动获取倍率 <span class="hint-star">✦</span>';
       rollingUntil = performance.now() + 750; lastRollDigit = -1;
     }
+    feedRound = game.round; feedCollected = 0;
+    feeder.start({ count: amount, launchBall: !adding, pointOffset });
+    $('feederStatus').textContent = `正在投入 ${amount} 颗弹珠${adding ? '，全部进入积分收集口' : '，首颗进入发射轨道'}`;
     const limit = depositLimit();
     if (limit > 0 && currentStake() > limit) $('stakeInput').value = limit;
     saveProgress(); initAudio(); drawBackground(); updateUI();
     if ($('stakeDialog').open) $('stakeDialog').close();
-    toast(adding ? `加注成功，本金共 ${game.round.stake} 颗 · 倍率保持 ${game.round.multiplier} 倍` : `已投入 ${game.round.stake} 颗，自动获取倍率…`);
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { feeder.step(10); flushFeedPoints(); }
   }
   function finishRound() {
     const r = game.round;
@@ -1674,14 +1958,6 @@ button:disabled{opacity:.45}
       $('recordMessage').textContent = r.refunded ? `发射前取消本局，已退回全部 ${r.refunded} 颗本金。` : `${r.hits ? `本金 ${r.stake} 颗 × ${r.multiplier} 倍 = ${r.won} 颗返珠（含本金）。` : `本局唯一一发未命中亮灯轨道，${r.stake} 颗本金不返还。`}${r.cardsAwarded ? `获得 ${r.cardsAwarded} 张积分卡！` : '本局返珠未满30颗，未获得积分卡。'}`;
       $('endDialog').showModal();
     }, 650);
-  }
-  function endOrPrepare() {
-    if (!game.round || game.round.phase === 'settled') { prepareRound(); return; }
-    cancelCharge();
-    const result = game.refundUnlaunched();
-    if (!result.ok) { toast(result.error); return; }
-    if ($('stakeDialog').open) $('stakeDialog').close();
-    saveProgress(); updateUI(); finishRound();
   }
   function renderShop() {
     $('shopCardCount').textContent = game.cards;
@@ -1714,7 +1990,7 @@ button:disabled{opacity:.45}
     else $('addStakeButton').removeAttribute('aria-haspopup');
     if (mobile) {
       const board = document.querySelector('.machine-section').getBoundingClientRect();
-      const width = Math.max(0, Math.min(board.width - 12, (board.height - 33) * W / H));
+      const width = Math.max(0, Math.min(board.width - 12, (board.height - 33) * W / (H + PinballFeeder.HEIGHT)));
       document.documentElement.style.setProperty('--mobile-machine-width', `${width}px`);
     }
     document.documentElement.style.setProperty('--mobile-dock-height', `${$('launchConsole').getBoundingClientRect().height}px`);
@@ -1809,7 +2085,7 @@ button:disabled{opacity:.45}
   document.addEventListener('keyup', e => { if (e.code === 'Space' && chargeSource === 'keyboard') { e.preventDefault(); releaseCharge(); } });
   window.addEventListener('blur', cancelCharge);
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { cancelCharge(); audio.pause(); }
+    if (document.hidden) { cancelCharge(); audio.pause(); feeder.step(10); flushFeedPoints(); }
     else audio.recover();
     lastFrame = performance.now();
   });
@@ -1833,7 +2109,6 @@ button:disabled{opacity:.45}
   $('stakePlus').addEventListener('click', () => adjustStake((currentStake() || 1) + 1));
   document.querySelectorAll('[data-stake]').forEach(button => button.addEventListener('click', () => adjustStake(Number(button.dataset.stake))));
   $('addStakeButton').addEventListener('click', goToSetup);
-  $('resetButton').addEventListener('click', endOrPrepare);
   $('playAgain').addEventListener('click', prepareRound);
   $('rescueButton').addEventListener('click', () => {
     const result = game.getRescue();
@@ -1877,10 +2152,9 @@ button:disabled{opacity:.45}
       } else {
         rollingUntil = 0; updateUI(); playSound('score', game.round.multiplier);
         $('boardHint').innerHTML = '<span class="hint-star">✦</span> 可继续加注 · 只发射一次 <span class="hint-star">✦</span>';
-        toast(`${game.round.multiplier} 倍已锁定 · 可加注，或拉杆一发定局`);
       }
     }
-    engine.step(dt); draw(now, dt); finishRound(); requestAnimationFrame(frame);
+    feeder.step(dt); flushFeedPoints(); engine.step(dt); draw(now, dt); drawFeeder(now); finishRound(); requestAnimationFrame(frame);
   }
   const layoutObserver = new ResizeObserver(scheduleLayout);
   layoutObserver.observe(document.querySelector('.machine-section'));
@@ -1890,7 +2164,7 @@ button:disabled{opacity:.45}
   fitViewport(); showHelpPage(0);
   saveProgress(); drawBackground(); renderPractice(); updatePower(); updateUI(); updateSound(); updateHaptics(); requestAnimationFrame(frame);
   if (game.recovered) toast(`上局未完成，已退回 ${game.recovered.refunded} 颗弹珠并保留已结算奖励`);
-  window.PiggyGame = { getState: () => ({ ...game.serialize(), charging, power, activeBalls: activeCount() }), engine };
+  window.PiggyGame = { getState: () => ({ ...game.serialize(), charging, power, activeBalls: activeCount(), feeding: feeder.busy, launchReady }), engine };
 })();
 
 </script>

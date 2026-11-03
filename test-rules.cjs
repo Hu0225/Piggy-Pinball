@@ -8,9 +8,15 @@ const readyGame = (stake, multiplier = 2, saved) => {
   assert.equal(game.round.phase, 'ready');
   return game;
 };
+const collectRemaining = game => {
+  for (let token = 1; token < game.round.stake; token++) {
+    if (!game.round.pointTokens.includes(token)) assert.equal(game.collectPoint(token).ok, true);
+  }
+};
 const finish = (game, hit = true, id = 'shot') => {
   const lit = game.round.litSlots[0];
   const dark = Array.from({ length: 10 }, (_, index) => index).find(index => !game.round.litSlots.includes(index));
+  collectRemaining(game);
   assert.equal(game.launchBall(id), true);
   return game.landBall(id, hit ? lit : dark);
 };
@@ -74,6 +80,8 @@ assert.equal(poorRandomCalls, 0);
 // Exactly one valid ball may launch. Invalid or duplicate landing events cannot pay.
 assert.equal(game.landBall('missing', 0).accepted, false);
 for (const invalid of [undefined, null, '', ' ', -1, NaN, {}, 'x'.repeat(129)]) assert.equal(game.launchBall(invalid), false);
+assert.equal(game.launchBall('not-collected'), false);
+collectRemaining(game);
 assert.equal(game.launchBall('a'), true);
 assert.equal(game.round.remaining, 0);
 assert.equal(game.round.phase, 'playing');
@@ -190,8 +198,8 @@ for (const phase of ['activated', 'ready', 'playing']) {
   interrupted.startRound(10);
   if (phase === 'activated') Object.assign(interrupted.round, { phase, multiplier: null, litSlots: [] });
   interrupted.addStake(15);
-  if (phase === 'playing') interrupted.launchBall('flying');
-  assert.equal(interrupted.serialize().version, 2);
+  if (phase === 'playing') { collectRemaining(interrupted); interrupted.launchBall('flying'); }
+  assert.equal(interrupted.serialize().version, 3);
   const restored = new PinballRules(interrupted.serialize());
   assert.deepEqual(restored.recovered, { refunded: 25, cardsAwarded: 0 });
   assert.equal(restored.wallet, 990);
@@ -236,6 +244,115 @@ empty.startRound(50);
 assert.equal(empty.getRescue().ok, false);
 assert.equal(new PinballRules({ wallet: 1 }).getRescue().ok, false);
 
+// One firing ball is reserved; only the other balls earn independent points,
+// exactly when their individual collection events arrive.
+const single = readyGame(1, 6);
+assert.equal(single.points, 0);
+assert.equal(single.round.pointsEarned, 0);
+assert.deepEqual(single.collectPoint(1), { ok: false, pointsAdded: 0 });
+assert.equal(single.launchBall('single'), true);
+single.landBall('single', single.round.litSlots[0]);
+assert.equal(single.points, 0);
+
+const pointGame = readyGame(10, 6);
+assert.equal(pointGame.wallet, 980);
+assert.equal(pointGame.points, 0, 'debit happens at deposit, points wait for collection');
+assert.equal(pointGame.cards, 0);
+const pointLanes = [...pointGame.round.litSlots];
+for (const invalid of [undefined, null, '1', 0, -1, 1.5, NaN, Infinity, 10, 99]) {
+  assert.deepEqual(pointGame.collectPoint(invalid), { ok: false, pointsAdded: 0 });
+}
+for (let token = 1; token <= 9; token++) {
+  assert.equal(pointGame.launchBall(`premature-${token}`), false);
+  assert.deepEqual(pointGame.collectPoint(token), { ok: true, pointsAdded: 1 });
+  assert.equal(pointGame.points, token);
+  assert.equal(pointGame.round.pointsEarned, token);
+  assert.equal(pointGame.collectPoint(token).ok, false);
+}
+assert.equal(pointGame.addStake(5).ok, true);
+assert.equal(pointGame.points, 9, 'top-up does not credit until the new balls enter');
+assert.equal(pointGame.wallet, 975);
+assert.equal(pointGame.round.stake, 15);
+assert.equal(pointGame.round.multiplier, 6);
+assert.deepEqual(pointGame.round.litSlots, pointLanes);
+assert.equal(pointGame.launchBall('topup-pending'), false);
+for (let token = 10; token <= 14; token++) assert.equal(pointGame.collectPoint(token).ok, true);
+assert.equal(pointGame.points, 14);
+assert.equal(pointGame.round.pointTokens.length, 14);
+assert.equal(pointGame.cards, 0, 'independent points never become cards');
+assert.equal(pointGame.launchBall('points-shot'), true);
+assert.equal(pointGame.collectPoint(15).ok, false);
+const darkPointLane = Array.from({ length: 10 }, (_, index) => index).find(index => !pointLanes.includes(index));
+pointGame.landBall('points-shot', darkPointLane);
+assert.equal(pointGame.points, 14, 'a miss keeps legitimately collected points');
+assert.equal(pointGame.cards, 0);
+assert.equal(pointGame.round.pointsEarned, 14);
+assert.equal(pointGame.collectPoint(1).ok, false);
+const savedPoints = pointGame.serialize();
+assert.equal(savedPoints.version, 3);
+savedPoints.round.pointTokens.pop();
+assert.equal(pointGame.round.pointTokens.length, 14, 'save snapshots do not share mutable token arrays');
+const completedPoints = new PinballRules(pointGame.serialize());
+assert.equal(completedPoints.points, 14);
+assert.equal(completedPoints.wallet, 975);
+assert.equal(completedPoints.recovered, null);
+assert.equal(completedPoints.startRound(2).ok, true);
+assert.deepEqual(completedPoints.collectPoint(1), { ok: true, pointsAdded: 1 });
+assert.equal(completedPoints.points, 15, 'token IDs restart in the next round');
+
+// Safe-integer saturation must not leave an otherwise collected round locked.
+const cappedPoints = readyGame(5, 2, { version: 3, points: Number.MAX_SAFE_INTEGER - 2 });
+for (const [token, added] of [[1, 1], [2, 1], [3, 0], [4, 0]]) {
+  assert.deepEqual(cappedPoints.collectPoint(token), { ok: true, pointsAdded: added });
+}
+assert.equal(cappedPoints.points, Number.MAX_SAFE_INTEGER);
+assert.equal(cappedPoints.round.pointsEarned, 2);
+assert.equal(cappedPoints.round.pointTokens.length, 4);
+assert.equal(finish(cappedPoints, false).settled, true);
+assert.equal(new PinballRules(cappedPoints.serialize()).points, Number.MAX_SAFE_INTEGER);
+
+// Internal cancellation and interrupted-round recovery roll back only this
+// round's credited points together with its principal, including mid-animation.
+for (const phase of ['partial', 'collected', 'playing']) {
+  const interruptedPoints = readyGame(10, 6, { version: 3, points: 11 });
+  for (let token = 1; token <= 3; token++) interruptedPoints.collectPoint(token);
+  interruptedPoints.addStake(5);
+  if (phase !== 'partial') collectRemaining(interruptedPoints);
+  if (phase === 'playing') assert.equal(interruptedPoints.launchBall('in-flight'), true);
+  const restored = new PinballRules(interruptedPoints.serialize());
+  assert.equal(restored.wallet, 990);
+  assert.equal(restored.points, 11);
+  assert.equal(restored.cards, 0);
+  assert.deepEqual(restored.recovered, { refunded: 15, cardsAwarded: 0 });
+  const restoredAgain = new PinballRules(restored.serialize());
+  assert.equal(restoredAgain.points, 11);
+  assert.equal(restoredAgain.wallet, 990);
+  assert.equal(restoredAgain.recovered, null);
+}
+const canceledPoints = readyGame(10, 6, { version: 3, points: 7 });
+for (let token = 1; token <= 3; token++) canceledPoints.collectPoint(token);
+assert.equal(canceledPoints.points, 10);
+assert.equal(canceledPoints.refundUnlaunched().ok, true);
+assert.equal(canceledPoints.points, 7);
+assert.equal(canceledPoints.round.pointsEarned, 0);
+assert.equal(canceledPoints.wallet, 990);
+assert.equal(canceledPoints.collectPoint(4).ok, false);
+assert.equal(canceledPoints.refundUnlaunched().ok, false);
+assert.equal(new PinballRules(canceledPoints.serialize()).points, 7);
+
+// Versions predating independent points migrate with zero points, including
+// unresolved old single-shot saves that still need their principal returned.
+const version2 = readyGame(10, 6).serialize();
+version2.version = 2;
+version2.points = 1234;
+delete version2.round.pointTokens;
+delete version2.round.pointsEarned;
+const migratedV2 = new PinballRules(version2);
+assert.equal(migratedV2.points, 0);
+assert.equal(migratedV2.wallet, 990);
+assert.deepEqual(migratedV2.recovered, { refunded: 10, cardsAwarded: 0 });
+assert.equal(migrated.points, 0);
+
 // Damaged saves do not create invalid balances or refund corrupt round metadata.
 for (const damaged of ['not json', '[]', null, { wallet: NaN, cards: -3, bestWin: Infinity }, { version: 200, wallet: 3 }]) {
   const sample = new PinballRules(damaged);
@@ -255,4 +372,18 @@ for (const corrupt of [
   assert.equal(sample.wallet, 980);
   assert.equal(sample.cards, 0);
 }
-console.log('Rules passed: automatic first-deposit multiplier, locked targets on top-ups, rejected-deposit atomicity, 1–99 total principal, single-shot settlement, cards, gifts, v1/undrawn-round migration, recovery and duplicate protection.');
+const pointSnapshot = readyGame(10, 6, { version: 3, points: 5 });
+pointSnapshot.collectPoint(1);
+for (const corrupt of [
+  { pointTokens: [1, 1] }, { pointTokens: [0] }, { pointTokens: [10] }, { pointTokens: ['1'] },
+  { pointTokens: [1.5] }, { pointTokens: null }, { pointsEarned: -1 },
+  { pointsEarned: 2 }, { pointsEarned: 0 }, { pointsEarned: Number.MAX_SAFE_INTEGER }
+]) {
+  const saved = pointSnapshot.serialize();
+  Object.assign(saved.round, corrupt);
+  const restored = new PinballRules(saved);
+  assert.equal(restored.recovered, null, 'corrupt point metadata cannot trigger refunds');
+  assert.equal(restored.wallet, 980);
+  assert.equal(restored.points, 6);
+}
+console.log('Rules passed: automatic multiplier, locked top-ups, per-ball independent points and duplicate protection, collection-before-launch gate, 1–99 principal, single-shot/card settlement, safe-integer saturation, v1/v2/v3 migration and point rollback on interrupted rounds.');

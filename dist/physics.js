@@ -44,15 +44,16 @@
       this.time = 0;
     }
 
-    launch(power = 0.65) {
+    launch(power = 0.65, { startY = 704 } = {}) {
       if (this.balls.filter(ball => ball.phase !== 'scored').length >= 10) return false;
       const force = clamp(Number(power) || 0, 0, 1);
+      const originY = Number.isFinite(startY) && startY >= 704 && startY <= 900 ? startY : 704;
       // Spring energy pays for the climb first. The remaining exit speed is
       // linear in the user's power; the rail still conserves that energy.
       const exitSpeed = EXIT_SPEED_MIN + force * EXIT_SPEED_RANGE;
       const ball = {
-        id: this._nextId++, x: LAUNCH_RAIL.startX, y: 704, vx: 0,
-        vy: -Math.sqrt(2 * GRAVITY * (704 - LAUNCH_RAIL.exitY) + exitSpeed * exitSpeed), radius: BALL_RADIUS,
+        id: this._nextId++, x: LAUNCH_RAIL.startX, y: originY, vx: 0,
+        vy: -Math.sqrt(2 * GRAVITY * (originY - LAUNCH_RAIL.exitY) + exitSpeed * exitSpeed), radius: BALL_RADIUS,
         power: force, phase: 'launch', age: 0, trail: [],
         railAngle: 0, trailClock: 0, hitCooldown: new Map(),
         scored: false, fade: 1, slotIndex: -1

@@ -26,10 +26,12 @@ near(rail.exitY, rail.centerY - rail.radius, 1e-12, 'guide has the agreed outlet
 assert.ok(rail.halfWidth > 8.5, 'ball fits between the guide walls');
 assert.ok(rail.exitX <= 520 - 8.5 && rail.exitY >= 30 + 8.5, 'outlet is inside the free-flight bounds');
 
-for (const power of [0, 0.25, 0.5, 0.75, 1]) {
+for (const startY of [704, 838, 848]) for (const power of [0, 0.25, 0.5, 0.75, 1]) {
   const physics = new PinballPhysics();
-  physics.launch(power);
+  physics.launch(power, { startY });
   const ball = physics.balls[0];
+  assert.equal(ball.y, startY, 'the actual ball starts in its visible waiting chamber');
+  assert.equal(ball.x, rail.startX);
   const initialSpeed = -ball.vy;
   const conservedEnergy = initialSpeed * initialSpeed - 2 * gravity * ball.y;
   const expectedExitSpeed = Math.sqrt(initialSpeed * initialSpeed - 2 * gravity * (ball.y - rail.exitY));
@@ -58,6 +60,17 @@ for (const power of [0, 0.25, 0.5, 0.75, 1]) {
     }
   }
   assert.ok(sawEntry && sawExit, 'all launch powers traverse both continuous transitions');
+}
+
+for (const invalidY of [null, '838', NaN, Infinity, -1, 703, 901]) {
+  const physics = new PinballPhysics();
+  physics.launch(.5, { startY: invalidY });
+  assert.equal(physics.balls[0].y, 704, 'invalid origins retain the original launch position');
+}
+for (const boundaryY of [704, 900]) {
+  const physics = new PinballPhysics();
+  physics.launch(.5, { startY: boundaryY });
+  assert.equal(physics.balls[0].y, boundaryY);
 }
 
 const visitedSlots = new Set();
@@ -190,17 +203,37 @@ timeoutPhysics.step(tick);
 assert.equal(timeoutScores.length, 0);
 assert.ok(timeoutPhysics.balls[0].y < 710);
 
-function settle(physics, power, frameTimes = [1 / 60]) {
+function settle(physics, power, frameTimes = [1 / 60], startY = 704) {
   let result;
   physics.reset();
   physics.onScore = event => { result = event; };
-  physics.launch(power);
+  physics.launch(power, { startY });
   const ball = physics.balls[0];
   let frame = 0;
   while (!result && ball.age < 20) physics.step(frameTimes[frame++ % frameTimes.length]);
   assert.ok(result, `power ${power} must physically reach a lane`);
   assert.equal(result.y, 710);
-  return result;
+  return { ...result, seconds: ball.age };
+}
+
+// Feeding extends the existing launch chute below the board. It changes only
+// the climb length: every power must still leave the guide naturally and settle.
+let feederMaximumSeconds = 0;
+for (const originForPower of [() => 838, () => 848, power => 838 + 10 * power]) {
+  const feederSlots = new Set();
+  for (let percent = 1; percent <= 100; percent++) {
+    const power = percent / 100, startY = originForPower(power);
+    const first = settle(new PinballPhysics(), power, [1 / 60], startY);
+    feederSlots.add(first.slotIndex);
+    feederMaximumSeconds = Math.max(feederMaximumSeconds, first.seconds);
+    for (const frames of [[1 / 30], [1 / 120], [.013, .021, .008, .05, .016]]) {
+      const later = new PinballPhysics(); later._nextId = 901;
+      const repeated = settle(later, power, frames, startY);
+      assert.equal(repeated.slotIndex, first.slotIndex, 'extended chute retains a lane across ball IDs and frame rates');
+      near(repeated.x, first.x, 1e-9, 'extended chute retains its landing coordinate');
+    }
+  }
+  assert.equal(feederSlots.size, 10, 'the extended launch chute can still reach every lane');
 }
 
 // The UI exposes exact one-percent increments. Every step must be repeatable,
@@ -231,4 +264,4 @@ for (let percent = 1; percent <= 100; percent++) {
 
 // The restored lively rebounds amplify small aim changes on dense pins.
 // Neighboring powers need not produce neighboring lanes; identical powers do.
-console.log(`Physics passed: original 68-pin layout and rebound strength, continuous 90-degree energy-conserving guide, real-contact feedback, 101 power levels, all 10 slots, ${impacts} peg impacts, ID/frame-rate repeatability, 10 simultaneous balls; longest flight ${maximumSeconds.toFixed(2)}s.`);
+console.log(`Physics passed: original 68-pin layout and rebound strength, continuous 90-degree energy-conserving guide, real-contact feedback, 101 power levels, all 10 slots, ${impacts} peg impacts, ID/frame-rate repeatability, 10 simultaneous balls; longest flight ${maximumSeconds.toFixed(2)}s; extended feeder origins 838–848 cover every lane and settle within ${feederMaximumSeconds.toFixed(2)}s.`);

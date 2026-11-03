@@ -5,6 +5,11 @@
   const ctx = canvas.getContext('2d');
   const W = 600, H = 760;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const feederCanvas = $('feederCanvas');
+  const feederCtx = feederCanvas.getContext('2d');
+  feederCanvas.width = W * dpr;
+  feederCanvas.height = PinballFeeder.HEIGHT * dpr;
+  feederCtx.scale(dpr, dpr);
   canvas.width = W * dpr;
   canvas.height = H * dpr;
   ctx.scale(dpr, dpr);
@@ -24,18 +29,21 @@
   let lastFrame = performance.now(), toastTimer, endTimer, roundAnnounced = false;
   let rollingUntil = 0, lastRollDigit = -1, lastPower = .65, dragStartY = 0;
   let helpPage = 0, layoutFrame = 0;
+  let launchReady = false, feedRound = null, feedDirty = false, feedCollected = 0;
+  let feedPointAt = -Infinity, lastFeedSound = -Infinity;
   const audio = new PinballAudio({ enabled: sound });
   const haptics = new PinballHaptics({ enabled: readStorage('piggyHaptics', 'true') !== 'false' });
   const hits = new Map(), slotFlashes = new Map(), particles = [], recent = loadPractice();
   lastPower = normalizePower(recent[0]?.power ?? .65);
   const engine = new PinballPhysics({ onPegHit, onScore, onImpact, onLaunch: event => { playSound('launch'); haptics.launch(event.power); } });
+  const feeder = new PinballFeeder({ onCollect: collectFeedPoint, onReady: readyFeedBall, onComplete: finishFeed });
 
   function readStorage(key, fallback) { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } }
   function saveStorage(key, value) { try { localStorage.setItem(key, String(value)); } catch { /* Game remains playable without storage. */ } }
   function normalizePower(value) { return Math.max(.01, Math.min(1, Math.round(value * 100) / 100)); }
   function loadPractice() {
     try {
-      const saved = JSON.parse(readStorage('piggyPracticeReboundV1', '[]'));
+      const saved = JSON.parse(readStorage('piggyPracticeFeederV1', '[]'));
       if (!Array.isArray(saved)) return [];
       return saved.filter(s => s && Number.isFinite(s.power) && s.power >= .01 && s.power <= 1 && Number.isInteger(s.slot) && s.slot >= 1 && s.slot <= 10 && typeof s.hit === 'boolean' && Number.isSafeInteger(s.reward) && s.reward >= 0).slice(0, 3);
     } catch { return []; }
@@ -119,7 +127,7 @@
     // The painted channel and the simulation share one quarter-turn centerline.
     // Paint over the cabinet edge so the outlet is visibly open to the playfield.
     bg.save(); bg.lineCap = 'butt';
-    bg.beginPath(); bg.moveTo(rail.startX, 729); bg.lineTo(rail.startX, rail.startY);
+    bg.beginPath(); bg.moveTo(rail.startX, H); bg.lineTo(rail.startX, rail.startY);
     bg.arc(rail.centerX, rail.centerY, rail.radius, 0, -rail.angle, true);
     bg.strokeStyle = '#795132'; bg.lineWidth = rail.halfWidth * 2 + 4; bg.stroke();
     bg.strokeStyle = chute; bg.lineWidth = rail.halfWidth * 2; bg.stroke();
@@ -135,7 +143,7 @@
     bg.lineCap = 'round'; bg.lineJoin = 'round';
     for (const side of [-1, 1]) {
       const radius = rail.radius + side * rail.halfWidth;
-      bg.beginPath(); bg.moveTo(rail.centerX + radius, 729); bg.lineTo(rail.centerX + radius, rail.centerY);
+      bg.beginPath(); bg.moveTo(rail.centerX + radius, H); bg.lineTo(rail.centerX + radius, rail.centerY);
       bg.arc(rail.centerX, rail.centerY, radius, 0, -rail.angle, true);
       const endY = rail.centerY - radius;
       bg.bezierCurveTo(rail.exitX - 6, endY, rail.exitX - 10, endY - side * 6, rail.exitX - 20, endY - side * 6);
@@ -151,7 +159,7 @@
     text(bg, 'LET THE GOOD', 279, 84, 18, '#fff0be', 'Arial Black, sans-serif', '900');
     bg.save(); bg.translate(279, 120); bg.rotate(-.035); text(bg, 'TIMES ROLL', 0, 0, 45, '#fff1c7', 'Impact, Arial Black, sans-serif', '900'); bg.restore();
     line(bg, 152, 148, 403, 148, '#a9522f55', 1);
-    text(bg, game.round?.multiplier ? `${game.round.multiplier} 倍好运 · ${game.round.litSlots.length} 条亮灯轨道` : '投 珠 激 活  ·  确 定 倍 率', 279, 151, 11, '#9b472b', 'Microsoft YaHei, sans-serif');
+    text(bg, game.round?.multiplier ? `${game.round.multiplier} 倍好运 · ${game.round.litSlots.length} 条亮灯轨道` : '投 珠 激 活  ·  自 动 获 取 倍 率', 279, 151, 11, '#9b472b', 'Microsoft YaHei, sans-serif');
     bg.save(); bg.globalAlpha = .82; drawPig(bg); bg.restore();
     text(bg, 'GOOD LUCK!', 279, 606, 17, '#ffdb9b', 'Arial Black, sans-serif', '900');
     // Every round has a fixed, clearly illuminated set of winning lanes.
@@ -162,8 +170,8 @@
       rounded(bg, slot.x + 4, 653, slot.width - 8, 72, 13, dark, '#67482e', 2);
       rounded(bg, slot.x + 12, 660, slot.width - 24, 40, 7, '#443e2d', '#c1a570', 1.3);
       line(bg, slot.x + 16, 665, slot.x + 16, 692, '#e1d2a681', 2);
-      text(bg, String(i + 1).padStart(2, '0'), slot.x + 24, 713, 20, gold ? '#fff5c2' : '#ead5ab', 'monospace', '700');
-      if (gold) text(bg, '★', slot.x + 24, 678, 15, '#d9b657', 'sans-serif');
+      text(bg, String(i + 1).padStart(2, '0'), slot.x + 24, 713, 14, gold ? '#fff5c2' : '#ead5ab', 'monospace', '700');
+      text(bg, gold ? `×${game.round.multiplier}` : '—', slot.x + 24, 678, game.round?.multiplier >= 10 ? 19 : 23, gold ? '#fff1a0' : '#9e947a', 'monospace', '700');
       ellipse(bg, slot.x + 24, 638, 11, 8, '#75442d', '#b66c3c', 2);
       ellipse(bg, slot.x + 24, 636, 7.5, 5, gold ? '#de7e36' : '#b67142');
     });
@@ -199,13 +207,7 @@
 
   function draw(now, dt) {
     ctx.clearRect(0, 0, W, H); ctx.drawImage(background, 0, 0, W, H);
-    // The plunger spring compresses as power builds.
-    const springTop = 725 + power * 13;
-    ctx.beginPath(); ctx.moveTo(553, springTop);
-    for (let i = 0; i < 9; i++) ctx.lineTo(i % 2 ? 553 : 572, springTop + i * (751 - springTop) / 9);
-    ctx.strokeStyle = '#4f5340'; ctx.lineWidth = 3; ctx.stroke();
-    line(ctx, 551, springTop - 1, 574, springTop - 1, '#f8e6b7', 4);
-    if (game.round?.remaining > 0 && !engine.balls.some(b => b.phase === 'launch' && b.y > 620)) drawBall(ctx, 562, 712 + power * 12, 8.5);
+    // The waiting ball and spring now live in the connected lower feed tray.
     const rolling = now < rollingUntil;
     engine.slots.forEach((slot, i) => {
       const lit = rolling ? i === Math.floor(now / 65) % 10 : game.round?.litSlots.includes(i);
@@ -248,6 +250,82 @@
     }
   }
 
+  function collectFeedPoint(tokenIndex) {
+    if (game.round !== feedRound) return;
+    const result = game.collectPoint(tokenIndex);
+    if (!result.ok) return;
+    feedCollected++; feedDirty = true;
+    feedPointAt = performance.now();
+    if (!document.hidden && feedPointAt - lastFeedSound > 85) {
+      lastFeedSound = feedPointAt; playSound('peg', 2);
+    }
+  }
+  function readyFeedBall() {
+    if (game.round !== feedRound) return;
+    launchReady = true; $('feederReady').textContent = '待发射 1 颗';
+  }
+  function finishFeed() {
+    if (game.round !== feedRound) return;
+    feedDirty = true;
+    $('feederStatus').textContent = `入珠完成，本次增加 ${feedCollected} 积分，待发射 1 颗`;
+    updateUI();
+  }
+  function flushFeedPoints() {
+    if (!feedDirty) return;
+    feedDirty = false;
+    $('pointCount').textContent = game.points;
+    $('pointCount').title = `${game.points} 积分`;
+    saveProgress();
+  }
+  function drawFeeder(now) {
+    const c = feederCtx, snapshot = feeder.getSnapshot(), height = PinballFeeder.HEIGHT;
+    c.clearRect(0, 0, W, height);
+    const copper = c.createLinearGradient(0, 0, 0, height);
+    copper.addColorStop(0, '#d99355'); copper.addColorStop(.45, '#94512f'); copper.addColorStop(1, '#c47b46');
+    c.fillStyle = copper; c.fillRect(0, 0, W, height);
+    rounded(c, 7, 5, 586, 102, 9, '#5e3e29', '#f0b576', 2);
+    rounded(c, 14, 12, 572, 88, 7, '#302c24', '#6e5037', 2);
+    // Recessed downward trough: the first ball crosses the bridge to the right.
+    c.save(); c.lineCap = 'round'; c.lineJoin = 'round';
+    c.beginPath(); c.moveTo(48, 15); c.lineTo(56, 32); c.lineTo(260, 56); c.lineTo(562, 78);
+    c.strokeStyle = '#1b211d'; c.lineWidth = 29; c.stroke();
+    c.strokeStyle = '#8b754d'; c.lineWidth = 23; c.stroke();
+    c.strokeStyle = '#b6a57d'; c.lineWidth = 15; c.stroke();
+    line(c, 58, 44, 260, 68, '#f6d899', 3);
+    line(c, 337, 73.5, 548, 89, '#eed399', 3);
+    // Collection well beneath the switch. Balls disappear into its depth.
+    ellipse(c, 300, 80, 39, 23, '#ae7e47', '#e3b779', 2);
+    ellipse(c, 300, 80, 33, 18, '#111b18', '#493b29', 3);
+    ellipse(c, 300, 84, 25, 10, '#090f0d');
+    // The shared right shaft continues directly into the playfield above.
+    const shaft = c.createLinearGradient(548, 0, 576, 0);
+    shaft.addColorStop(0, '#dfcf9c'); shaft.addColorStop(.2, '#b8a473'); shaft.addColorStop(.7, '#d0b47d'); shaft.addColorStop(1, '#7c603d');
+    c.fillStyle = shaft; c.fillRect(548, 0, 28, 100);
+    line(c, 548, 0, 548, 63, '#ffdf9f', 2);
+    line(c, 576, 0, 576, 101, '#dac99b', 2);
+    // Hinged bridge closes for the first ball, opens before the next arrives.
+    c.save(); c.translate(264, 65); c.rotate(snapshot.gate * .9);
+    rounded(c, 0, -3, 72, 6, 3, '#b49b69', '#f1d799', 1.5); c.restore();
+    ellipse(c, 264, 65, 4, 4, '#e5d5a9', '#66442b', 1);
+    const springTop = 89 + (charging ? power * 10 : 0);
+    c.beginPath(); c.moveTo(552, springTop);
+    for (let i = 0; i <= 9; i++) c.lineTo(i % 2 ? 571 : 553, springTop + i * (106 - springTop) / 9);
+    c.strokeStyle = '#766b50'; c.lineWidth = 2.5; c.stroke();
+    line(c, 551, springTop - 2, 573, springTop - 2, '#efe0b6', 3);
+    snapshot.balls.forEach(ball => drawBall(c, ball.x, ball.y, 8.5 * ball.scale, ball.opacity));
+    if (launchReady) drawBall(c, PinballFeeder.LAUNCH_X, PinballFeeder.LAUNCH_Y + (charging ? power * 10 : 0), 8.5);
+    for (const ball of engine.balls) if (ball.y + ball.radius >= H) drawBall(c, ball.x, ball.y - H, ball.radius, Math.max(0, ball.fade));
+    // Opaque mouth and front lip provide a clear origin and occlusion.
+    rounded(c, 33, -6, 31, 24, 4, '#20271f', '#dbaf73', 2);
+    line(c, 35, 17, 62, 17, '#d6ac71', 3);
+    c.beginPath(); c.ellipse(300, 80, 36, 22, 0, 0, Math.PI);
+    c.strokeStyle = '#b7854e'; c.lineWidth = 5; c.stroke();
+    [ [19, 19], [582, 103], [19, 94] ].forEach(([x, y]) => { ellipse(c, x, y, 3, 3, '#ddbb83'); line(c, x - 1, y + 1, x + 1, y - 1, '#685036'); });
+    const age = (now - feedPointAt) / 650;
+    if (age >= 0 && age < 1) { c.globalAlpha = 1 - age; text(c, '+1', 302, 54 - age * 22, 20, '#fff5b2', 'monospace'); }
+    c.restore();
+  }
+
   function onPegHit(event) {
     hits.set(event.pegId, { x: event.x, y: event.y, time: performance.now() });
     playSound('peg', event.peg.row);
@@ -262,7 +340,7 @@
     saveProgress();
     recent.unshift({ hit: result.hit, reward: result.reward, slot: event.slotIndex + 1, power: event.power ?? lastPower });
     recent.length = Math.min(3, recent.length);
-    saveStorage('piggyPracticeReboundV1', JSON.stringify(recent)); renderPractice();
+    saveStorage('piggyPracticeFeederV1', JSON.stringify(recent)); renderPractice();
     if (result.hit) {
       slotFlashes.set(event.slotIndex, performance.now());
       const pop = document.createElement('span'); pop.className = 'score-pop big';
@@ -277,8 +355,8 @@
   }
   function activeCount() { return engine.balls.filter(ball => !ball.scored).length; }
   function isOpenRound() { return !!game.round && game.round.phase !== 'settled'; }
-  function canLaunch() { return game.round?.phase === 'ready' && game.round.remaining === 1 && performance.now() >= rollingUntil; }
-  function canDeposit() { return !charging && performance.now() >= rollingUntil && (!isOpenRound() || ['activated', 'ready'].includes(game.round.phase)); }
+  function canLaunch() { return launchReady && !feeder.busy && game.round?.phase === 'ready' && game.round.remaining === 1 && performance.now() >= rollingUntil; }
+  function canDeposit() { return !charging && !feeder.busy && performance.now() >= rollingUntil && (!isOpenRound() || ['activated', 'ready'].includes(game.round.phase)); }
   function depositLimit() { return Math.min(game.wallet, 99 - (isOpenRound() ? game.round.stake : 0)); }
   function currentStake() { return Number($('stakeInput').value); }
   function isMobile() { return matchMedia('(max-width:650px), (max-width:950px) and (max-height:500px)').matches; }
@@ -288,6 +366,8 @@
     const valid = Number.isInteger(stake) && stake >= 1 && stake <= limit;
     const won = r?.won || 0, principal = r?.stake || 0;
     $('walletCount').textContent = game.wallet;
+    $('pointCount').textContent = game.points;
+    $('pointCount').title = `${game.points} 积分`;
     $('cardCount').textContent = game.cards;
     $('inventoryCount').textContent = Object.values(game.inventory).reduce((sum, count) => sum + count, 0);
     const settled = r?.phase === 'settled';
@@ -311,7 +391,7 @@
     $('litCount').textContent = r?.multiplier ? `${r.litSlots.length} / 10 条轨道亮灯` : '低倍率亮灯轨道更多';
     $('roundProgress').style.width = `${r?.phase === 'settled' ? 100 : 0}%`;
     $('roundProgressText').textContent = !r ? '每局本金 1–99 颗 · 只发射一次' : r.phase === 'playing' ? '已发射 1 / 1 次 · 等待落袋' : r.phase === 'settled' ? '本局已结束' : '剩余发射机会 1 / 1';
-    $('roundStatus').textContent = rolling ? '首次投珠成功，自动获取倍率…' : !r ? '点击投珠，自动激活并获取倍率' : r.phase === 'settled' ? '本局已结算，积分卡已入账' : r.phase === 'playing' ? '本金已锁定，等待这唯一一发落袋' : `可继续投珠加注 · 命中返还 ${principal} × ${r.multiplier} = ${principal * r.multiplier} 颗`;
+    $('roundStatus').textContent = feeder.busy ? '弹珠正从进珠口流入 · 入洞即时加分' : rolling ? '首次投珠成功，自动获取倍率…' : !r ? '点击投珠，自动激活并获取倍率' : r.phase === 'settled' ? '本局已结算，积分卡已入账' : r.phase === 'playing' ? '本金已锁定，等待这唯一一发落袋' : `可继续投珠加注 · 命中返还 ${principal} × ${r.multiplier} = ${principal * r.multiplier} 颗`;
     $('stakeInput').disabled = !editable || limit === 0;
     $('stakeInput').max = Math.max(1, limit);
     $('stakeSlider').max = Math.max(1, limit);
@@ -333,13 +413,10 @@
     launchButton.disabled = !canLaunch();
     $('leverHandle').disabled = !canLaunch();
     $('addStakeButton').disabled = !editable;
-    $('leverInstruction').textContent = rolling ? '投珠成功 · 正在获取倍率' : !r ? '投珠后自动获取倍率' : r.phase === 'playing' ? '本局已发射 · 等待落袋' : r.phase === 'settled' ? '投珠开始下一局' : '下拉松手 · 本局仅此一发';
-    $('resetButton').hidden = !open;
-    $('resetButton').disabled = charging || rolling || activeCount() > 0 || !open;
-    $('resetButton').textContent = `取消本局 · 退回 ${principal} 颗`;
+    $('leverInstruction').textContent = feeder.busy ? '正在入珠 · 请稍候' : rolling ? '投珠成功 · 正在获取倍率' : !r ? '投珠后自动获取倍率' : r.phase === 'playing' ? '本局已发射 · 等待落袋' : r.phase === 'settled' ? '投珠开始下一局' : '下拉松手 · 本局仅此一发';
     $('rescueButton').hidden = game.wallet >= 1 || open;
     if (!charging) {
-      $('launchLabel').textContent = rolling ? '正在获取倍率…' : !r || r.phase === 'settled' ? '先投珠 · 自动激活游戏' : r.phase === 'playing' ? '等待弹珠落袋…' : '按住蓄力 · 仅发射一次';
+      $('launchLabel').textContent = feeder.busy ? '弹珠入槽中…' : rolling ? '正在获取倍率…' : !r || r.phase === 'settled' ? '先投珠 · 自动激活游戏' : r.phase === 'playing' ? '等待弹珠落袋…' : '按住蓄力 · 仅发射一次';
       $('launchSublabel').textContent = !r ? '1–99 PRINCIPAL / ONE SHOT' : canLaunch() ? `本金 ${principal} 颗 · ${r.multiplier} 倍好运` : 'PIGGY PINBALL CLUB';
     }
     $('shopCardCount').textContent = game.cards;
@@ -369,9 +446,10 @@
   function fire(force) {
     if (!canLaunch() || document.querySelector('dialog[open]')) return false;
     force = normalizePower(force);
-    if (!engine.launch(force)) return false;
+    if (!engine.launch(force, { startY: H + PinballFeeder.LAUNCH_Y + force * 10 })) return false;
     const ball = engine.balls[engine.balls.length - 1];
     if (!game.launchBall(ball.id)) { engine.balls.pop(); return false; }
+    launchReady = false; $('feederReady').textContent = '已发射'; $('feederStatus').textContent = '弹珠已发射，等待落袋';
     lastPower = force; saveProgress(); $('boardHint').classList.add('hide');
     updateUI(); return true;
   }
@@ -387,6 +465,8 @@
   function prepareRound() {
     clearTimeout(endTimer); endTimer = undefined; rollingUntil = 0;
     if (!game.clearRound()) return;
+    feeder.reset(); launchReady = false; feedRound = null; feedPointAt = -Infinity; feedDirty = false;
+    $('feederReady').textContent = '待发射 0 颗'; $('feederStatus').textContent = '等待投珠';
     engine.reset(); hits.clear(); slotFlashes.clear(); particles.length = 0; roundAnnounced = false;
     $('floatingScores').replaceChildren();
     $('boardHint').classList.remove('hide'); $('endDialog').close();
@@ -395,9 +475,11 @@
   }
   function depositStake() {
     if (!canDeposit()) return;
+    clearTimeout(toastTimer); $('toast').classList.remove('visible');
     const adding = isOpenRound();
     if (!adding && game.round) prepareRound();
-    const result = adding ? game.addStake(currentStake()) : game.startRound(currentStake());
+    const amount = currentStake(), pointOffset = adding ? game.round.stake - 1 : 0;
+    const result = adding ? game.addStake(amount) : game.startRound(amount);
     if (!result.ok) { toast(result.error); return; }
     if (!adding) {
       clearTimeout(endTimer); endTimer = undefined; roundAnnounced = false;
@@ -407,11 +489,14 @@
       $('boardHint').innerHTML = '<span class="hint-star">✦</span> 首次投珠成功 · 自动获取倍率 <span class="hint-star">✦</span>';
       rollingUntil = performance.now() + 750; lastRollDigit = -1;
     }
+    feedRound = game.round; feedCollected = 0;
+    feeder.start({ count: amount, launchBall: !adding, pointOffset });
+    $('feederStatus').textContent = `正在投入 ${amount} 颗弹珠${adding ? '，全部进入积分收集口' : '，首颗进入发射轨道'}`;
     const limit = depositLimit();
     if (limit > 0 && currentStake() > limit) $('stakeInput').value = limit;
     saveProgress(); initAudio(); drawBackground(); updateUI();
     if ($('stakeDialog').open) $('stakeDialog').close();
-    toast(adding ? `加注成功，本金共 ${game.round.stake} 颗 · 倍率保持 ${game.round.multiplier} 倍` : `已投入 ${game.round.stake} 颗，自动获取倍率…`);
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { feeder.step(10); flushFeedPoints(); }
   }
   function finishRound() {
     const r = game.round;
@@ -428,14 +513,6 @@
       $('recordMessage').textContent = r.refunded ? `发射前取消本局，已退回全部 ${r.refunded} 颗本金。` : `${r.hits ? `本金 ${r.stake} 颗 × ${r.multiplier} 倍 = ${r.won} 颗返珠（含本金）。` : `本局唯一一发未命中亮灯轨道，${r.stake} 颗本金不返还。`}${r.cardsAwarded ? `获得 ${r.cardsAwarded} 张积分卡！` : '本局返珠未满30颗，未获得积分卡。'}`;
       $('endDialog').showModal();
     }, 650);
-  }
-  function endOrPrepare() {
-    if (!game.round || game.round.phase === 'settled') { prepareRound(); return; }
-    cancelCharge();
-    const result = game.refundUnlaunched();
-    if (!result.ok) { toast(result.error); return; }
-    if ($('stakeDialog').open) $('stakeDialog').close();
-    saveProgress(); updateUI(); finishRound();
   }
   function renderShop() {
     $('shopCardCount').textContent = game.cards;
@@ -468,7 +545,7 @@
     else $('addStakeButton').removeAttribute('aria-haspopup');
     if (mobile) {
       const board = document.querySelector('.machine-section').getBoundingClientRect();
-      const width = Math.max(0, Math.min(board.width - 12, (board.height - 33) * W / H));
+      const width = Math.max(0, Math.min(board.width - 12, (board.height - 33) * W / (H + PinballFeeder.HEIGHT)));
       document.documentElement.style.setProperty('--mobile-machine-width', `${width}px`);
     }
     document.documentElement.style.setProperty('--mobile-dock-height', `${$('launchConsole').getBoundingClientRect().height}px`);
@@ -563,7 +640,7 @@
   document.addEventListener('keyup', e => { if (e.code === 'Space' && chargeSource === 'keyboard') { e.preventDefault(); releaseCharge(); } });
   window.addEventListener('blur', cancelCharge);
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { cancelCharge(); audio.pause(); }
+    if (document.hidden) { cancelCharge(); audio.pause(); feeder.step(10); flushFeedPoints(); }
     else audio.recover();
     lastFrame = performance.now();
   });
@@ -587,7 +664,6 @@
   $('stakePlus').addEventListener('click', () => adjustStake((currentStake() || 1) + 1));
   document.querySelectorAll('[data-stake]').forEach(button => button.addEventListener('click', () => adjustStake(Number(button.dataset.stake))));
   $('addStakeButton').addEventListener('click', goToSetup);
-  $('resetButton').addEventListener('click', endOrPrepare);
   $('playAgain').addEventListener('click', prepareRound);
   $('rescueButton').addEventListener('click', () => {
     const result = game.getRescue();
@@ -631,10 +707,9 @@
       } else {
         rollingUntil = 0; updateUI(); playSound('score', game.round.multiplier);
         $('boardHint').innerHTML = '<span class="hint-star">✦</span> 可继续加注 · 只发射一次 <span class="hint-star">✦</span>';
-        toast(`${game.round.multiplier} 倍已锁定 · 可加注，或拉杆一发定局`);
       }
     }
-    engine.step(dt); draw(now, dt); finishRound(); requestAnimationFrame(frame);
+    feeder.step(dt); flushFeedPoints(); engine.step(dt); draw(now, dt); drawFeeder(now); finishRound(); requestAnimationFrame(frame);
   }
   const layoutObserver = new ResizeObserver(scheduleLayout);
   layoutObserver.observe(document.querySelector('.machine-section'));
@@ -644,5 +719,5 @@
   fitViewport(); showHelpPage(0);
   saveProgress(); drawBackground(); renderPractice(); updatePower(); updateUI(); updateSound(); updateHaptics(); requestAnimationFrame(frame);
   if (game.recovered) toast(`上局未完成，已退回 ${game.recovered.refunded} 颗弹珠并保留已结算奖励`);
-  window.PiggyGame = { getState: () => ({ ...game.serialize(), charging, power, activeBalls: activeCount() }), engine };
+  window.PiggyGame = { getState: () => ({ ...game.serialize(), charging, power, activeBalls: activeCount(), feeding: feeder.busy, launchReady }), engine };
 })();

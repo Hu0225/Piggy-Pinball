@@ -19,6 +19,7 @@
       this._resolvedIds = new Set();
       this.wallet = 990;
       this.cards = 0;
+      this.points = 0;
       this.bestWin = 0;
       this.roundNumber = 0;
       this.round = null;
@@ -51,7 +52,7 @@
       this.round = {
         stake, multiplier: null, litSlots: [],
         remaining: 1, launched: 0, resolved: 0, hits: 0, won: 0,
-        cardsAwarded: 0, refunded: 0, phase: 'activated'
+        cardsAwarded: 0, refunded: 0, pointsEarned: 0, pointTokens: [], phase: 'activated'
       };
       this.recovered = null;
       // The first deposit activates the round and locks its targets immediately.
@@ -85,10 +86,27 @@
       return { ok: true, round };
     }
 
+    collectPoint(tokenIndex) {
+      const round = this.round;
+      if (!round || round.phase !== 'ready' || !Number.isInteger(tokenIndex)
+          || tokenIndex < 1 || tokenIndex >= round.stake || round.pointTokens.includes(tokenIndex)) {
+        return { ok: false, pointsAdded: 0 };
+      }
+      // Credit only when a particular deposited ball crosses the collection
+      // opening. A duplicate animation callback can never award it twice.
+      round.pointTokens.push(tokenIndex);
+      const previous = this.points;
+      this.points = add(this.points, 1);
+      const pointsAdded = this.points - previous;
+      round.pointsEarned += pointsAdded;
+      return { ok: true, pointsAdded };
+    }
+
     launchBall(ballId) {
       const round = this.round;
       const key = this._ballKey(ballId);
       if (!round || round.phase !== 'ready' || round.remaining !== 1 || round.launched !== 0 || key === null || this._launchedIds.has(key)) return false;
+      if (round.pointTokens.length !== round.stake - 1) return false;
       this._launchedIds.add(key);
       round.remaining--;
       round.launched++;
@@ -143,6 +161,8 @@
       if (!['activated', 'ready'].includes(round.phase) || round.launched !== 0) return { ok: false, refunded: 0, cardsAwarded: 0, error: '已经发射，请等待本局结算' };
       const refunded = round.stake;
       this.wallet = add(this.wallet, refunded);
+      this.points -= round.pointsEarned;
+      round.pointsEarned = 0;
       round.refunded = refunded;
       round.remaining = 0;
       const cardsAwarded = this._settle();
@@ -167,10 +187,10 @@
 
     serialize() {
       return {
-        version: 2,
-        wallet: this.wallet, cards: this.cards, bestWin: this.bestWin,
+        version: 3,
+        wallet: this.wallet, cards: this.cards, points: this.points, bestWin: this.bestWin,
         roundNumber: this.roundNumber, inventory: { ...this.inventory },
-        round: this.round ? { ...this.round, litSlots: [...this.round.litSlots] } : null
+        round: this.round ? { ...this.round, litSlots: [...this.round.litSlots], pointTokens: [...this.round.pointTokens] } : null
       };
     }
 
@@ -180,17 +200,19 @@
         try { saved = JSON.parse(saved); } catch { return; }
       }
       if (!saved || typeof saved !== 'object' || Array.isArray(saved)) return;
-      if (saved.version !== undefined && saved.version !== 1 && saved.version !== 2) return;
+      if (saved.version !== undefined && saved.version !== 1 && saved.version !== 2 && saved.version !== 3) return;
       this.wallet = integer(saved.wallet, 990);
       this.cards = integer(saved.cards);
+      this.points = saved.version === 3 ? integer(saved.points) : 0;
       this.bestWin = integer(saved.bestWin);
       this.roundNumber = integer(saved.roundNumber);
       if (saved.inventory && typeof saved.inventory === 'object') {
         for (const prize of PRIZES) this.inventory[prize.id] = integer(saved.inventory[prize.id]);
       }
       const round = saved.round;
-      const legacy = saved.version !== 2;
+      const legacy = saved.version !== 2 && saved.version !== 3;
       if (!(legacy ? this._validLegacyRound(round) : this._validSavedRound(round))) return;
+      if (saved.version === 3 && !this._validPointRound(round)) return;
       this.bestWin = Math.max(this.bestWin, round.won);
       // A settled round's rewards are already in the saved balances.
       if (round.phase === 'settled') return;
@@ -200,7 +222,23 @@
       const cardsAwarded = legacy ? Math.max(0, Math.floor(round.won / 30) - round.cardsAwarded) : 0;
       this.wallet = add(this.wallet, refunded);
       this.cards = add(this.cards, cardsAwarded);
+      // Keep completed rounds' independent points, but roll back the points of
+      // an unresolved round whose principal is being returned on recovery.
+      if (saved.version === 3) this.points -= round.pointsEarned;
       this.recovered = { refunded, cardsAwarded };
+    }
+
+    _validPointRound(round) {
+      const tokens = round.pointTokens;
+      if (!Array.isArray(tokens) || tokens.length > round.stake - 1
+          || new Set(tokens).size !== tokens.length
+          || !tokens.every(token => Number.isInteger(token) && token >= 1 && token < round.stake)) return false;
+      if (!Number.isSafeInteger(round.pointsEarned) || round.pointsEarned < 0
+          || round.pointsEarned > tokens.length || round.pointsEarned > this.points) return false;
+      if (round.refunded > 0) return round.pointsEarned === 0;
+      if (round.phase === 'activated' && tokens.length !== 0) return false;
+      if (round.launched === 1 && tokens.length !== round.stake - 1) return false;
+      return this.points === Number.MAX_SAFE_INTEGER || round.pointsEarned === tokens.length;
     }
 
     _validSavedRound(round) {
