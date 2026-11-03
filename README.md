@@ -2,6 +2,10 @@
 
 根据参考图制作的复古小猪街机弹珠小游戏，使用原生 HTML、CSS 和 Canvas，无需安装依赖。
 
+## 在线游玩
+
+打开 [好运弹珠社](https://hu0225.github.io/Piggy-Pinball/) 即可直接游玩，支持电脑和手机。
+
 ## 直接游玩
 
 双击 `好运弹珠社.html`，即可在现代浏览器中离线游玩。所有样式、绘图、音效和物理代码均内嵌在这一个 HTML 文件中。
@@ -24,5 +28,11 @@
 在本目录运行 `python -m http.server 4173 --directory dist`，浏览器访问 http://localhost:4173 。
 
 运行 `node test-physics.cjs` 验证 101 档力度、所有奖励槽和 10 球并发。
+
+## GitHub Pages 部署
+
+`.github/workflows/pages.yml` 会在 `main` 分支的游戏文件发生变化时，检查脚本、运行物理测试，并将 `dist/` 发布到 GitHub Pages。也可以在 GitHub 的 Actions 页面手动运行 “Deploy game to GitHub Pages”。
+
+仓库 Settings → Pages 的发布来源使用 **GitHub Actions**。
 
 这是休闲积分游戏，不包含充值、押注或实物兑换。
