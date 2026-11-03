@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#191a17">
+  <meta name="description" content="好运弹珠社：一台装进口袋的复古弹珠机。按住蓄力，松开发射，让好运一路叮叮当当。">
+  <title>好运弹珠社 · PIGGY PINBALL</title>
+  <style>
+:root{--bg:#191b18;--panel:#22241f;--line:#393b32;--cream:#f4eedb;--muted:#94988a;--orange:#ff7a40;--yellow:#ffdc81;--mono:"Cascadia Code","SFMono-Regular",Consolas,monospace;--sans:"Microsoft YaHei","PingFang SC",system-ui,sans-serif}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--cream);font-family:var(--sans);font-size:14px;-webkit-font-smoothing:antialiased}button,a{-webkit-tap-highlight-color:transparent}button{font:inherit;color:inherit;cursor:pointer}button:focus-visible,a:focus-visible{outline:2px solid var(--yellow);outline-offset:5px}button{border:0}a{color:inherit;text-decoration:none}button:disabled{cursor:default}.noise{position:fixed;inset:0;z-index:20;pointer-events:none;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='.5' filter='url(%23n)'/%3E%3C/svg%3E")}.site-header{max-width:1440px;margin:0 auto;padding:28px 56px 24px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:30px}.brand{display:flex;align-items:center;gap:12px;font-size:21px;letter-spacing:2px;font-weight:800}.brand-mark{width:44px;height:44px;border-radius:12px;background:var(--orange);display:grid;place-items:center;transform:rotate(-6deg);color:#28241d}.brand-mark svg{width:34px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}.brand small{display:block;font-family:var(--mono);font-size:9px;letter-spacing:2.2px;font-weight:500;margin-top:5px}.header-nav{display:flex;gap:40px;margin-left:30px}.nav-item{background:none;position:relative;padding:13px 0;color:#a4a698;font-size:13px}.nav-item span{font-family:var(--mono);font-size:9px;margin-left:8px;opacity:.5}.nav-item.active{color:var(--cream)}.nav-item.active:after{content:"";position:absolute;bottom:-26px;left:0;right:0;height:2px;background:var(--orange)}.header-actions{display:flex;align-items:center;gap:25px}.open-badge{font-size:11px;letter-spacing:1px;color:#c8cbb6;display:flex;gap:8px;align-items:center}.open-badge i,.live-dot{display:inline-block;width:5px;height:5px;background:#bad19a;border-radius:50%;box-shadow:0 0 8px #b5d89644}.icon-button{width:36px;height:36px;border:1px solid #4b4d40;background:transparent;border-radius:50%;display:grid;place-items:center}.icon-button:hover{background:#34382c}.icon-button svg{width:17px;fill:none;stroke:var(--cream);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}.sound-muted{display:none}.muted .sound-waves{display:none}.muted .sound-muted{display:block}.arcade-layout{max-width:1370px;margin:0 auto;display:grid;grid-template-columns:minmax(190px,1fr) minmax(360px,530px) minmax(210px,1fr);gap:48px;padding:41px 56px 30px;align-items:start}.intro-panel{padding-top:34px}.eyebrow{font-family:var(--mono);font-size:9px;letter-spacing:1.3px;color:#c1c5b1;display:flex;align-items:center;gap:8px;white-space:nowrap}.mini-star{color:var(--orange);font-size:20px;font-family:Arial}h1{font-size:clamp(34px,3.4vw,49px);font-weight:900;line-height:1.42;letter-spacing:-1.7px;margin:22px 0 15px}h1>span{color:var(--orange)}.intro-copy{font-size:12px;line-height:2;color:#a4a799;letter-spacing:.4px}.edition-label{display:flex;gap:8px;align-items:center;font-size:10px;color:#b1b6a1;margin-top:24px;white-space:nowrap}.edition-dot{width:5px;height:5px;border:1px solid var(--orange);border-radius:50%}.edition-number{margin-left:auto;font-family:var(--mono);color:#7c8173;font-size:9px}.best-card{margin-top:32px;padding:20px 19px 0;border:1px solid #494c3e;border-radius:3px;background:linear-gradient(135deg,#2b2e25,#22251f);position:relative}.best-card:after{content:"";height:12px;width:12px;border-top:2px solid #a7ab87;border-right:2px solid #a7ab87;position:absolute;top:-1px;right:-1px}.small-label{font-size:10px;color:#c5c9b0;display:flex;gap:7px;align-items:center}.small-label svg{width:13px;height:13px;fill:none;stroke:#d5daaa;stroke-width:1.5}.best-value{display:flex;align-items:baseline;gap:10px;margin:10px 0 18px;font-family:var(--mono)}.best-value>span{font-size:39px;letter-spacing:-2px;color:#dbe0b1;line-height:1.1}.best-value small{font-size:9px;color:#8e9578}.best-bottom{border-top:1px solid #424635;margin:0 -19px;padding:11px 16px;display:flex;justify-content:space-between;font-size:9px;color:#969f83}.best-bottom>span:last-child{color:#cdd8b1;font-size:15px}.history-section{margin-top:31px}.section-caption{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:10px;letter-spacing:.4px;color:#c6c8b8}.section-caption>span{font-family:var(--mono);font-size:8px;color:#7e8474;letter-spacing:.6px}#recentShots{padding:0;margin:16px 0;list-style:none}#recentShots li{border-bottom:1px solid #30352b;min-height:34px;display:flex;align-items:center;justify-content:space-between;color:#a5ab94;font-size:10px}#recentShots li .shot-num{font-family:var(--mono);color:#727a66;font-size:9px;margin-right:9px}#recentShots li .shot-points{color:var(--yellow);font-family:var(--mono);font-size:13px}#recentShots li.history-empty{font-size:10px;padding:5px 0 15px;color:#7d8572}.history-empty>span{color:var(--orange);font-size:20px}.decor-ticket{margin:40px 8px 0 2px;padding:13px 13px 10px;border:1px solid #595b42;display:flex;justify-content:space-around;position:relative;transform:rotate(-7deg);color:#b6b996;max-width:214px;gap:3px;flex-wrap:wrap}.decor-ticket:before,.decor-ticket:after{content:"";position:absolute;width:10px;height:10px;border:1px solid #595b42;border-radius:50%;top:17px;background:var(--bg)}.decor-ticket:before{left:-6px;border-left:0}.decor-ticket:after{right:-6px;border-right:0}.decor-ticket>span{font-weight:700;font-size:20px}.decor-ticket b{width:100%;text-align:center;font-family:var(--mono);letter-spacing:3.4px;font-size:8px;border-top:1px dashed #595b42;padding-top:7px;margin-top:7px;font-weight:400}.machine-section{min-width:0}.machine-topline{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:8px;letter-spacing:1px;color:#8c927f;margin:0 7px 13px}.machine-topline>span:first-child{display:flex;align-items:center;font-family:var(--sans);font-size:9px;gap:7px;letter-spacing:1.2px}.machine-topline i{width:4px;height:4px;background:var(--orange);border-radius:50%}.cabinet{border:2px solid #7f3b29;border-radius:21px 21px 15px 15px;padding:17px 15px 10px;position:relative;background:linear-gradient(100deg,#bd5235 0%,#ef8a4d 3%,#bd5036 5%,#ca613e 50%,#ad422e 94%,#f2914b 97%,#a3462c);box-shadow:0 2px 0 #f7a16c inset,0 0 0 4px #322b20,0 0 0 5px #66523b,0 20px 60px #0007;isolation:isolate}.cabinet:before{content:"";position:absolute;inset:5px;border:1px solid #ffa06a66;border-radius:16px;pointer-events:none}.cabinet-bolt{position:absolute;width:7px;height:7px;background:linear-gradient(135deg,#fff4bf,#8c6c45 48%,#debd87);border:1px solid #704f35;border-radius:50%;z-index:3}.cabinet-bolt:after{content:"";position:absolute;height:1px;background:#684f3b;top:2px;left:1px;right:1px;transform:rotate(-35deg)}.bolt-tl{left:8px;top:8px}.bolt-tr{right:8px;top:8px}.bolt-bl{left:9px;bottom:8px}.bolt-br{right:9px;bottom:8px}.marquee{display:flex;justify-content:center;gap:17px;text-align:center;color:#fff1cc;padding-bottom:12px;position:relative}.marquee-kicker{font-family:var(--mono);font-size:7px;letter-spacing:2px;color:#f9d3a5;display:block;margin-bottom:4px}.marquee h2{font-family:Impact,"Arial Narrow",sans-serif;font-stretch:condensed;font-size:31px;line-height:1;margin:0;letter-spacing:1px;font-style:italic;font-weight:900;text-shadow:1px 2px #77362a,2px 3px #77362a}.marquee h2 span{color:#ffda83}.marquee-side{font-size:11px;line-height:1.75;transform:rotate(-10deg);padding-top:2px;color:#ffcf79}.marquee-side:last-child{transform:rotate(10deg)}.scoreboard{display:flex;gap:11px;padding:9px 13px 10px;border-radius:9px 9px 0 0;background:linear-gradient(#e8c08b,#f1d1a2);border:2px solid #792f25;border-bottom:0;box-shadow:inset 0 2px 3px #fff9}.score-display{flex:1;min-width:0}.score-display>span{display:flex;justify-content:space-between;color:#7d4735;font-size:8px;font-weight:700;letter-spacing:1px;margin:0 1px 4px}.score-display>span>small{font-family:var(--mono);font-size:7px;opacity:.6}.score-display strong{display:block;background:#271c18;color:#ff653e;border:3px solid #8c452f;border-radius:4px;font-family:var(--mono);font-style:italic;font-weight:500;font-size:40px;line-height:1.2;letter-spacing:4px;text-align:right;padding:2px 10px;text-shadow:0 0 8px #fb3a1e88;box-shadow:inset 0 2px 8px #0009,0 1px #fff8;position:relative}.balls-display{flex:0 0 26%}.balls-display strong{text-align:center;letter-spacing:2px}.board-surround{position:relative;padding:0 8px 8px;background:#f0d4a5;border:2px solid #792f25;border-top:0;border-radius:0 0 7px 7px}.board-window{position:relative;border:3px solid #834d2c;border-radius:17px 17px 35px 35px;overflow:hidden;box-shadow:0 0 0 2px #e9984e,0 0 0 4px #975d36;background:#ed9c46;line-height:0;isolation:isolate}.board-window:after{content:"";position:absolute;inset:0;background:linear-gradient(114deg,#fff2 0%,transparent 28%,transparent 70%,#fff1 100%);pointer-events:none;border-radius:inherit;box-shadow:inset 0 2px 5px #6e381c66,inset 2px 0 7px #fff5}.board-window canvas{display:block;width:100%;height:auto;touch-action:none}.led-strip{position:absolute;top:16px;bottom:30px;width:3px;border-radius:4px;background:#ffedb8;box-shadow:0 0 5px #fff,0 0 12px #ffe06d;z-index:3;animation:led-glow 3s ease-in-out infinite alternate}.led-left{left:0}.led-right{right:0;animation-delay:-1.5s}.machine-bottom{display:flex;justify-content:space-between;font-family:var(--mono);font-size:7px;letter-spacing:1px;color:#f8d5ad;margin:9px 7px 0;opacity:.8}.machine-serial{font-size:6px}.machine-shadow{height:8px;width:85%;margin:auto;background:#0008;filter:blur(9px);border-radius:50%}.keyboard-tip{display:flex;justify-content:center;align-items:center;gap:7px;margin-top:20px;color:#a5aa96;font-size:9px;white-space:nowrap}kbd{display:inline-block;font-family:var(--mono);font-size:9px;border:1px solid #595e4b;border-bottom-width:2px;border-radius:3px;padding:3px 5px;color:#d3d8be;line-height:1}.tip-divider{width:1px;height:10px;background:#424839;margin:0 3px}.board-hint{position:absolute;top:3.5%;left:7%;right:15%;line-height:1.5;display:flex;gap:10px;align-items:center;justify-content:center;color:#9b3d27;font-size:clamp(9px,.9vw,12px);font-weight:700;letter-spacing:1.5px;transition:opacity .3s}.board-hint.hide{opacity:0}.hint-star{font-size:16px;color:#d95530}.floating-scores{position:absolute;inset:0;pointer-events:none;overflow:hidden}.score-pop{position:absolute;color:#fff6cf;font-family:var(--mono);font-size:24px;font-weight:bold;line-height:1;text-shadow:0 2px 0 #9c4527,0 0 10px #d45324;animation:score-float 1.3s ease-out forwards;transform:translate(-50%,-50%)}.score-pop.big{color:#ffeb87;font-size:34px}.control-panel{padding-top:32px;min-width:0}.session-heading{font-size:10px;color:#bcc8a0;display:flex;align-items:center;gap:7px;letter-spacing:.5px}.session-heading>span:last-child{margin-left:auto;color:#888f79;font-size:8px;font-family:var(--mono);letter-spacing:1px}.round-label{display:flex;justify-content:space-between;gap:10px;margin-top:28px;font-size:11px;color:#a2a992}.round-label>span{font-family:var(--mono);font-size:9px;color:#69735f}.session-score{display:flex;align-items:center;gap:15px;margin-top:11px;min-height:70px}.session-score>span:first-child{font-size:70px;font-family:var(--mono);line-height:1.1;letter-spacing:-5px}.score-unit{color:#b3bba0;font-size:10px;line-height:1.7;padding-top:9px}.score-unit small{font-size:7px;font-family:var(--mono);color:#6e7963;letter-spacing:1px}.session-divider{height:1px;background:var(--line);margin:23px 0 21px}.balls-summary{display:flex;justify-content:space-between;align-items:center;font-size:10px;color:#b4bca4}.balls-summary b{font-family:var(--mono);color:#e3e9ce;font-size:16px;font-weight:400}.balls-summary small{font-family:var(--mono);font-size:9px;color:#6f7964}.ball-dots{display:grid;grid-template-columns:repeat(10,1fr);gap:7px 8px;margin-top:14px}.ball-dot{display:block;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle at 33% 27%,#fffdea,#c1c8ac 39%,#69745f 75%,#bec8ab);border:1px solid #a3ad8a;box-shadow:0 1px 2px #0008;transition:opacity .2s,transform .2s;max-width:13px}.ball-dot.used{background:#343a2f;border-color:#424a37;box-shadow:none;opacity:.7;transform:scale(.8)}.power-section{margin-top:28px}.power-heading{display:flex;justify-content:space-between;font-size:10px;color:#b4bca4}.power-heading b{color:#7e8b6c;font-weight:400;font-size:9px;font-family:var(--mono)}.power-meter{margin-top:11px;height:10px;display:flex;justify-content:space-evenly;position:relative;background:#343b2e;border:1px solid #454f38;border-radius:2px;overflow:hidden}.power-meter>span{position:absolute;inset:0;width:0;background:linear-gradient(90deg,#a9bd76,#e1ce64 65%,#ff8651);box-shadow:0 0 8px #efcd7466}.power-meter i{height:100%;width:1px;background:#20281a;z-index:1}.power-scale{display:flex;justify-content:space-between;color:#65745b;font-size:8px;margin-top:7px}.launch-button{width:100%;background:var(--orange);border:1px solid #ffab6c;border-bottom:4px solid #ac4b2d;color:#322719;border-radius:5px;display:flex;align-items:center;justify-content:flex-start;padding:15px 15px 12px;gap:13px;margin-top:20px;box-shadow:0 3px 0 #0d100c,0 6px 20px #ff7b4010;touch-action:none;user-select:none;transition:background .12s,transform .12s,box-shadow .12s}.launch-button:hover{background:#ff8a52;box-shadow:0 3px 0 #0d100c,0 5px 25px #ff7b4030}.launch-button.charging{transform:translateY(3px);border-bottom-width:1px;box-shadow:0 0 25px #ff7b4040;background:#ffac63}.launch-button:disabled{filter:saturate(.3);opacity:.6}.launch-icon{font-size:31px;line-height:1;font-family:Arial;font-weight:400}.launch-button>span:nth-child(2){text-align:left}.launch-button b{font-size:12px;letter-spacing:.3px;white-space:nowrap}.launch-button small{display:block;font-family:var(--mono);font-size:7px;letter-spacing:1.5px;opacity:.6;margin-top:4px}.launch-end{font-size:7px;opacity:.5;margin-left:auto}.reset-button{display:flex;align-items:center;justify-content:center;gap:7px;background:transparent;border:1px solid #454e3c;width:100%;border-radius:4px;padding:11px;color:#a6b397;font-size:10px;margin-top:12px}.reset-button:hover{background:#2a3324;color:#e1e9cf}.reset-button svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}.reset-button>span{margin-left:auto;color:#697a5a}.reset-button svg{margin-right:auto}.how-to{margin-top:32px}.instruction{display:flex;gap:11px;margin-top:17px;align-items:flex-start}.instruction>span{width:20px;flex:0 0 20px;font-size:9px;color:#a4ad8e;font-family:var(--mono);border:1px solid #49533c;border-radius:50%;height:20px;display:grid;place-items:center}.instruction p{margin:0;padding:0}.instruction b{display:block;font-size:10px;font-weight:400;color:#c2cab1;line-height:1.8}.instruction small{display:block;font-size:8px;color:#7c896e;line-height:1.9}.luck-note{margin-top:27px;padding:18px 0;border-top:1px dashed #424c36;display:flex;align-items:center;gap:15px}.luck-note svg{width:28px;stroke:#cad098;fill:none;stroke-width:2}.luck-note p{font-size:10px;color:#acb69b;line-height:1.9;margin:0}.luck-note p>span{color:#718364;font-size:9px}.site-footer{max-width:1258px;padding:21px 0 27px;margin:auto;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;color:#737e68;font-size:9px;letter-spacing:.5px}.site-footer>span:nth-child(2){color:#8d9880;font-size:10px}.site-footer i{color:#bbbd84;font-style:normal;margin-left:14px}.site-footer button{background:transparent;color:#9ba68b;font-size:9px;padding:0}.game-dialog{color:var(--cream);background:#262b21;border:1px solid #6e7958;border-radius:12px;width:min(460px,calc(100% - 32px));padding:39px;box-shadow:0 30px 90px #0009}.game-dialog::backdrop{background:#0d110dd9;backdrop-filter:blur(8px)}.dialog-close{position:absolute;right:13px;top:10px;background:none;font-size:24px;color:#a9b196;padding:3px 7px;line-height:1}.dialog-eyebrow{font-family:var(--mono);color:var(--orange);font-size:8px;letter-spacing:1.6px}.game-dialog h2{font-size:24px;line-height:1.5;margin:17px 0}.game-dialog p{font-size:12px;line-height:2;color:#b5bda6}.dialog-primary{background:var(--orange);color:#322619;border-radius:4px;padding:13px 18px;width:100%;font-weight:700;font-size:12px;margin-top:14px}.help-slots{display:flex;gap:8px;margin:24px 0}.help-slots>span{flex:1;padding:14px 0;text-align:center;background:#3b4430;border:1px solid #606c4d;color:#dce1b7;border-radius:4px;font-family:var(--mono);font-size:13px}.help-slots>span:last-child{background:#c17a38;color:#fff1be;border-color:#f3bd73}.end-dialog{text-align:center}.end-star{font-size:58px;color:var(--orange);margin-top:16px;line-height:1.1}.end-dialog h2{margin:12px 0 17px}.end-dialog>strong{display:block;font-size:65px;font-family:var(--mono);color:var(--yellow);line-height:1.2;letter-spacing:-4px}.final-unit{display:block;margin-top:5px;color:#a8b195;font-size:11px}.toast{position:fixed;bottom:32px;left:50%;transform:translate(-50%,20px);padding:13px 22px;background:#ebdfbd;color:#352e20;box-shadow:0 8px 30px #0006;font-size:12px;border-radius:5px;z-index:30;opacity:0;pointer-events:none;transition:.25s;white-space:nowrap}.toast.visible{opacity:1;transform:translate(-50%,0)}.cabinet.jackpot{animation:jackpot .6s ease-out}.session-score.bump>span:first-child{animation:number-bump .25s ease-out}@keyframes led-glow{from{opacity:.7;box-shadow:0 0 5px #fff,0 0 9px #ffcf55}to{opacity:1;box-shadow:0 0 5px #fff,0 0 17px #ffcf55}}@keyframes score-float{0%{opacity:1;translate:0 0;scale:.6}20%{scale:1.1}70%{opacity:1}100%{opacity:0;translate:0 -70px;scale:1}}@keyframes jackpot{0%,100%{filter:brightness(1)}25%,65%{filter:brightness(1.25)}}@keyframes number-bump{50%{transform:scale(1.06);color:var(--yellow)}}
+@media(min-width:1500px){.arcade-layout{padding-top:50px;gap:60px}.site-header{max-width:1440px}.site-footer{max-width:1258px}}
+@media(max-width:1200px){.site-header{padding-left:32px;padding-right:32px}.arcade-layout{padding:33px 32px 28px;gap:28px;grid-template-columns:minmax(170px,1fr) minmax(340px,470px) minmax(190px,1fr)}.header-nav{margin-left:0;gap:30px}.intro-panel{padding-top:26px}.control-panel{padding-top:27px}h1{font-size:39px}.site-footer{margin:0 32px}.ball-dots{gap:7px}.launch-button{padding-left:12px;padding-right:12px;gap:8px}.launch-button b{font-size:11px}.marquee h2{font-size:28px}.marquee{gap:12px}.how-to{margin-top:26px}.luck-note{margin-top:20px}.decor-ticket{margin-top:35px}.section-caption>span{font-size:7px}}
+@media(max-width:1000px){.arcade-layout{grid-template-columns:minmax(350px,520px) minmax(220px,280px);justify-content:center;max-width:930px;gap:36px}.intro-panel{display:none}.header-nav{gap:25px}.site-header{padding:22px 30px}.nav-item.active:after{bottom:-24px}.control-panel{padding-top:28px}.session-score>span:first-child{font-size:74px}.site-footer{margin:0 30px}.marquee h2{font-size:31px}}
+@media(max-width:650px){.site-header{padding:18px 19px;gap:12px}.brand{font-size:16px;gap:9px;letter-spacing:1px}.brand-mark{width:35px;height:35px;border-radius:9px}.brand-mark svg{width:29px}.brand small{font-size:7px;letter-spacing:1.5px;margin-top:4px}.header-nav{display:none}.header-actions{gap:11px}.open-badge{font-size:9px;letter-spacing:0}.icon-button{width:31px;height:31px}.arcade-layout{display:flex;flex-direction:column;padding:23px 23px 22px;gap:22px;max-width:500px;margin:auto}.machine-section{width:100%}.machine-topline{font-size:7px;margin:0 2px 11px}.machine-topline>span:first-child{font-size:8px}.cabinet{padding:13px 11px 9px;border-radius:18px 18px 13px 13px}.marquee{padding-bottom:10px;gap:12px}.marquee h2{font-size:28px}.marquee-kicker{font-size:6px;letter-spacing:1.7px}.marquee-side{font-size:10px}.scoreboard{padding:8px 10px 9px;gap:8px}.score-display strong{font-size:33px;letter-spacing:3px;padding:2px 8px}.score-display>span{font-size:7px}.score-display>span>small{font-size:6px}.board-surround{padding:0 6px 6px}.machine-bottom{font-size:5px;letter-spacing:.7px;margin-top:8px}.machine-serial{font-size:5px}.keyboard-tip{display:none}.control-panel{display:grid;grid-template-columns:1fr 1fr;column-gap:22px;width:100%;padding-top:0}.session-heading{grid-column:1/-1;font-size:9px;padding-bottom:14px;border-bottom:1px solid var(--line)}.round-label{grid-column:1;margin-top:15px;font-size:9px}.round-label>span{font-size:8px}.session-score{grid-column:1;grid-row:3;margin-top:2px;min-height:55px;gap:11px}.session-score>span:first-child{font-size:53px;letter-spacing:-3px}.score-unit{font-size:9px;padding-top:3px}.score-unit small{font-size:6px}.session-divider{display:none}.balls-summary{grid-column:2;grid-row:2;margin-top:15px;font-size:9px}.balls-summary b{font-size:13px}.ball-dots{grid-column:2;grid-row:3;gap:5px 6px;margin:13px 0 3px;align-content:start}.ball-dot{max-width:10px}.power-section{grid-column:1/-1;margin-top:14px}.power-heading{font-size:9px}.power-meter{height:9px;margin-top:9px}.power-scale{font-size:7px}.launch-button{grid-column:1/-1;margin-top:13px;padding:14px 20px 12px;justify-content:center;gap:14px}.launch-button b{font-size:14px;letter-spacing:2px}.launch-button small{font-size:7px;letter-spacing:2px}.launch-end{margin-left:0;position:absolute;right:22px}.launch-button{position:relative}.launch-icon{font-size:32px}.reset-button{grid-column:1/-1;padding:10px;margin-top:11px}.reset-button>span,.reset-button svg{margin:0}.how-to{grid-column:1/-1;margin-top:26px;display:grid;grid-template-columns:1fr;gap:0}.how-to .section-caption{margin-bottom:2px}.instruction{margin-top:12px;gap:10px}.instruction p{display:flex;align-items:center;flex-wrap:wrap;gap:7px}.instruction b{font-size:10px}.instruction small{font-size:8px}.luck-note{grid-column:1/-1;margin-top:22px;justify-content:center;padding:17px 0 0}.luck-note p{font-size:10px}.site-footer{margin:0 23px;padding:19px 0 25px;font-size:8px;gap:12px;flex-wrap:wrap}.site-footer>span:nth-child(2){display:none}.site-footer button{font-size:8px}.board-hint{font-size:9px;letter-spacing:1px;gap:6px}.hint-star{font-size:12px}.game-dialog{padding:35px 25px}.game-dialog h2{font-size:22px}.toast{font-size:11px;padding:12px 16px;bottom:20px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;scroll-behavior:auto!important}.score-pop{opacity:0}}
+
+@media(max-width:650px){body{padding-bottom:84px}.launch-button{position:fixed;bottom:12px;left:50%;width:min(calc(100% - 46px),454px);z-index:15;transform:translateX(-50%);box-shadow:0 0 0 7px #191b18ee,0 6px 26px #0009}.launch-button.charging{transform:translate(-50%,3px)}.toast{bottom:100px}}
+
+</style>
+</head>
+<body>
+  <div class="noise" aria-hidden="true"></div>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="好运弹珠社首页">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 40 40"><path d="M9 15 7 6l12 6h5l10-6-2 12c5 9 0 17-12 17C8 35 3 25 9 15Z"/><ellipse cx="21" cy="25" rx="9" ry="6"/><path d="M17 24v3m7-3v3M12 19h1m14 0h1"/></svg></span>
+      <span>好运弹珠社<small>PIGGY PINBALL CLUB</small></span>
+    </a>
+    <nav class="header-nav" aria-label="主导航">
+      <button class="nav-item active" type="button" id="playNav">弹珠机<span>01</span></button>
+      <button class="nav-item" type="button" data-dialog="helpDialog">玩法指南<span>02</span></button>
+    </nav>
+    <div class="header-actions"><span class="open-badge"><i></i> 随时开玩</span><button class="icon-button" id="soundButton" type="button" aria-label="关闭音效" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4V5Z"/><path class="sound-waves" d="M15 8c2 2 2 6 0 8m3-11c4 4 4 10 0 14"/><path class="sound-muted" d="m16 9 5 6m0-6-5 6"/></svg></button></div>
+  </header>
+
+  <main class="arcade-layout">
+    <section class="intro-panel" aria-labelledby="hero-title">
+      <div class="eyebrow"><span class="mini-star">✳</span> GOOD LUCK, HAVE FUN</div>
+      <h1 id="hero-title">把好运，<br><span>弹出来。</span></h1>
+      <p class="intro-copy">一颗小弹珠，一场小冒险。<br>找好手感，让快乐叮当作响。</p>
+      <div class="edition-label"><span class="edition-dot"></span> 经典小猪机台 <span class="edition-number">NO. 001</span></div>
+      <div class="best-card">
+        <div class="small-label"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m10 2 2.4 4.9 5.4.8-3.9 3.8.9 5.4L10 14.4l-4.8 2.5.9-5.4L2.2 7.7l5.4-.8Z"/></svg> 个人最高纪录</div>
+        <div class="best-value"><span id="bestScore">0000</span><small>PTS</small></div>
+        <div class="best-bottom"><span>下一个纪录，由你创造</span><span>↗</span></div>
+      </div>
+      <div class="history-section"><div class="section-caption">最近的好运 <span>RECENT SHOTS</span></div><ol id="recentShots"><li class="history-empty">第一颗好运，正在等你 <span>↘</span></li></ol></div>
+      <div class="decor-ticket" aria-hidden="true"><span>好</span><span>运</span><span>入</span><span>场</span><b>ADMIT ONE · ∞</b></div>
+    </section>
+
+    <section class="machine-section" aria-label="弹珠游戏机">
+      <div class="machine-topline"><span><i></i> 原汁原味 · 街机手感</span><span>EST. 2026</span></div>
+      <div class="cabinet" id="cabinet">
+        <div class="cabinet-bolt bolt-tl"></div><div class="cabinet-bolt bolt-tr"></div>
+        <div class="marquee"><div class="marquee-side">★<br>★</div><div><span class="marquee-kicker">THE LITTLE BALL OF LUCK</span><h2>PIGGY <span>PINBALL</span></h2></div><div class="marquee-side">★<br>★</div></div>
+        <div class="scoreboard">
+          <div class="score-display"><span>本局得分 <small>SCORE</small></span><strong id="scoreDigits" aria-label="本局得分">00000</strong></div>
+          <div class="score-display balls-display"><span>剩余弹珠 <small>BALLS</small></span><strong id="ballDigits" aria-label="剩余弹珠">20</strong></div>
+        </div>
+        <div class="board-surround"><div class="led-strip led-left"></div><div class="led-strip led-right"></div><div class="board-window"><canvas id="gameCanvas" width="600" height="760" aria-label="弹珠台面。按住空格或发射按钮蓄力，松开发射。"></canvas><div class="board-hint" id="boardHint"><span class="hint-star">✦</span> 按住台面蓄力 · 松开发射 <span class="hint-star">✦</span></div><div class="floating-scores" id="floatingScores" aria-hidden="true"></div></div></div>
+        <div class="machine-bottom"><span>CHERISHED TIME & LITTLE PIG</span><span class="machine-serial">PPC—001</span></div>
+        <div class="cabinet-bolt bolt-bl"></div><div class="cabinet-bolt bolt-br"></div>
+      </div>
+      <div class="machine-shadow" aria-hidden="true"></div>
+      <div class="keyboard-tip"><kbd>SPACE</kbd><span>按住蓄力，松开发射</span><span class="tip-divider"></span><span>也可以点击右侧按钮</span></div>
+    </section>
+
+    <aside class="control-panel" aria-label="游戏控制">
+      <div class="session-heading"><span class="live-dot"></span> 快乐营业中 <span>FREE PLAY</span></div>
+      <div class="round-label">你的好运回合 <span id="roundNumber">01 / ∞</span></div>
+      <div class="session-score"><span id="sessionScore">0</span><span class="score-unit">积分<br><small>POINTS</small></span></div>
+      <div class="session-divider"></div>
+      <div class="balls-summary"><span>口袋里的弹珠</span><span><b id="remainingBalls">20</b> <small>/ 20</small></span></div>
+      <div class="ball-dots" id="ballDots" aria-hidden="true"></div>
+      <div class="power-section"><div class="power-heading"><span>发射力度</span><b id="powerLabel">等待蓄力</b></div><div class="power-meter" id="powerMeter" role="progressbar" aria-label="发射力度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="powerFill"></span><i></i><i></i><i></i><i></i></div><div class="power-scale"><span>轻轻一弹</span><span>全力出击</span></div></div>
+      <button type="button" class="launch-button" id="launchButton"><span class="launch-icon">↗</span><span><b id="launchLabel">按住 · 蓄力发射</b><small id="launchSublabel">HOLD TO CHARGE</small></span><span class="launch-end">●</span></button>
+      <button type="button" class="reset-button" id="resetButton"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 5v5h5M4.3 9a6 6 0 1 1 1.4 5.1"/></svg> 再来一局<span>↺</span></button>
+      <div class="how-to"><div class="section-caption">好运小贴士 <span>HOW TO PLAY</span></div><div class="instruction"><span>01</span><p><b>按住，积攒一点能量</b><small>力度不同，开启不同的弹珠轨迹</small></p></div><div class="instruction"><span>02</span><p><b>松手，让好运自由落下</b><small>碰撞钉阵，落进下方奖励槽</small></p></div><div class="instruction"><span>03</span><p><b>瞄准中间，收获惊喜</b><small>金色奖励槽，最高可得 200 分</small></p></div></div>
+      <div class="luck-note"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3v26M3 16h26M7 7l18 18M7 25 25 7"/></svg><p>不必每次都满分<br><span>开心就已经很幸运。</span></p></div>
+    </aside>
+  </main>
+  <footer class="site-footer"><span>© 2026 好运弹珠社</span><span>一点复古，一点随机，很多快乐。<i>✦</i></span><button type="button" data-dialog="helpDialog">玩法与说明 ↗</button></footer>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="helpDialog" class="game-dialog"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">WELCOME TO THE CLUB</div><h2>好运，从这一弹开始。</h2><p>每局有 20 颗弹珠。按住发射按钮或空格键蓄力，松手即可发射；快速点击也能发射一颗。</p><div class="help-slots"><span>10</span><span>20</span><span>50</span><span>100</span><span>200</span></div><p>弹珠经过钉阵自由落下，落进哪个槽，就获得对应积分。力度会影响初始轨迹，每一次碰撞也会带来变化。</p><p>支持连续发射，最多同时有 10 颗弹珠在台面上。最高分会保存在当前浏览器中。按 <kbd>M</kbd> 开关音效，按 <kbd>Esc</kbd> 关闭说明。</p><button class="dialog-primary" type="button" id="startPlaying">知道了，开玩！ ↗</button></dialog>
+  <dialog id="endDialog" class="game-dialog end-dialog"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">A LITTLE BALL, A LOT OF JOY</div><div class="end-star">✦</div><h2>这局好运，收下啦！</h2><strong id="finalScore">0</strong><span class="final-unit">本局积分</span><p id="recordMessage">快乐已经到账，再来收集一份好运。</p><button class="dialog-primary" type="button" id="playAgain">再来一局 ↗</button></dialog>
+  <script>
+(function (root) {
+  'use strict';
+
+  const WIDTH = 600;
+  const HEIGHT = 760;
+  const STEP = 1 / 180;
+  const BALL_RADIUS = 8.5;
+  const GRAVITY = 780;
+  const VALUES = [10, 20, 50, 100, 200, 200, 100, 50, 20, 10];
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+
+  class PinballPhysics {
+    constructor(callbacks = {}) {
+      this.onPegHit = callbacks.onPegHit || function () {};
+      this.onScore = callbacks.onScore || function () {};
+      this.onLaunch = callbacks.onLaunch || function () {};
+      this.width = WIDTH;
+      this.height = HEIGHT;
+      this.radius = BALL_RADIUS;
+      this.pegs = [];
+      let id = 0;
+      for (let row = 0; row < 8; row++) {
+        const count = row % 2 === 0 ? 9 : 8;
+        const start = row % 2 === 0 ? 62 : 90;
+        for (let column = 0; column < count; column++) {
+          this.pegs.push({ id: id++, x: start + column * 54, y: 170 + row * 60, radius: 6.2, row, column });
+        }
+      }
+      this.slots = VALUES.map((value, index) => ({ x: 40 + index * 48, y: 650, width: 48, height: 80, value, index }));
+      this.balls = [];
+      this._nextId = 1;
+      this._accumulator = 0;
+      this.time = 0;
+    }
+
+    launch(power = 0.65) {
+      if (this.balls.filter(ball => ball.phase !== 'scored').length >= 10) return false;
+      const force = clamp(Number(power) || 0, 0, 1);
+      const ball = {
+        id: this._nextId++, x: 562, y: 704, vx: 0,
+        vy: -(980 + force * 340), radius: BALL_RADIUS,
+        power: force, phase: 'launch', age: 0, trail: [],
+        railProgress: 0, trailClock: 0, hitCooldown: new Map(),
+        scored: false, fade: 1, slotIndex: -1, stallTime: 0
+      };
+      this.balls.push(ball);
+      this.onLaunch({ ballId: ball.id, power: force, x: ball.x, y: ball.y });
+      return true;
+    }
+
+    step(dt) {
+      if (!Number.isFinite(dt) || dt <= 0) return;
+      this._accumulator += Math.min(dt, 0.12);
+      while (this._accumulator >= STEP) {
+        this._tick(STEP);
+        this._accumulator -= STEP;
+      }
+    }
+
+    _tick(dt) {
+      this.time += dt;
+      for (const ball of this.balls) {
+        ball.age += dt;
+        ball.trailClock += dt;
+        if (ball.trailClock >= 1 / 45) {
+          ball.trailClock = 0;
+          ball.trail.unshift({ x: ball.x, y: ball.y });
+          if (ball.trail.length > 12) ball.trail.pop();
+        }
+        if (ball.phase === 'scored') {
+          ball.fade -= dt * 2.5;
+          ball.y += 28 * dt;
+          continue;
+        }
+        if (ball.phase === 'launch') {
+          ball.vy += GRAVITY * 0.6 * dt;
+          ball.y += ball.vy * dt;
+          if (ball.y <= 62) {
+            ball.y = 62;
+            ball.phase = 'rail';
+            ball.railSpeed = 2.4 + ball.power * 1.4;
+          }
+          continue;
+        }
+        if (ball.phase === 'rail') {
+          ball.railProgress = Math.min(1, ball.railProgress + ball.railSpeed * dt);
+          const t = ball.railProgress;
+          const u = 1 - t;
+          // A short guided arch connects the launch chute to the playfield.
+          ball.x = u * u * u * 562 + 3 * u * u * t * 562 + 3 * u * t * t * 486 + t * t * t * 486;
+          ball.y = u * u * u * 62 + 3 * u * u * t * 9 + 3 * u * t * t * 9 + t * t * t * 66;
+          if (t === 1) {
+            ball.phase = 'board';
+            ball.vx = -(140 + ball.power * 370);
+            ball.vy = 62 + ball.power * 32;
+          }
+          continue;
+        }
+
+        ball.vy += GRAVITY * dt;
+        // Air resistance is deliberately small; impacts provide most damping.
+        ball.vx *= Math.exp(-0.065 * dt);
+        ball.x += ball.vx * dt;
+        ball.y += ball.vy * dt;
+        if (ball.x < 36 + BALL_RADIUS) {
+          ball.x = 36 + BALL_RADIUS;
+          ball.vx = Math.abs(ball.vx) * 0.7;
+        } else if (ball.x > 520 - BALL_RADIUS) {
+          ball.x = 520 - BALL_RADIUS;
+          ball.vx = -Math.abs(ball.vx) * 0.7;
+        }
+        if (ball.y < 30 + BALL_RADIUS) {
+          ball.y = 30 + BALL_RADIUS;
+          ball.vy = Math.abs(ball.vy) * 0.65;
+        }
+
+        for (const peg of this.pegs) {
+          const dx = ball.x - peg.x;
+          const dy = ball.y - peg.y;
+          const required = BALL_RADIUS + peg.radius;
+          const distanceSquared = dx * dx + dy * dy;
+          if (distanceSquared >= required * required) continue;
+          const distance = Math.sqrt(distanceSquared);
+          const nx = distance > 0.0001 ? dx / distance : 0.7;
+          const ny = distance > 0.0001 ? dy / distance : -0.714142;
+          ball.x = peg.x + nx * (required + 0.06);
+          ball.y = peg.y + ny * (required + 0.06);
+          const normalSpeed = ball.vx * nx + ball.vy * ny;
+          if (normalSpeed < 0) {
+            ball.vx -= (1 + 0.74) * normalSpeed * nx;
+            ball.vy -= (1 + 0.74) * normalSpeed * ny;
+            // Tiny asymmetric surface impulses prevent balancing on a peg.
+            if (Math.abs(nx) < 0.11) ball.vx += Math.sin(ball.id * 9.17 + peg.id * 3.11) * 23 + (ball.id % 2 ? 9 : -9);
+            const previousHit = ball.hitCooldown.get(peg.id) ?? -100;
+            if (this.time - previousHit > 0.085 && -normalSpeed > 28) {
+              ball.hitCooldown.set(peg.id, this.time);
+              this.onPegHit({ peg, pegId: peg.id, ballId: ball.id, x: peg.x, y: peg.y, speed: -normalSpeed });
+            }
+          }
+        }
+
+        // Rounded mouths guide the ball into ten separate scoring lanes.
+        if (ball.y > 630) {
+          for (let divider = 1; divider < 10; divider++) {
+            const x = 40 + divider * 48;
+            if (ball.y < 649) {
+              const dx = ball.x - x;
+              const dy = ball.y - 649;
+              const radius = BALL_RADIUS + 3;
+              if (dx * dx + dy * dy < radius * radius) {
+                const length = Math.sqrt(dx * dx + dy * dy) || 1;
+                const nx = dx / length;
+                const ny = dy / length;
+                ball.x = x + nx * (radius + 0.05);
+                ball.y = 649 + ny * (radius + 0.05);
+                const dot = ball.vx * nx + ball.vy * ny;
+                if (dot < 0) {
+                  ball.vx -= 1.4 * dot * nx;
+                  ball.vy -= 1.4 * dot * ny;
+                }
+                if (Math.abs(dx) < 0.3) ball.vx += ball.id % 2 ? 17 : -17;
+              }
+            } else if (Math.abs(ball.x - x) < BALL_RADIUS + 3) {
+              const side = ball.x < x ? -1 : 1;
+              ball.x = x + side * (BALL_RADIUS + 3.05);
+              if (ball.vx * side < 0) ball.vx = -ball.vx * 0.42;
+            }
+          }
+        }
+
+        if (Math.abs(ball.vx) + Math.abs(ball.vy) < 36) ball.stallTime += dt;
+        else ball.stallTime = 0;
+        if (ball.stallTime > 0.8) {
+          ball.vx += ball.id % 2 ? 58 : -58;
+          ball.vy = Math.max(ball.vy, 34);
+          ball.stallTime = 0;
+        }
+        if (ball.y >= 710 || ball.age > 20) this._score(ball);
+      }
+      this.balls = this.balls.filter(ball => ball.fade > 0);
+    }
+
+    _score(ball) {
+      if (ball.scored) return;
+      const slotIndex = clamp(Math.floor((ball.x - 40) / 48), 0, 9);
+      const slot = this.slots[slotIndex];
+      ball.scored = true;
+      ball.phase = 'scored';
+      ball.slotIndex = slotIndex;
+      ball.x = clamp(ball.x, slot.x + 12, slot.x + slot.width - 12);
+      ball.y = 710;
+      ball.vx = 0;
+      ball.vy = 0;
+      this.onScore({ value: slot.value, slotIndex, ballId: ball.id, x: ball.x, y: ball.y });
+    }
+
+    reset() {
+      this.balls.length = 0;
+      this._accumulator = 0;
+      this.time = 0;
+    }
+
+    getSnapshot() {
+      return {
+        width: WIDTH, height: HEIGHT, time: this.time,
+        balls: this.balls.map(({ id, x, y, vx, vy, radius, phase, power, age, fade, slotIndex, trail }) => ({ id, x, y, vx, vy, radius, phase, power, age, fade, slotIndex, trail: trail.map(point => ({ ...point })) })),
+        pegs: this.pegs.map(peg => ({ ...peg })),
+        slots: this.slots.map(slot => ({ ...slot }))
+      };
+    }
+  }
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = PinballPhysics;
+  root.PinballPhysics = PinballPhysics;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+  <script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const canvas = $('gameCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = 600, H = 760;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.scale(dpr, dpr);
+  const background = document.createElement('canvas');
+  background.width = W * dpr;
+  background.height = H * dpr;
+  const bg = background.getContext('2d');
+  bg.scale(dpr, dpr);
+  const launchButton = $('launchButton');
+  const powerFill = $('powerFill');
+  const powerLabel = $('powerLabel');
+  let score = 0, remaining = 20, round = 1, shotCount = 0;
+  let best = Math.max(0, Number(readStorage('piggyBest', '0')) || 0);
+  let sound = readStorage('piggySound', 'true') !== 'false';
+  let charging = false, chargeStart = 0, power = 0, chargeSource = '', activePointer = null;
+  let lastFrame = performance.now(), toastTimer, endTimer, roundEnded = false, newRecord = false;
+  let audioContext, lastTick = 0;
+  const hits = new Map(), slotFlashes = new Map(), particles = [], recent = [];
+  const engine = new PinballPhysics({ onPegHit: onPegHit, onScore: onScore, onLaunch: () => playSound('launch') });
+
+  function readStorage(key, fallback) { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } }
+  function saveStorage(key, value) { try { localStorage.setItem(key, String(value)); } catch { /* Game remains playable without storage. */ } }
+  function rounded(c, x, y, w, h, r, fill, stroke, width = 1) {
+    c.beginPath(); c.roundRect(x, y, w, h, r);
+    if (fill) { c.fillStyle = fill; c.fill(); }
+    if (stroke) { c.strokeStyle = stroke; c.lineWidth = width; c.stroke(); }
+  }
+  function line(c, x1, y1, x2, y2, color, width = 1) { c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.strokeStyle = color; c.lineWidth = width; c.stroke(); }
+  function ellipse(c, x, y, rx, ry, color, stroke, width = 2) {
+    c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); c.fillStyle = color; c.fill();
+    if (stroke) { c.strokeStyle = stroke; c.lineWidth = width; c.stroke(); }
+  }
+  function text(c, value, x, y, size, color, font = 'sans-serif', weight = 'bold') {
+    c.fillStyle = color; c.font = `${weight} ${size}px ${font}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(value, x, y);
+  }
+  function drawPig(c) {
+    c.save(); c.translate(282, 428); c.rotate(-0.11); c.scale(1.08, 1.08);
+    const outline = '#a74e3d', pink = '#edaa89', darkPink = '#cf7d68';
+    c.lineJoin = 'round'; c.lineCap = 'round';
+    // Boots, a curly tail, and a small lucky waistcoat.
+    c.beginPath(); c.moveTo(79, 20); c.bezierCurveTo(126, -13, 131, 39, 107, 34); c.bezierCurveTo(88, 30, 111, 6, 125, 21); c.strokeStyle = outline; c.lineWidth = 7; c.stroke();
+    rounded(c, -66, 111, 42, 46, 12, darkPink, outline, 4);
+    rounded(c, 25, 111, 42, 46, 12, darkPink, outline, 4);
+    rounded(c, -71, 141, 48, 22, 7, '#674b3b', outline, 3);
+    rounded(c, 25, 141, 48, 22, 7, '#674b3b', outline, 3);
+    ellipse(c, 0, 57, 94, 89, pink, outline, 4);
+    c.beginPath(); c.moveTo(-87, 48); c.quadraticCurveTo(-34, 81, 0, 59); c.quadraticCurveTo(40, 86, 89, 46); c.lineTo(79, 106); c.quadraticCurveTo(4, 149, -76, 109); c.closePath(); c.fillStyle = '#cc684b'; c.fill(); c.strokeStyle = outline; c.lineWidth = 4; c.stroke();
+    line(c, 0, 62, 0, 133, outline, 3); ellipse(c, 8, 93, 3, 3, '#ffda86');
+    c.save(); c.rotate(.5); ellipse(c, -84, 18, 22, 47, pink, outline, 4); c.restore();
+    c.save(); c.rotate(-.6); ellipse(c, 91, 23, 22, 42, pink, outline, 4); c.restore();
+    // Ears are drawn behind the large face.
+    c.beginPath(); c.moveTo(-61, -71); c.quadraticCurveTo(-96, -153, -28, -119); c.lineTo(-17, -73); c.closePath(); c.fillStyle = pink; c.fill(); c.strokeStyle = outline; c.lineWidth = 4; c.stroke();
+    c.beginPath(); c.moveTo(45, -88); c.quadraticCurveTo(84, -143, 107, -114); c.quadraticCurveTo(101, -80, 68, -57); c.closePath(); c.fill(); c.stroke();
+    c.beginPath(); c.moveTo(-61, -92); c.lineTo(-62, -121); c.lineTo(-38, -102); c.fillStyle = '#d98273'; c.fill();
+    c.beginPath(); c.moveTo(66, -96); c.lineTo(93, -116); c.lineTo(80, -88); c.fill();
+    ellipse(c, 0, -35, 104, 87, pink, outline, 4);
+    ellipse(c, -54, -17, 21, 11, '#e3917b'); ellipse(c, 67, -21, 19, 11, '#e3917b');
+    c.beginPath(); c.arc(-36, -56, 10, Math.PI * 1.1, Math.PI * 1.9); c.strokeStyle = outline; c.lineWidth = 4; c.stroke();
+    c.beginPath(); c.arc(41, -56, 10, Math.PI * 1.1, Math.PI * 1.9); c.stroke();
+    ellipse(c, -6, -14, 42, 30, '#e29179', outline, 3.5);
+    ellipse(c, -21, -14, 5, 10, outline); ellipse(c, 8, -14, 5, 10, outline);
+    c.beginPath(); c.arc(28, 7, 19, .2, Math.PI * .8); c.strokeStyle = outline; c.lineWidth = 3; c.stroke();
+    line(c, -41, -89, -30, -94, outline, 3); line(c, 31, -94, 42, -91, outline, 3);
+    // Lucky four-point star.
+    c.save(); c.translate(-92, -128); c.rotate(-.2); c.beginPath(); c.moveTo(0, -20); c.quadraticCurveTo(1, -2, 17, 0); c.quadraticCurveTo(1, 2, 0, 20); c.quadraticCurveTo(-1, 2, -17, 0); c.quadraticCurveTo(-1, -2, 0, -20); c.fillStyle = '#fff1b4'; c.fill(); c.restore();
+    c.restore();
+  }
+
+  function drawBackground() {
+    const gradient = bg.createLinearGradient(0, 0, 520, 760);
+    gradient.addColorStop(0, '#ed9750'); gradient.addColorStop(.5, '#e9a143'); gradient.addColorStop(1, '#e38b3c');
+    bg.fillStyle = gradient; bg.fillRect(0, 0, W, H);
+    bg.save(); bg.beginPath(); bg.rect(30, 15, 492, 721); bg.clip();
+    for (let i = 0; i < 16; i++) {
+      const a = i / 16 * Math.PI * 2;
+      bg.beginPath(); bg.moveTo(278, 430); bg.lineTo(278 + Math.cos(a) * 900, 430 + Math.sin(a) * 900); bg.lineTo(278 + Math.cos(a + .095) * 900, 430 + Math.sin(a + .095) * 900); bg.closePath(); bg.fillStyle = '#b65c3023'; bg.fill();
+    }
+    bg.restore();
+    // Painted edge stripes, bolts, and raised metal rails.
+    rounded(bg, 11, 10, 523, 737, 28, null, '#ac5735', 18);
+    rounded(bg, 11, 10, 523, 737, 28, null, '#f9d39a', 3);
+    for (let y = 65; y < 628; y += 35) {
+      bg.beginPath(); bg.moveTo(12, y); bg.lineTo(25, y + 11); bg.lineTo(25, y + 21); bg.lineTo(12, y + 10); bg.fillStyle = '#f8ca88'; bg.fill();
+      bg.beginPath(); bg.moveTo(519, y); bg.lineTo(532, y - 11); bg.lineTo(532, y - 1); bg.lineTo(519, y + 10); bg.fill();
+    }
+    rounded(bg, 33, 20, 489, 715, 25, null, '#994c2e', 4);
+    rounded(bg, 36, 23, 483, 710, 23, null, '#ffe1a1', 3);
+    rounded(bg, 542, 21, 42, 714, 19, '#a55f35', '#7e4a2c', 3);
+    const chute = bg.createLinearGradient(544, 0, 584, 0);
+    chute.addColorStop(0, '#725d40'); chute.addColorStop(.16, '#dfcf9c'); chute.addColorStop(.28, '#b8a473'); chute.addColorStop(.7, '#d0b47d'); chute.addColorStop(1, '#7c603d');
+    rounded(bg, 550, 49, 25, 680, 10, chute);
+    bg.beginPath(); bg.moveTo(579, 681); bg.lineTo(579, 62); bg.bezierCurveTo(579, -8, 468, -8, 468, 66); bg.strokeStyle = '#775131'; bg.lineWidth = 4; bg.stroke();
+    bg.beginPath(); bg.moveTo(547, 680); bg.lineTo(547, 62); bg.bezierCurveTo(547, 29, 504, 29, 504, 66); bg.strokeStyle = '#ffdf9f'; bg.lineWidth = 4; bg.stroke();
+    for (let y = 258; y < 615; y += 100) {
+      bg.beginPath(); bg.moveTo(555, y + 10); bg.lineTo(562, y); bg.lineTo(569, y + 10); bg.strokeStyle = '#fff0bc99'; bg.lineWidth = 3; bg.lineCap = 'round'; bg.stroke();
+    }
+    bg.save(); bg.translate(562, 155); bg.rotate(Math.PI / 2); text(bg, 'LAUNCH LANE', 0, 0, 9, '#78512e', 'monospace'); bg.restore();
+    // The playfield's printed artwork.
+    text(bg, 'LET THE GOOD', 279, 84, 18, '#fff0be', 'Arial Black, sans-serif', '900');
+    bg.save(); bg.translate(279, 120); bg.rotate(-.035); text(bg, 'TIMES ROLL', 0, 0, 45, '#fff1c7', 'Impact, Arial Black, sans-serif', '900'); bg.restore();
+    line(bg, 152, 148, 403, 148, '#a9522f55', 1);
+    text(bg, '好 运 弹 珠  ·  一 弹 就 开 心', 279, 151, 10, '#9b472b', 'Microsoft YaHei, sans-serif');
+    bg.save(); bg.globalAlpha = .82; drawPig(bg); bg.restore();
+    text(bg, 'GOOD LUCK!', 279, 606, 17, '#ffdb9b', 'Arial Black, sans-serif', '900');
+    // Ten tall, piano-like reward chutes, with generous 200-point center lanes.
+    engine.slots.forEach((slot, i) => {
+      const gold = slot.value === 200;
+      const dark = bg.createLinearGradient(slot.x, 0, slot.x + slot.width, 0);
+      dark.addColorStop(0, gold ? '#95622e' : '#695338'); dark.addColorStop(.3, gold ? '#bf8d3c' : '#977646'); dark.addColorStop(.5, gold ? '#d4a54e' : '#b18d54'); dark.addColorStop(1, gold ? '#9a6d2b' : '#705538');
+      rounded(bg, slot.x + 4, 653, slot.width - 8, 72, 13, dark, '#67482e', 2);
+      rounded(bg, slot.x + 12, 660, slot.width - 24, 40, 7, '#443e2d', '#c1a570', 1.3);
+      line(bg, slot.x + 16, 665, slot.x + 16, 692, '#e1d2a681', 2);
+      text(bg, String(slot.value), slot.x + 24, 713, gold ? 15 : 12, gold ? '#ffdc80' : '#e9d3a3', 'monospace');
+      if (gold) text(bg, '★', slot.x + 24, 678, 15, '#d9b657', 'sans-serif');
+      ellipse(bg, slot.x + 24, 638, 11, 8, '#75442d', '#b66c3c', 2);
+      ellipse(bg, slot.x + 24, 636, 7.5, 5, gold ? '#de7e36' : '#b67142');
+    });
+    for (let i = 0; i <= 10; i++) {
+      const x = 40 + i * 48;
+      line(bg, x + 2, 653, x + 2, 723, '#703f29', 7);
+      line(bg, x, 650, x, 720, '#e4d3ad', 6);
+      line(bg, x - 1, 651, x - 1, 720, '#fff0cc', 2);
+      ellipse(bg, x, 649, 3.3, 4, '#fce5bd');
+    }
+    engine.pegs.forEach(peg => {
+      ellipse(bg, peg.x + 2, peg.y + 6, 9, 5, '#783c2944');
+      ellipse(bg, peg.x, peg.y + 2, 9, 5, '#d6b17b', '#8a5c38', 1.5);
+      const metal = bg.createRadialGradient(peg.x - 2, peg.y - 4, 0, peg.x, peg.y, 7.5);
+      metal.addColorStop(0, '#fffde7'); metal.addColorStop(.25, '#f3edcc'); metal.addColorStop(.5, '#a8a798'); metal.addColorStop(.75, '#646d62'); metal.addColorStop(1, '#e9d8ac');
+      ellipse(bg, peg.x, peg.y - 1, 6.2, 7, metal, '#777459', .8);
+      ellipse(bg, peg.x - 1.5, peg.y - 3.5, 1.7, 2, '#fffde9');
+    });
+    [ [22, 37], [519, 37], [21, 721], [523, 722] ].forEach(([x, y]) => {
+      ellipse(bg, x, y, 5, 5, '#cfbd90', '#795331', 1.5); line(bg, x - 2, y + 2, x + 2, y - 2, '#715332', 1);
+    });
+    text(bg, 'PIGGY PINBALL CLUB', 278, 746, 8, '#98512d', 'monospace');
+  }
+
+  function drawBall(c, x, y, radius, alpha = 1) {
+    c.save(); c.globalAlpha = alpha;
+    ellipse(c, x + 3, y + 6, radius + 1, radius * .65, '#5a442b55');
+    const metal = c.createRadialGradient(x - 3, y - 4, .5, x, y, radius);
+    metal.addColorStop(0, '#fff'); metal.addColorStop(.25, '#f9fff6'); metal.addColorStop(.5, '#b2c9c2'); metal.addColorStop(.7, '#6e8880'); metal.addColorStop(.85, '#d5e1ce'); metal.addColorStop(1, '#4e675c');
+    ellipse(c, x, y, radius, radius, metal, '#faf3d4', .8);
+    ellipse(c, x - 2.3, y - 3.3, 2.2, 1.5, '#fff'); c.restore();
+  }
+
+  function draw(now, dt) {
+    ctx.clearRect(0, 0, W, H); ctx.drawImage(background, 0, 0, W, H);
+    // The plunger spring compresses as power builds.
+    const springTop = 725 + power * 13;
+    ctx.beginPath(); ctx.moveTo(553, springTop);
+    for (let i = 0; i < 9; i++) ctx.lineTo(i % 2 ? 553 : 572, springTop + i * (751 - springTop) / 9);
+    ctx.strokeStyle = '#4f5340'; ctx.lineWidth = 3; ctx.stroke();
+    line(ctx, 551, springTop - 1, 574, springTop - 1, '#f8e6b7', 4);
+    if (remaining > 0 && !engine.balls.some(b => b.phase === 'launch' && b.y > 620)) drawBall(ctx, 562, 712 + power * 12, 8.5);
+    for (const [id, hit] of hits) {
+      const age = (now - hit.time) / 500;
+      if (age >= 1) { hits.delete(id); continue; }
+      ctx.save(); ctx.globalAlpha = (1 - age) * .75;
+      const glow = ctx.createRadialGradient(hit.x, hit.y, 0, hit.x, hit.y, 25);
+      glow.addColorStop(0, '#fff4b8'); glow.addColorStop(.35, '#ffe477a0'); glow.addColorStop(1, '#ffe47800');
+      ellipse(ctx, hit.x, hit.y, 25, 25, glow);
+      ctx.beginPath(); ctx.arc(hit.x, hit.y, 8 + age * 20, 0, Math.PI * 2); ctx.strokeStyle = '#fff7b9'; ctx.lineWidth = 1.4; ctx.stroke(); ctx.restore();
+    }
+    for (const [i, time] of slotFlashes) {
+      const age = (now - time) / 1200;
+      if (age >= 1) { slotFlashes.delete(i); continue; }
+      const slot = engine.slots[i]; const a = (1 - age) * (.6 + Math.sin(age * 25) * .2);
+      ctx.save(); ctx.globalAlpha = a;
+      rounded(ctx, slot.x + 3, 651, 42, 75, 10, '#ffe4a0');
+      ctx.shadowBlur = 25; ctx.shadowColor = '#ffed9b'; ellipse(ctx, slot.x + 24, 636, 8, 6, '#fff0b1'); ctx.restore();
+    }
+    for (const ball of engine.balls) {
+      if (ball.trail.length > 1) {
+        ctx.beginPath(); ctx.moveTo(ball.x, ball.y);
+        ball.trail.forEach(point => ctx.lineTo(point.x, point.y));
+        ctx.lineCap = 'round'; ctx.lineWidth = 4; ctx.strokeStyle = '#fff5c838'; ctx.stroke();
+      }
+      drawBall(ctx, ball.x, ball.y, ball.radius, Math.max(0, ball.fade));
+    }
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i]; p.life -= dt;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 200 * dt;
+      ctx.save(); ctx.globalAlpha = Math.min(1, p.life * 2); ctx.translate(p.x, p.y); ctx.rotate(p.life * 6); ctx.fillStyle = p.color; ctx.fillRect(-2, -2, p.size, p.size); ctx.restore();
+    }
+  }
+
+  function onPegHit(event) {
+    hits.set(event.pegId, { x: event.x, y: event.y, time: performance.now() });
+    playSound('peg', event.peg.row);
+  }
+  function onScore(event) {
+    score += event.value;
+    shotCount++;
+    slotFlashes.set(event.slotIndex, performance.now());
+    recent.unshift({ value: event.value, number: shotCount }); recent.length = Math.min(3, recent.length);
+    $('recentShots').innerHTML = recent.map(s => `<li><span><span class="shot-num">${String(s.number).padStart(2, '0')}</span>${s.value === 200 ? '金色好运！' : s.value >= 100 ? '漂亮的一弹' : '好运已落袋'}</span><span class="shot-points">+${s.value}</span></li>`).join('');
+    if (score > best) { best = score; newRecord = true; saveStorage('piggyBest', best); }
+    updateUI();
+    const pop = document.createElement('span'); pop.className = `score-pop${event.value === 200 ? ' big' : ''}`;
+    pop.textContent = `+${event.value}`; pop.style.left = `${event.x / W * 100}%`; pop.style.top = '86%'; $('floatingScores').appendChild(pop);
+    setTimeout(() => pop.remove(), 1350);
+    const scorePanel = document.querySelector('.session-score'); scorePanel.classList.remove('bump'); void scorePanel.offsetWidth; scorePanel.classList.add('bump');
+    if (event.value === 200) {
+      $('cabinet').classList.remove('jackpot'); void $('cabinet').offsetWidth; $('cabinet').classList.add('jackpot');
+      for (let i = 0; i < 24; i++) particles.push({ x: event.x, y: 635, vx: (Math.random() - .5) * 230, vy: -60 - Math.random() * 200, life: .7 + Math.random() * .6, color: i % 2 ? '#fff2b4' : '#eb753b', size: 2 + Math.random() * 3 });
+    }
+    playSound('score', event.value);
+  }
+  function updateUI() {
+    $('scoreDigits').textContent = String(score).padStart(5, '0');
+    $('ballDigits').textContent = String(remaining).padStart(2, '0');
+    $('remainingBalls').textContent = remaining;
+    $('sessionScore').textContent = score;
+    $('bestScore').textContent = String(best).padStart(4, '0');
+    $('roundNumber').textContent = `${String(round).padStart(2, '0')} / ∞`;
+    [...$('ballDots').children].forEach((dot, i) => dot.classList.toggle('used', i >= remaining));
+    launchButton.disabled = remaining === 0;
+    if (remaining === 0) { $('launchLabel').textContent = '好运正在落袋…'; $('launchSublabel').textContent = 'WAIT FOR YOUR LUCK'; }
+  }
+  function updatePower() {
+    powerFill.style.width = `${power * 100}%`;
+    $('powerMeter').setAttribute('aria-valuenow', Math.round(power * 100));
+    powerLabel.textContent = charging ? `${Math.round(power * 100)}%` : '等待蓄力';
+    if (charging) $('launchLabel').textContent = `${Math.round(power * 100)}% · 松手发射`;
+  }
+  function beginCharge(source) {
+    if (charging || remaining <= 0 || document.querySelector('dialog[open]')) return;
+    if (engine.balls.filter(b => !b.scored).length >= 10) { toast('台面有点热闹，等一颗落袋再发射'); return; }
+    initAudio(); charging = true; chargeSource = source; chargeStart = performance.now(); power = .08;
+    launchButton.classList.add('charging'); $('launchLabel').textContent = '蓄力中 · 松手发射'; $('launchSublabel').textContent = 'RELEASE TO LAUNCH'; updatePower();
+  }
+  function cancelCharge() {
+    charging = false; chargeSource = ''; activePointer = null; power = 0;
+    launchButton.classList.remove('charging'); $('launchLabel').textContent = '按住 · 蓄力发射'; $('launchSublabel').textContent = 'HOLD TO CHARGE'; updatePower();
+  }
+  function releaseCharge() {
+    if (!charging) return;
+    const force = Math.max(.18, power);
+    cancelCharge();
+    if (remaining <= 0) return;
+    if (!engine.launch(force)) { toast('台面有点热闹，等一颗落袋再发射'); return; }
+    remaining--; $('boardHint').classList.add('hide'); updateUI();
+  }
+  function resetGame() {
+    clearTimeout(endTimer); endTimer = undefined; cancelCharge(); engine.reset(); hits.clear(); slotFlashes.clear(); particles.length = 0; recent.length = 0;
+    score = 0; remaining = 20; round++; shotCount = 0; roundEnded = false; newRecord = false;
+    $('floatingScores').replaceChildren(); $('recentShots').innerHTML = '<li class="history-empty">第一颗好运，正在等你 <span>↘</span></li>';
+    $('boardHint').classList.remove('hide'); $('endDialog').close(); updateUI(); toast('20 颗弹珠就位，好运重新出发');
+  }
+  function finishRound() {
+    if (roundEnded || endTimer || remaining > 0 || engine.balls.some(b => !b.scored)) return;
+    roundEnded = true;
+    $('launchLabel').textContent = '这局好运，已收下'; $('launchSublabel').textContent = 'ANOTHER ROUND?';
+    endTimer = setTimeout(() => {
+      endTimer = undefined; $('finalScore').textContent = score;
+      $('recordMessage').textContent = newRecord ? '✦ 新纪录！你的好运又往前走了一步。' : '快乐已经到账，再来收集一份好运。';
+      if ($('helpDialog').open) $('helpDialog').close(); $('endDialog').showModal();
+    }, 650);
+  }
+  function toast(message) {
+    clearTimeout(toastTimer); $('toast').textContent = message; $('toast').classList.add('visible');
+    toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 2500);
+  }
+
+  function initAudio() {
+    if (!sound) return;
+    try { const Audio = window.AudioContext || window.webkitAudioContext; if (!Audio) return; if (!audioContext) audioContext = new Audio(); if (audioContext.state === 'suspended') audioContext.resume().catch(() => {}); } catch { /* Audio is optional. */ }
+  }
+  function note(freq, duration, volume, delay = 0, wave = 'sine') {
+    if (!audioContext || audioContext.state !== 'running') return;
+    const time = audioContext.currentTime + delay;
+    const oscillator = audioContext.createOscillator(), gain = audioContext.createGain();
+    oscillator.type = wave; oscillator.frequency.setValueAtTime(freq, time);
+    gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(volume, time + .005); gain.gain.exponentialRampToValueAtTime(.0001, time + duration);
+    oscillator.connect(gain); gain.connect(audioContext.destination); oscillator.start(time); oscillator.stop(time + duration + .02);
+  }
+  function playSound(type, value) {
+    if (!sound || !audioContext) return;
+    if (type === 'peg') { if (performance.now() - lastTick < 35) return; lastTick = performance.now(); note(780 + value * 95, .1, .035); }
+    if (type === 'launch') { note(170, .11, .06, 0, 'triangle'); note(370, .14, .045, .06, 'triangle'); }
+    if (type === 'score') { [523.25, 659.25, value === 200 ? 1046.5 : 783.99].forEach((n, i) => note(n, .25, .055, i * .09, 'triangle')); }
+  }
+  function toggleSound() { sound = !sound; saveStorage('piggySound', sound); updateSound(); if (sound) { initAudio(); playSound('score', 10); } toast(sound ? '音效已开启，听见好运叮当响' : '音效已关闭'); }
+  function updateSound() { $('soundButton').classList.toggle('muted', !sound); $('soundButton').setAttribute('aria-pressed', String(sound)); $('soundButton').setAttribute('aria-label', sound ? '关闭音效' : '开启音效'); }
+
+  launchButton.addEventListener('pointerdown', e => { if (e.button !== 0 || e.isPrimary === false || charging) return; e.preventDefault(); beginCharge('pointer'); if (charging) { activePointer = e.pointerId; launchButton.setPointerCapture(e.pointerId); } });
+  launchButton.addEventListener('pointerup', e => { if (chargeSource === 'pointer' && activePointer === e.pointerId) { e.preventDefault(); releaseCharge(); } });
+  launchButton.addEventListener('pointercancel', e => { if (chargeSource === 'pointer' && activePointer === e.pointerId) cancelCharge(); });
+  launchButton.addEventListener('lostpointercapture', e => { if (chargeSource === 'pointer' && activePointer === e.pointerId) cancelCharge(); });
+  launchButton.addEventListener('contextmenu', e => e.preventDefault());
+  launchButton.addEventListener('click', e => { if (e.detail === 0 && !charging) { beginCharge('accessible'); releaseCharge(); } });
+  canvas.addEventListener('pointerdown', e => { if (e.button !== 0 || e.isPrimary === false || charging) return; e.preventDefault(); beginCharge('canvas'); if (charging) { activePointer = e.pointerId; canvas.setPointerCapture(e.pointerId); } });
+  canvas.addEventListener('pointerup', e => { if (chargeSource === 'canvas' && activePointer === e.pointerId) releaseCharge(); });
+  canvas.addEventListener('pointercancel', e => { if (chargeSource === 'canvas' && activePointer === e.pointerId) cancelCharge(); });
+  canvas.addEventListener('lostpointercapture', e => { if (chargeSource === 'canvas' && activePointer === e.pointerId) cancelCharge(); });
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input,textarea,select,[contenteditable="true"]')) return;
+    if (e.code === 'Space' && !document.querySelector('dialog[open]') && (!e.target.closest('button,a') || e.target === launchButton)) { e.preventDefault(); if (!e.repeat) beginCharge('keyboard'); }
+    if (e.code === 'KeyM' && !e.repeat) toggleSound();
+  });
+  document.addEventListener('keyup', e => { if (e.code === 'Space' && chargeSource === 'keyboard') { e.preventDefault(); releaseCharge(); } });
+  window.addEventListener('blur', cancelCharge);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cancelCharge(); lastFrame = performance.now(); });
+  $('soundButton').addEventListener('click', toggleSound); $('resetButton').addEventListener('click', resetGame);
+  $('playAgain').addEventListener('click', resetGame);
+  $('playNav').addEventListener('click', () => { document.querySelector('.machine-section').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }); });
+  document.querySelectorAll('[data-dialog]').forEach(button => button.addEventListener('click', () => { cancelCharge(); $(button.dataset.dialog).showModal(); }));
+  document.querySelectorAll('.dialog-close').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
+  document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('click', e => { if (e.target !== dialog) return; const r = dialog.getBoundingClientRect(); if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) dialog.close(); }));
+  $('startPlaying').addEventListener('click', () => { $('helpDialog').close(); launchButton.focus({ preventScroll: true }); });
+
+  function frame(now) {
+    const dt = Math.min((now - lastFrame) / 1000, .05); lastFrame = now;
+    if (charging) { const t = (now - chargeStart) / 1300; power = .08 + .92 * (1 - Math.abs((t % 2) - 1)); updatePower(); }
+    engine.step(dt); draw(now, dt); finishRound(); requestAnimationFrame(frame);
+  }
+  for (let i = 0; i < 20; i++) { const dot = document.createElement('span'); dot.className = 'ball-dot'; $('ballDots').appendChild(dot); }
+  drawBackground(); updateUI(); updateSound(); requestAnimationFrame(frame);
+  window.PiggyGame = { getState: () => ({ score, remaining, best, round, charging, power, roundEnded, activeBalls: engine.balls.filter(b => !b.scored).length }), engine };
+})();
+
+</script>
+</body>
+</html>
