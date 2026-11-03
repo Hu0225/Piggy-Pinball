@@ -24,7 +24,7 @@
   let lastFrame = performance.now(), toastTimer, endTimer, roundAnnounced = false;
   let rollingUntil = 0, lastRollDigit = -1, lastPower = .65, dragStartY = 0;
   let helpPage = 0, layoutFrame = 0;
-  let audioContext, audioBus, audioOutput, lastTick = 0;
+  const audio = new PinballAudio({ enabled: sound });
   const haptics = new PinballHaptics({ enabled: readStorage('piggyHaptics', 'true') !== 'false' });
   const hits = new Map(), slotFlashes = new Map(), particles = [], recent = [];
   const engine = new PinballPhysics({ onPegHit, onScore, onImpact, onLaunch: event => { playSound('launch'); haptics.launch(event.power); } });
@@ -357,6 +357,9 @@
   }
   function releaseCharge() {
     if (!charging) return;
+    // A touch release is a valid Safari audio gesture, even when pointerdown
+    // did not unlock playback. Do this before the launch sound is requested.
+    initAudio();
     const force = Math.max(.18, power), dragged = !chargeSource.startsWith('lever') || power > .03;
     cancelCharge();
     if (dragged) fire(force);
@@ -470,45 +473,13 @@
     toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 2500);
   }
 
-  function initAudio(onReady) {
-    if (!sound) return;
-    try {
-      const Audio = window.AudioContext || window.webkitAudioContext;
-      if (!Audio) return;
-      if (!audioContext) {
-        audioContext = new Audio();
-        audioBus = audioContext.createDynamicsCompressor();
-        audioBus.threshold.value = -10; audioBus.knee.value = 12; audioBus.ratio.value = 8;
-        audioBus.attack.value = .003; audioBus.release.value = .14;
-        audioOutput = audioContext.createGain(); audioOutput.gain.value = .9;
-        audioBus.connect(audioOutput); audioOutput.connect(audioContext.destination);
-      }
-      audioOutput.gain.setTargetAtTime(.9, audioContext.currentTime, .015);
-      if (audioContext.state === 'suspended' || audioContext.state === 'interrupted') {
-        audioContext.resume().then(() => { if (sound && onReady) onReady(); }).catch(() => {});
-      } else if (onReady) onReady();
-    } catch { /* Audio is optional. */ }
+  function initAudio() { return audio.unlock(); }
+  function playSound(type, value) { audio.play(type, value); }
+  function toggleSound() {
+    sound = !sound; audio.setEnabled(sound); saveStorage('piggySound', sound); updateSound();
+    if (sound) { initAudio(); playSound('score', 10); }
+    toast(sound ? '音效已开启 · 播放测试音' : '音效已关闭');
   }
-  function note(freq, duration, volume, delay = 0, wave = 'sine') {
-    if (!audioContext || audioContext.state !== 'running') return;
-    const time = audioContext.currentTime + delay;
-    const oscillator = audioContext.createOscillator(), gain = audioContext.createGain();
-    oscillator.type = wave; oscillator.frequency.setValueAtTime(freq, time);
-    gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(volume, time + .005); gain.gain.exponentialRampToValueAtTime(.0001, time + duration);
-    oscillator.connect(gain); gain.connect(audioBus); oscillator.start(time); oscillator.stop(time + duration + .02);
-    oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
-  }
-  function playSound(type, value) {
-    if (!sound || !audioContext) return;
-    if (type === 'peg' || type === 'bounce') {
-      if (performance.now() - lastTick < 40) return;
-      lastTick = performance.now();
-      note(type === 'peg' ? 780 + value * 95 : 440 + Math.min(value, 800) * .4, .12, type === 'peg' ? .14 : .11, 0, 'triangle');
-    }
-    if (type === 'launch') { note(260, .13, .23, 0, 'triangle'); note(520, .17, .18, .05, 'triangle'); }
-    if (type === 'score') { [523.25, 659.25, value >= 8 ? 1046.5 : 783.99].forEach((n, i) => note(n, .28, .2, i * .09, 'triangle')); }
-  }
-  function toggleSound() { sound = !sound; saveStorage('piggySound', sound); updateSound(); if (sound) initAudio(() => playSound('score', 10)); else if (audioOutput) audioOutput.gain.setTargetAtTime(0, audioContext.currentTime, .015); toast(sound ? '音效已开启，听见好运叮当响' : '音效已关闭'); }
   function updateSound() { $('soundButton').classList.toggle('muted', !sound); $('soundButton').setAttribute('aria-pressed', String(sound)); $('soundButton').setAttribute('aria-label', sound ? '关闭音效' : '开启音效'); }
   function updateHaptics() {
     const status = haptics.getStatus(), supported = haptics.isSupported();
@@ -555,6 +526,16 @@
   bindLauncher(launchButton, 'pointer');
   bindLauncher($('leverHandle'), 'lever');
   bindLauncher(canvas, 'canvas');
+  // Keep gesture retries available after iOS interruptions. Capture the end
+  // of a touch as well as click: dragging the lever can suppress its click.
+  function unlockAudioFromGesture(e) {
+    if (!e.isTrusted || e.target.closest?.('#soundButton')) return;
+    if (e.type === 'keydown' && (e.repeat || !['Enter', ' ', 'm', 'M'].includes(e.key))) return;
+    initAudio();
+  }
+  for (const type of ['pointerup', 'touchend', 'click', 'keydown']) {
+    document.addEventListener(type, unlockAudioFromGesture, { capture: true, passive: true });
+  }
   document.addEventListener('keydown', e => {
     if (e.target.matches('input,textarea,select,[contenteditable="true"]')) return;
     if (e.code === 'Space' && !document.querySelector('dialog[open]') && (!e.target.closest('button,a') || e.target === launchButton || e.target === $('leverHandle'))) {
@@ -564,7 +545,14 @@
   });
   document.addEventListener('keyup', e => { if (e.code === 'Space' && chargeSource === 'keyboard') { e.preventDefault(); releaseCharge(); } });
   window.addEventListener('blur', cancelCharge);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) cancelCharge(); lastFrame = performance.now(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { cancelCharge(); audio.pause(); }
+    else audio.recover();
+    lastFrame = performance.now();
+  });
+  window.addEventListener('pagehide', () => audio.pause());
+  window.addEventListener('pageshow', () => audio.recover());
+  window.addEventListener('focus', () => audio.recover());
   $('soundButton').addEventListener('click', toggleSound);
   $('hapticButton').addEventListener('click', toggleHaptics);
   $('depositButton').addEventListener('click', depositStake);

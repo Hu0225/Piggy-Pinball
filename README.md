@@ -21,12 +21,13 @@
 - 台面在倍率确定后显示“命中可返”的本金 × 倍率数值，加注时同步更新；落袋结算后改为显示“本局返珠”的实际结果。
 - 按 M 或右上角喇叭开关音效。手机端使用无滚动的单屏布局：余额、台面和底部拉杆同屏显示，投珠与加注在弹窗内完成，点击“？”翻页查看玩法。页面根据可视高度和安全区适配较短的 WebView，调节数量时不会弹出手机键盘。
 - 音效提高了输出增益，使用压缩器控制连续碰撞叠加的峰值。顶部手机图标独立开关震动，设置会保存；拉杆跨越力度档位时轻震，发射和钉子、边墙、隔板碰撞按力度使用不同脉冲。
+- iOS Safari 音效会在点击、触摸结束或拉杆松手时解锁；音频恢复期间短暂保留发射和提示音，切回前台后尝试恢复中断的音频。支持 Audio Session API 时使用 `playback` 会话，解决较新 iOS 静音模式下 Web Audio 无声的问题，关闭音效或切后台会释放会话。该模式可能暂停其他应用的音乐；旧版 iOS 若仍无声，请关闭手机静音模式并检查媒体音量。[WebKit 说明](https://bugs.webkit.org/show_bug.cgi?id=237322) · [音频会话说明](https://developer.mozilla.org/en-US/docs/Web/API/AudioSession/type)
 
 网页震动使用 `navigator.vibrate`，通过脉冲时长与节奏区分触感，不能直接调节马达振幅；实际效果取决于硬件、浏览器和系统设置。iOS Safari 与 iOS WebView 不支持该网页接口，界面会提示当前浏览器不支持。[MDN 接口及兼容性](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/vibrate)。当前发布的是 HTML 网页，放入微信 WebView 不会自动获得原生小程序震动能力；`PinballHaptics` 的显式 `nativeHaptics` 适配器可供具备原生能力的宿主接入。
 
 ## 修改源码
 
-`dist/index.html` 是页面结构，`dist/style.css` 是响应式外观，`dist/app.js` 是绘图、音效和交互，`dist/physics.js` 是独立物理引擎，`dist/rules.js` 管理回合、返珠、积分卡与兑换，`dist/haptics.js` 管理触感强弱、节流及兼容。没有第三方图片、字体、脚本或网络请求。
+`dist/index.html` 是页面结构，`dist/style.css` 是响应式外观，`dist/app.js` 是绘图和交互，`dist/physics.js` 是独立物理引擎，`dist/rules.js` 管理回合、返珠、积分卡与兑换，`dist/haptics.js` 管理触感强弱、节流及兼容，`dist/audio.js` 管理合成音效、用户手势解锁和音频恢复。没有第三方图片、字体、脚本或网络请求。
 
 发射出口使用 90° 圆弧，绘制与物理共用 `PinballPhysics.LAUNCH_RAIL` 几何参数。弹珠沿切线离轨，轨道内按重力转换势能与动能，离轨时不额外施加横向速度。
 出口边缘使用圆头、平滑外展的唇边及渐变底色，保持出口敞开。
@@ -42,6 +43,8 @@
 运行 `node test-rules.cjs` 验证投珠激活、倍率锁定、发射前加注、单次发射限制、总本金结算、积分卡阈值、礼品兑换和新旧存档恢复。
 
 运行 `node test-haptics.cjs` 验证三档反馈、拉杆档位、频率限制、用户激活、隐藏页面、开关、取消和不支持接口时的兼容处理。自动测试验证调用逻辑，实际震感须在支持的手机上体验。
+
+运行 `node test-audio.cjs` 验证异步音频解锁、中断恢复、静音与后台切换、待播音效时效及 Safari 音频会话兼容。自动测试不能代替 iPhone 真机听音检查。
 
 ## GitHub Pages 部署
 
