@@ -1,40 +1,91 @@
 'use strict';
-
 const assert = require('node:assert/strict');
 const PinballRules = require('./dist/rules.js');
 const forMultiplier = multiplier => () => (multiplier - 2 + 0.01) / 11;
-const complete = (game, hitCount = game.round.stake) => {
+const readyGame = (stake, multiplier = 2, saved) => {
+  const game = new PinballRules(saved, forMultiplier(multiplier));
+  assert.equal(game.startRound(stake).ok, true);
+  assert.equal(game.drawMultiplier().ok, true);
+  return game;
+};
+const finish = (game, hit = true, id = 'shot') => {
   const lit = game.round.litSlots[0];
   const dark = Array.from({ length: 10 }, (_, index) => index).find(index => !game.round.litSlots.includes(index));
-  let last;
-  for (let index = 0; index < game.round.stake; index++) {
-    assert.equal(game.launchBall(index), true);
-    last = game.landBall(index, index < hitCount ? lit : dark);
-  }
-  return last;
+  assert.equal(game.launchBall(id), true);
+  return game.landBall(id, hit ? lit : dark);
 };
 
-// Deposits are integer bounded, deducted once, and locked while playing.
-const game = new PinballRules(undefined, forMultiplier(2));
-for (const invalid of [undefined, null, '5', NaN, Infinity, -1, 0, 4, 5.5, 100]) assert.equal(game.startRound(invalid).ok, false);
+// Investing activates a round; neither the multiplier nor a launch happens yet.
+let randomCalls = 0;
+const game = new PinballRules(undefined, () => { randomCalls++; return 0; });
+assert.equal(game.drawMultiplier().ok, false);
+assert.equal(game.addStake(1).ok, false);
+for (const invalid of [undefined, null, '5', NaN, Infinity, -1, 0, 1.5, 100]) assert.equal(game.startRound(invalid).ok, false);
 assert.equal(game.wallet, 990);
-assert.equal(game.startRound(5).ok, true);
-assert.equal(game.wallet, 985);
+assert.equal(game.startRound(1).ok, true);
+assert.equal(game.wallet, 989);
+assert.equal(game.round.phase, 'activated');
+assert.equal(game.round.multiplier, null);
+assert.deepEqual(game.round.litSlots, []);
+assert.equal(game.round.remaining, 1);
+assert.equal(randomCalls, 0);
+assert.equal(game.launchBall('too-early'), false);
 assert.equal(game.startRound(99).ok, false);
 assert.equal(game.clearRound(), false);
-assert.equal(game.round.remaining, 5);
+assert.equal(game.addStake(4).ok, true);
+assert.equal(game.round.stake, 5);
 assert.equal(game.wallet, 985);
-const untouchedMultiplier = game.round.multiplier;
-const untouchedLanes = [...game.round.litSlots];
-assert.equal(game.startRound(5).ok, false);
-assert.equal(game.round.multiplier, untouchedMultiplier);
-assert.deepEqual(game.round.litSlots, untouchedLanes);
+assert.equal(game.drawMultiplier().ok, true);
+assert.equal(game.round.phase, 'ready');
+assert.equal(game.round.multiplier, 2);
+assert.equal(randomCalls, 10);
 
-// Every supported multiplier is reachable; lower multipliers have more lit lanes.
+// Additional investments change principal, but never redraw lamps or grant shots.
+const fixedLanes = [...game.round.litSlots];
+assert.equal(game.addStake(10).ok, true);
+assert.equal(game.round.stake, 15);
+assert.equal(game.wallet, 975);
+assert.equal(game.round.remaining, 1);
+assert.equal(game.drawMultiplier().ok, false);
+assert.equal(randomCalls, 10);
+assert.deepEqual(game.round.litSlots, fixedLanes);
+for (const invalid of [undefined, null, '5', NaN, Infinity, -1, 0, 0.5, 85, 100]) assert.equal(game.addStake(invalid).ok, false);
+assert.equal(game.wallet, 975);
+assert.equal(game.round.stake, 15);
+
+// Exactly one valid ball may launch. Invalid or duplicate landing events cannot pay.
+assert.equal(game.landBall('missing', 0).accepted, false);
+for (const invalid of [undefined, null, '', ' ', -1, NaN, {}, 'x'.repeat(129)]) assert.equal(game.launchBall(invalid), false);
+assert.equal(game.launchBall('a'), true);
+assert.equal(game.round.remaining, 0);
+assert.equal(game.round.phase, 'playing');
+assert.equal(game.launchBall('a'), false);
+assert.equal(game.launchBall('b'), false);
+assert.equal(game.addStake(1).ok, false);
+assert.equal(game.drawMultiplier().ok, false);
+assert.equal(game.refundUnlaunched().ok, false);
+assert.equal(game.startRound(1).ok, false);
+for (const slot of [-1, 10, 0.5, NaN, '0']) assert.equal(game.landBall('a', slot).accepted, false);
+assert.equal(game.landBall('b', game.round.litSlots[0]).accepted, false);
+assert.deepEqual(game.landBall('a', game.round.litSlots[0]), { accepted: true, hit: true, reward: 30, settled: true, cardsAwarded: 1 });
+assert.equal(game.wallet, 1005);
+assert.equal(game.cards, 1);
+assert.equal(game.round.launched, 1);
+assert.equal(game.round.resolved, 1);
+assert.equal(game.round.phase, 'settled');
+assert.equal(game.landBall('a', game.round.litSlots[0]).accepted, false);
+assert.equal(game.launchBall('c'), false);
+assert.equal(game.addStake(1).ok, false);
+assert.equal(game.refundUnlaunched().ok, false);
+assert.equal(game.wallet, 1005);
+assert.equal(game.cards, 1);
+assert.equal(game.newRound(), true);
+assert.equal(game.round, null);
+
+// All multipliers are reachable, with increasingly fewer illuminated lanes.
 let previousLitCount = 10;
 for (let multiplier = 2; multiplier <= 12; multiplier++) {
-  const sample = new PinballRules(undefined, forMultiplier(multiplier));
-  assert.equal(sample.startRound(99).ok, true);
+  const sample = readyGame(1, multiplier);
   assert.equal(sample.round.multiplier, multiplier);
   assert.equal(sample.round.litSlots.length, PinballRules.LIT_COUNTS[multiplier]);
   assert.ok(sample.round.litSlots.length <= previousLitCount);
@@ -42,137 +93,147 @@ for (let multiplier = 2; multiplier <= 12; multiplier++) {
   assert.ok(sample.round.litSlots.every(slot => slot >= 0 && slot <= 9));
   previousLitCount = sample.round.litSlots.length;
 }
-assert.equal(new PinballRules(undefined, () => 1).startRound(5).round.multiplier, 12);
-assert.equal(new PinballRules(undefined, () => 0).startRound(5).round.multiplier, 2);
-
-// Only launched balls may land, exactly once; unlit lanes pay nothing.
-const unknown = game.landBall('missing', 0);
-assert.equal(unknown.accepted, false);
-assert.equal(game.launchBall('a'), true);
-assert.equal(game.launchBall('a'), false);
-assert.equal(game.landBall('a', 10).accepted, false);
-const hit = game.landBall('a', game.round.litSlots[0]);
-assert.equal(hit.reward, 2);
-assert.equal(game.wallet, 987);
-assert.equal(game.landBall('a', game.round.litSlots[0]).accepted, false);
-const dark = Array.from({ length: 10 }, (_, index) => index).find(index => !game.round.litSlots.includes(index));
-assert.equal(game.launchBall('b'), true);
-assert.equal(game.landBall('b', dark).reward, 0);
-assert.equal(game.wallet, 987);
-
-// Cancellation returns only unlaunched balls; it cannot erase flying balls.
-assert.equal(game.launchBall('c'), true);
-assert.equal(game.refundUnlaunched().ok, false);
-game.landBall('c', dark);
-const returned = game.refundUnlaunched();
-assert.deepEqual(returned, { ok: true, refunded: 2, cardsAwarded: 0 });
-assert.equal(game.wallet, 989);
-assert.equal(game.round.phase, 'settled');
-assert.equal(game.refundUnlaunched().ok, false);
-assert.equal(game.newRound(), true);
-assert.equal(game.round, null);
-
-// Cards count complete groups of 30 winning balls in this round only.
-for (const [multiplier, stake, hits, expectedCards] of [[6,5,4,0],[6,5,5,1],[12,5,5,2],[10,9,9,3],[12,10,10,4]]) {
-  const sample = new PinballRules(undefined, forMultiplier(multiplier));
-  sample.startRound(stake);
-  const end = complete(sample, hits);
-  assert.equal(end.settled, true);
-  assert.equal(end.cardsAwarded, expectedCards);
-  assert.equal(sample.cards, expectedCards);
-  assert.equal(sample.wallet, 990 - stake + hits * multiplier);
-  assert.equal(sample.round.won, hits * multiplier);
-  assert.equal(sample.bestWin, hits * multiplier);
-  const savedCards = sample.cards;
-  sample.landBall(0, sample.round.litSlots[0]);
-  assert.equal(sample.cards, savedCards);
-  assert.equal(sample.launchBall('extra'), false);
+for (const [random, expected] of [[() => 1, 12], [() => 0, 2], [() => NaN, 7], [() => { throw Error(); }, 7]]) {
+  const sample = new PinballRules(undefined, random);
+  sample.startRound(1);
+  assert.equal(sample.drawMultiplier().round.multiplier, expected);
 }
-const remainder = new PinballRules(undefined, forMultiplier(2));
-remainder.startRound(5); complete(remainder);
-remainder.startRound(5); complete(remainder);
-remainder.startRound(5); complete(remainder);
-assert.equal(remainder.cards, 0, 'ten winnings in each of three rounds must not combine into a card');
 
-// All 99 deposits can be in flight, then resolve out of order without duplication.
-const full = new PinballRules(undefined, forMultiplier(12));
-full.startRound(99);
-for (let index = 1; index <= 99; index++) assert.equal(full.launchBall(index), true);
-assert.equal(full.launchBall(100), false);
-assert.equal(full.round.remaining, 0);
-for (let index = 99; index >= 1; index--) {
-  const outcome = full.landBall(index, full.round.litSlots[0]);
-  assert.equal(outcome.settled, index === 1);
-}
-assert.equal(full.round.resolved, 99);
-assert.equal(full.round.won, 1188);
+// The total stake is bounded, independently of how many investments were made.
+const full = readyGame(1, 12);
+assert.equal(full.addStake(98).ok, true);
+assert.equal(full.round.stake, 99);
+assert.equal(full.addStake(1).ok, false);
+assert.equal(full.round.remaining, 1);
+assert.equal(finish(full).reward, 1188);
+assert.equal(full.round.resolved, 1);
 assert.equal(full.cards, 39);
 assert.equal(full.wallet, 2079);
+assert.equal(full.launchBall('extra'), false);
+const poorStake = readyGame(1, 2, { wallet: 2 });
+assert.equal(poorStake.addStake(2).ok, false);
+assert.equal(poorStake.wallet, 1);
+assert.equal(poorStake.addStake(1).ok, true);
+assert.equal(poorStake.wallet, 0);
+assert.equal(poorStake.addStake(1).ok, false);
+assert.equal(poorStake.getRescue().ok, false);
 
-// Card spending is atomic and bounded; all prizes are persistent game collectibles.
-const poor = new PinballRules();
-assert.equal(poor.redeem('sticker').ok, false);
-assert.equal(poor.redeem('unknown').ok, false);
+// One miss loses the committed principal; no refund or extra shots are available.
+const miss = readyGame(25, 9);
+assert.deepEqual(finish(miss, false), { accepted: true, hit: false, reward: 0, settled: true, cardsAwarded: 0 });
+assert.equal(miss.wallet, 965);
+assert.equal(miss.round.won, 0);
+assert.equal(miss.cards, 0);
+assert.equal(miss.refundUnlaunched().ok, false);
+
+// Cards use the single-shot return, in full groups of 30, with no cross-round carry.
+for (const [multiplier, stake, cards] of [[2,14,0],[6,5,1],[12,5,2],[10,9,3],[12,10,4]]) {
+  const sample = readyGame(stake, multiplier);
+  assert.equal(finish(sample).cardsAwarded, cards);
+  assert.equal(sample.cards, cards);
+  assert.equal(sample.wallet, 990 - stake + stake * multiplier);
+  assert.equal(sample.bestWin, stake * multiplier);
+}
+const remainder = readyGame(5);
+finish(remainder);
+for (let i = 0; i < 2; i++) { remainder.startRound(5); remainder.drawMultiplier(); finish(remainder); }
+assert.equal(remainder.cards, 0);
+
+// Before firing, cancellation returns every investment once, including top-ups.
+for (const shouldDraw of [false, true]) {
+  const canceled = new PinballRules();
+  canceled.startRound(3);
+  if (shouldDraw) canceled.drawMultiplier();
+  canceled.addStake(7);
+  assert.deepEqual(canceled.refundUnlaunched(), { ok: true, refunded: 10, cardsAwarded: 0 });
+  assert.equal(canceled.wallet, 990);
+  assert.equal(canceled.round.phase, 'settled');
+  assert.equal(canceled.refundUnlaunched().ok, false);
+  assert.equal(canceled.launchBall('after-cancel'), false);
+  assert.equal(new PinballRules(canceled.serialize()).wallet, 990);
+}
+
+// Prizes and settled balances survive without duplicated settlement or refunds.
+assert.equal(new PinballRules().redeem('sticker').ok, false);
+assert.equal(full.redeem('unknown').ok, false);
 assert.equal(full.redeem('trophy').ok, true);
-assert.equal(full.cards, 27);
-assert.equal(full.inventory.trophy, 1);
 assert.equal(full.redeem('trophy').ok, true);
-assert.equal(full.inventory.trophy, 2);
 const collected = new PinballRules(JSON.stringify(full.serialize()));
 assert.equal(collected.cards, 15);
+assert.equal(collected.wallet, 2079);
 assert.equal(collected.inventory.trophy, 2);
 assert.equal(collected.round, null);
 assert.equal(collected.recovered, null);
 
-// A refresh returns unresolved and unlaunched deposits, retains paid winnings,
-// and settles cards only for landed winnings. Re-saving prevents duplicate recovery.
-const interrupted = new PinballRules(undefined, forMultiplier(12));
-interrupted.startRound(10);
-for (let index = 0; index < 6; index++) interrupted.launchBall(index);
-for (let index = 0; index < 5; index++) interrupted.landBall(index, interrupted.round.litSlots[0]);
-assert.equal(interrupted.wallet, 1040);
-assert.equal(interrupted.cards, 0);
-const recovered = new PinballRules(interrupted.serialize());
-assert.deepEqual(recovered.recovered, { refunded: 5, cardsAwarded: 2 });
-assert.equal(recovered.wallet, 1045);
-assert.equal(recovered.cards, 2);
-assert.equal(recovered.round, null);
-const recoveredAgain = new PinballRules(recovered.serialize());
-assert.equal(recoveredAgain.wallet, 1045);
-assert.equal(recoveredAgain.cards, 2);
-assert.equal(recoveredAgain.recovered, null);
+// Interrupted new rounds refund the entire unjudged principal once on reload.
+for (const phase of ['activated', 'ready', 'playing']) {
+  const interrupted = new PinballRules(undefined, forMultiplier(12));
+  interrupted.startRound(10);
+  if (phase !== 'activated') interrupted.drawMultiplier();
+  interrupted.addStake(15);
+  if (phase === 'playing') interrupted.launchBall('flying');
+  assert.equal(interrupted.serialize().version, 2);
+  const restored = new PinballRules(interrupted.serialize());
+  assert.deepEqual(restored.recovered, { refunded: 25, cardsAwarded: 0 });
+  assert.equal(restored.wallet, 990);
+  assert.equal(restored.cards, 0);
+  assert.equal(restored.round, null);
+  const again = new PinballRules(restored.serialize());
+  assert.equal(again.wallet, 990);
+  assert.equal(again.recovered, null);
+}
 
-const ready = new PinballRules();
-ready.startRound(99);
-assert.equal(new PinballRules(ready.serialize()).wallet, 990);
-const canceled = new PinballRules(undefined, forMultiplier(6));
-canceled.startRound(10);
-for (let id = 0; id < 5; id++) { canceled.launchBall(id); canceled.landBall(id, canceled.round.litSlots[0]); }
-canceled.refundUnlaunched();
-const canceledRestored = new PinballRules(canceled.serialize());
-assert.equal(canceledRestored.wallet, 1015);
-assert.equal(canceledRestored.cards, 1);
+// Version 1 migration honors already-paid individual-ball rewards and old refunds.
+const legacy = {
+  version: 1, wallet: 1040, cards: 0, bestWin: 60, roundNumber: 4, inventory: { sticker: 2 },
+  round: { stake: 10, multiplier: 12, litSlots: [0], remaining: 4, launched: 6, resolved: 5, hits: 5, won: 60, cardsAwarded: 0, refunded: 0, phase: 'playing' }
+};
+const migrated = new PinballRules(legacy);
+assert.deepEqual(migrated.recovered, { refunded: 5, cardsAwarded: 2 });
+assert.equal(migrated.wallet, 1045);
+assert.equal(migrated.cards, 2);
+assert.equal(migrated.inventory.sticker, 2);
+assert.equal(migrated.bestWin, 60);
+assert.equal(migrated.roundNumber, 4);
+assert.equal(new PinballRules(migrated.serialize()).wallet, 1045);
+assert.equal(new PinballRules(migrated.serialize()).cards, 2);
+const oldReady = structuredClone(legacy);
+Object.assign(oldReady, { wallet: 980, bestWin: 0 });
+Object.assign(oldReady.round, { remaining: 10, launched: 0, resolved: 0, hits: 0, won: 0, phase: 'ready' });
+assert.equal(new PinballRules(oldReady).wallet, 990);
+const oldSettled = structuredClone(legacy);
+Object.assign(oldSettled, { wallet: 1044, cards: 2 });
+Object.assign(oldSettled.round, { remaining: 0, launched: 5, resolved: 5, cardsAwarded: 2, refunded: 5, phase: 'settled' });
+assert.equal(new PinballRules(oldSettled).wallet, 1044);
+assert.equal(new PinballRules(oldSettled).cards, 2);
+assert.equal(new PinballRules(oldSettled).recovered, null);
 
-// Exhausted wallets have a small free recovery, but cannot repeatedly claim it.
-const empty = new PinballRules({ wallet: 4, cards: 0 });
-assert.equal(empty.startRound(5).ok, false);
+// Rescue is needed only when not even one ball remains, and never during a round.
+const empty = new PinballRules({ wallet: 0 });
+assert.equal(empty.startRound(1).ok, false);
 assert.deepEqual(empty.getRescue(), { ok: true, amount: 50 });
-assert.equal(empty.wallet, 54);
 assert.equal(empty.getRescue().ok, false);
-empty.startRound(54);
+empty.startRound(50);
 assert.equal(empty.getRescue().ok, false);
+assert.equal(new PinballRules({ wallet: 1 }).getRescue().ok, false);
 
-// Damaged local saves safely fall back to finite integer balances.
+// Damaged saves do not create invalid balances or refund corrupt round metadata.
 for (const damaged of ['not json', '[]', null, { wallet: NaN, cards: -3, bestWin: Infinity }, { version: 200, wallet: 3 }]) {
   const sample = new PinballRules(damaged);
   assert.equal(sample.wallet, 990);
   assert.equal(sample.cards, 0);
 }
-const corruptedRound = interrupted.serialize();
-corruptedRound.round.won = 100000;
-const bad = new PinballRules(corruptedRound);
-assert.equal(bad.recovered, null);
-assert.equal(bad.wallet, interrupted.wallet);
-assert.equal(bad.cards, 0);
-
-console.log('Rules passed: deposits 5–99, multipliers 2–12, lit-lane rewards, 30-ball cards, 99-ball settlement, gifts, recovery and duplicate protection.');
+const validSnapshot = readyGame(10, 12).serialize();
+for (const corrupt of [
+  { stake: 100 }, { stake: 0 }, { multiplier: null }, { multiplier: 13 }, { litSlots: [0, 0] },
+  { won: 100000 }, { hits: 1 }, { cardsAwarded: 1 }, { refunded: 10 }, { remaining: 10 },
+  { launched: 1 }, { resolved: 1 }, { phase: 'activated' }, { phase: 'playing' }, { phase: 'settled' }
+]) {
+  const saved = structuredClone(validSnapshot);
+  Object.assign(saved.round, corrupt);
+  const sample = new PinballRules(saved);
+  assert.equal(sample.recovered, null);
+  assert.equal(sample.wallet, 980);
+  assert.equal(sample.cards, 0);
+}
+console.log('Rules passed: activation, locked multipliers, 1–99 total principal, pre-shot top-ups, single-shot settlement, cards, gifts, v1 migration, recovery and duplicate protection.');

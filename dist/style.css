@@ -73,10 +73,17 @@ button:disabled{opacity:.45}
 .round-actions{display:grid;grid-template-columns:1.15fr 1fr;gap:8px;margin-top:10px}
 .round-actions>button{font-size:9px;padding:10px 5px;border:1px solid #4d5a3b;background:transparent;border-radius:4px;margin:0;color:#afbf96;min-width:0}
 .round-actions>button:hover:not(:disabled){background:#2d3825;color:#d3dfb6}
-.auto-button[aria-pressed=true]{border-color:#dbc57b;background:#4e4a2a;color:#fff0ab}
+.deposit-button{margin-top:10px}
+.principal-summary{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;padding:12px 10px;border:1px solid #536044;border-radius:4px;background:#252e21}
+.principal-summary>div+div{border-left:1px solid #4a563c;padding-left:12px}
+.principal-summary span{display:block;font-size:9px;color:#a8b695;margin-bottom:5px}
+.principal-summary strong{font:500 24px/1.1 var(--mono);color:#f2d999}
+.principal-summary small{font-size:9px;color:#a8b695;margin-left:5px}
+.add-stake-button:not(:disabled){color:#f0d493;border-color:#9b8751}
 .card-tip{display:flex;align-items:center;gap:10px;margin-top:18px;padding-top:14px;border-top:1px dashed #48543a}
 .card-tip>span{font-size:28px;color:#c9d4a3}.card-tip p{font-size:9px;line-height:1.8;color:#b5c1a2;margin:0}.card-tip b{color:#e1d9a0;font-weight:400}.card-tip small{display:block;color:#7c8f6d;font-size:8px}
 .help-steps{padding:0;list-style:none;counter-reset:help;margin:20px 0}
+#helpDialog{max-height:calc(100dvh - 32px);overflow:auto}
 .help-steps>li{position:relative;padding-left:31px;counter-increment:help;margin:17px 0}
 .help-steps>li:before{content:counter(help,decimal-leading-zero);position:absolute;left:0;top:2px;font:10px var(--mono);color:var(--orange)}
 .help-steps b{font-size:12px;color:#e8ebd4;font-weight:500}.help-steps p{font-size:11px;margin:3px 0 0;line-height:1.85}

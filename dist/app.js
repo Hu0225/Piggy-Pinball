@@ -22,7 +22,7 @@
   let sound = readStorage('piggySound', 'true') !== 'false';
   let charging = false, chargeStart = 0, power = 0, chargeSource = '', activePointer = null;
   let lastFrame = performance.now(), toastTimer, endTimer, roundAnnounced = false;
-  let rollingUntil = 0, lastRollDigit = -1, autoFire = false, nextAutoFire = 0, lastPower = .65, dragStartY = 0;
+  let rollingUntil = 0, lastRollDigit = -1, lastPower = .65, dragStartY = 0;
   let audioContext, lastTick = 0;
   const hits = new Map(), slotFlashes = new Map(), particles = [], recent = [];
   const engine = new PinballPhysics({ onPegHit: onPegHit, onScore: onScore, onLaunch: () => playSound('launch') });
@@ -109,7 +109,7 @@
     text(bg, 'LET THE GOOD', 279, 84, 18, '#fff0be', 'Arial Black, sans-serif', '900');
     bg.save(); bg.translate(279, 120); bg.rotate(-.035); text(bg, 'TIMES ROLL', 0, 0, 45, '#fff1c7', 'Impact, Arial Black, sans-serif', '900'); bg.restore();
     line(bg, 152, 148, 403, 148, '#a9522f55', 1);
-    text(bg, game.round ? `${game.round.multiplier} 倍好运 · ${game.round.litSlots.length} 条亮灯轨道` : '投 入 弹 珠  ·  抽 取 倍 率', 279, 151, 11, '#9b472b', 'Microsoft YaHei, sans-serif');
+    text(bg, game.round?.multiplier ? `${game.round.multiplier} 倍好运 · ${game.round.litSlots.length} 条亮灯轨道` : '投 珠 激 活  ·  确 定 倍 率', 279, 151, 11, '#9b472b', 'Microsoft YaHei, sans-serif');
     bg.save(); bg.globalAlpha = .82; drawPig(bg); bg.restore();
     text(bg, 'GOOD LUCK!', 279, 606, 17, '#ffdb9b', 'Arial Black, sans-serif', '900');
     // Every round has a fixed, clearly illuminated set of winning lanes.
@@ -216,7 +216,7 @@
     saveProgress();
     recent.unshift({ hit: result.hit, reward: result.reward, slot: event.slotIndex + 1 });
     recent.length = Math.min(3, recent.length);
-    $('recentShots').innerHTML = recent.map(s => `<li><span><span class="shot-num">${String(s.slot).padStart(2, '0')} 轨</span>${s.hit ? '亮灯命中！' : '下颗继续加油'}</span><span class="shot-points">${s.hit ? `+${s.reward} 珠` : '未中奖'}</span></li>`).join('');
+    $('recentShots').innerHTML = recent.map(s => `<li><span><span class="shot-num">${String(s.slot).padStart(2, '0')} 轨</span>${s.hit ? '亮灯命中！' : '下局继续加油'}</span><span class="shot-points">${s.hit ? `+${s.reward} 珠` : '未中奖'}</span></li>`).join('');
     if (result.hit) {
       slotFlashes.set(event.slotIndex, performance.now());
       const pop = document.createElement('span'); pop.className = 'score-pop big';
@@ -231,48 +231,57 @@
   }
   function activeCount() { return engine.balls.filter(ball => !ball.scored).length; }
   function isOpenRound() { return !!game.round && game.round.phase !== 'settled'; }
-  function canLaunch() { return isOpenRound() && game.round.remaining > 0 && performance.now() >= rollingUntil; }
+  function canLaunch() { return game.round?.phase === 'ready' && game.round.remaining === 1 && performance.now() >= rollingUntil; }
+  function canDeposit() { return !charging && performance.now() >= rollingUntil && (!isOpenRound() || ['activated', 'ready'].includes(game.round.phase)); }
+  function depositLimit() { return Math.min(game.wallet, 99 - (isOpenRound() ? game.round.stake : 0)); }
   function currentStake() { return Number($('stakeInput').value); }
   function updateUI() {
     const r = game.round, open = isOpenRound(), rolling = performance.now() < rollingUntil;
-    const stake = currentStake(), valid = Number.isInteger(stake) && stake >= 5 && stake <= 99 && stake <= game.wallet;
-    const won = r?.won || 0, remaining = r?.remaining || 0;
+    const stake = currentStake(), limit = depositLimit(), editable = canDeposit();
+    const valid = Number.isInteger(stake) && stake >= 1 && stake <= limit;
+    const won = r?.won || 0, principal = r?.stake || 0;
     $('launchConsole').classList.toggle('has-round', open);
     $('walletCount').textContent = game.wallet;
     $('cardCount').textContent = game.cards;
     $('inventoryCount').textContent = Object.values(game.inventory).reduce((sum, count) => sum + count, 0);
     $('scoreDigits').textContent = String(won).padStart(5, '0');
-    $('ballDigits').textContent = String(remaining).padStart(2, '0');
-    $('remainingBalls').textContent = remaining;
+    $('ballDigits').textContent = String(principal).padStart(2, '0');
+    $('remainingBalls').textContent = principal;
+    $('principalAmount').textContent = principal;
+    $('potentialWin').textContent = r?.multiplier ? principal * r.multiplier : '—';
     $('sessionScore').textContent = won;
     $('bestScore').textContent = String(game.bestWin).padStart(4, '0');
     $('roundNumber').textContent = `第 ${String(r ? game.roundNumber : game.roundNumber + 1).padStart(2, '0')} 局`;
     if (!rolling) {
-      $('multiplierValue').textContent = r ? `${r.multiplier}×` : '--×';
-      $('multiplierDigits').textContent = r ? `${r.multiplier}×` : '--×';
+      $('multiplierValue').textContent = r?.multiplier ? `${r.multiplier}×` : '--×';
+      $('multiplierDigits').textContent = r?.multiplier ? `${r.multiplier}×` : '--×';
     }
-    $('litCount').textContent = r ? `${r.litSlots.length} / 10 条轨道亮灯` : '低倍率亮灯轨道更多';
-    $('roundProgress').style.width = `${r ? r.resolved / r.stake * 100 : 0}%`;
-    $('roundProgressText').textContent = r ? `已落袋 ${r.resolved} / ${r.stake} · 命中 ${r.hits} 颗` : '每局投入 5–99 颗';
-    $('roundStatus').textContent = rolling ? '倍率抽取中…' : !r ? '选择投珠数量，抽取本局倍率' : r.phase === 'settled' ? '本局已结算，积分卡已入账' : remaining === 0 ? '等待台面上的弹珠全部落袋' : `命中亮灯轨道，每颗返还 ${r.multiplier} 颗弹珠`;
-    $('stakeInput').disabled = open;
-    $('stakeMinus').disabled = open || stake <= 5;
-    $('stakePlus').disabled = open || stake >= Math.min(99, game.wallet);
-    document.querySelectorAll('[data-stake]').forEach(button => { button.disabled = open || Number(button.dataset.stake) > game.wallet; button.classList.toggle('selected', Number(button.dataset.stake) === stake); });
-    $('stakeHint').textContent = open ? `已投入 ${r.stake} 颗，本局倍率已锁定` : !Number.isInteger(stake) || stake < 5 || stake > 99 ? '请输入 5–99 的整数' : stake > game.wallet ? '弹珠不足，请减少投入' : `点击抽倍率将投入 ${stake} 颗 · 新手可从 5 颗开始`;
-    $('drawMultiplier').disabled = open || !valid;
-    $('drawMultiplier').textContent = rolling ? '正在抽取…' : open ? '本局倍率已锁定' : `投入 ${Number.isFinite(stake) ? stake : '—'} 颗 · 抽倍率`;
-    launchButton.disabled = open && !canLaunch();
+    $('litCount').textContent = r?.multiplier ? `${r.litSlots.length} / 10 条轨道亮灯` : '低倍率亮灯轨道更多';
+    $('roundProgress').style.width = `${r?.phase === 'settled' ? 100 : 0}%`;
+    $('roundProgressText').textContent = !r ? '每局本金 1–99 颗 · 只发射一次' : r.phase === 'playing' ? '已发射 1 / 1 次 · 等待落袋' : r.phase === 'settled' ? '本局已结束' : '剩余发射机会 1 / 1';
+    $('roundStatus').textContent = rolling ? '倍率抽取中…' : !r ? '投入任意数量弹珠，激活游戏' : r.phase === 'activated' ? `已投入 ${principal} 颗，请确定本局倍率` : r.phase === 'settled' ? '本局已结算，积分卡已入账' : r.phase === 'playing' ? '本金已锁定，等待这唯一一发落袋' : `可继续加注 · 命中返还 ${principal} × ${r.multiplier} = ${principal * r.multiplier} 颗`;
+    $('stakeInput').disabled = !editable || limit === 0;
+    $('stakeInput').max = Math.max(1, limit);
+    $('stakeMinus').disabled = !editable || limit === 0 || stake <= 1;
+    $('stakePlus').disabled = !editable || stake >= limit;
+    $('stakeLimit').textContent = r?.phase === 'playing' ? '发射后本金已锁定' : open ? `还可加注 ${limit} 颗` : '本金共 1—99 颗';
+    document.querySelectorAll('[data-stake]').forEach(button => { button.disabled = !editable || Number(button.dataset.stake) > limit; button.classList.toggle('selected', Number(button.dataset.stake) === stake); });
+    $('stakeHint').textContent = r?.phase === 'playing' ? '已发射，本局不能再加注或发射' : charging ? '蓄力中，本金暂时锁定' : rolling ? '等待倍率确定后可继续加注' : limit === 0 ? '已达本局上限或弹珠余额不足' : !Number.isInteger(stake) || stake < 1 ? '请输入至少 1 颗的整数' : stake > limit ? `本次最多可投入 ${limit} 颗` : open ? `再投 ${stake} 颗，本金合计 ${principal + stake} 颗 · ${r.multiplier ? '倍率不变' : '倍率待确定'}` : `投入 ${stake} 颗激活游戏，再确定倍率`;
+    $('depositButton').disabled = !editable || !valid;
+    $('depositButton').textContent = `${open ? '加注' : '投入'} ${Number.isFinite(stake) ? stake : '—'} 颗${open ? '' : ' · 激活游戏'}`;
+    $('drawMultiplier').disabled = r?.phase !== 'activated' || charging || rolling;
+    $('drawMultiplier').textContent = rolling ? '正在抽取…' : r?.multiplier ? `已锁定 ${r.multiplier} 倍${r.phase === 'ready' ? ' · 可加注' : ''}` : r?.phase === 'activated' ? '确定倍率 · 随机 2—12 倍' : '先投入弹珠激活';
+    launchButton.disabled = rolling || r?.phase === 'playing';
     $('leverHandle').disabled = !canLaunch();
-    $('autoLaunchButton').disabled = !canLaunch();
-    $('autoLaunchButton').textContent = autoFire ? '暂停连发' : '连续发射本局弹珠';
-    $('autoLaunchButton').setAttribute('aria-pressed', String(autoFire));
+    $('addStakeButton').disabled = !editable || (limit === 0 && r?.phase !== 'activated');
+    $('addStakeButton').textContent = r?.phase === 'activated' ? '确定倍率 ✦' : limit === 0 ? '无法继续加注' : '继续加注 ↗';
+    $('leverInstruction').textContent = !r ? '先投珠激活游戏' : rolling ? '正在确定倍率…' : r.phase === 'activated' ? '请先确定本局倍率' : r.phase === 'playing' ? '本局已发射 · 等待落袋' : r.phase === 'settled' ? '本局完成 · 可开始下一局' : '下拉松手 · 本局仅此一发';
     $('resetButton').disabled = rolling || activeCount() > 0 || !r;
-    $('resetButton').textContent = !r || r.phase === 'settled' ? '准备下一局 ↗' : activeCount() ? '等待弹珠落袋…' : `结束本局 · 退回 ${remaining} 颗`;
-    $('rescueButton').hidden = game.wallet >= 5 || open;
+    $('resetButton').textContent = !r || r.phase === 'settled' ? '准备下一局 ↗' : activeCount() ? '等待弹珠落袋…' : `取消 · 退回 ${principal} 颗`;
+    $('rescueButton').hidden = game.wallet >= 1 || open;
     if (!charging) {
-      $('launchLabel').textContent = !r ? '选择投珠 · 开始游戏' : rolling ? '正在抽取倍率…' : r.phase === 'settled' ? '本局完成 · 准备下一局' : remaining === 0 ? '等待弹珠落袋…' : autoFire ? '连发中 · 点击可暂停' : '按住蓄力 · 松手发射';
-      $('launchSublabel').textContent = !r ? '5–99 BALLS / ROUND' : canLaunch() ? `剩余 ${remaining} 颗 · ${r.multiplier} 倍好运` : 'PIGGY PINBALL CLUB';
+      $('launchLabel').textContent = !r ? '选择投珠 · 激活游戏' : rolling ? '正在抽取倍率…' : r.phase === 'activated' ? '前往确定倍率 ↗' : r.phase === 'settled' ? '本局完成 · 准备下一局' : r.phase === 'playing' ? '等待弹珠落袋…' : '按住蓄力 · 仅发射一次';
+      $('launchSublabel').textContent = !r ? '1–99 PRINCIPAL / ONE SHOT' : canLaunch() ? `本金 ${principal} 颗 · ${r.multiplier} 倍好运` : 'PIGGY PINBALL CLUB';
     }
     $('shopCardCount').textContent = game.cards;
     if ($('shopDialog').open) renderShop();
@@ -286,20 +295,20 @@
   }
   function beginCharge(source) {
     if (charging || !canLaunch() || document.querySelector('dialog[open]')) return false;
-    if (activeCount() >= 10) { toast('等一颗弹珠落袋，马上可以继续发射'); return false; }
-    autoFire = false; initAudio(); charging = true; chargeSource = source; chargeStart = performance.now(); power = source.startsWith('lever') ? 0 : .08;
-    launchButton.classList.add('charging'); $('launchSublabel').textContent = 'RELEASE TO LAUNCH'; updatePower(); return true;
+    if (activeCount() > 0) return false;
+    initAudio(); charging = true; chargeSource = source; chargeStart = performance.now(); power = source.startsWith('lever') ? 0 : .08;
+    launchButton.classList.add('charging'); $('launchSublabel').textContent = 'RELEASE TO LAUNCH'; updatePower(); updateUI(); return true;
   }
   function cancelCharge() {
     charging = false; chargeSource = ''; activePointer = null; power = 0;
     launchButton.classList.remove('charging'); updatePower(); updateUI();
   }
-  function fire(force, quiet = false) {
+  function fire(force) {
     if (!canLaunch() || document.querySelector('dialog[open]')) return false;
-    if (!engine.launch(force)) { if (!quiet) toast('台面有点热闹，等一颗落袋再发射'); return false; }
-    game.launchBall(engine.balls[engine.balls.length - 1].id);
+    if (!engine.launch(force)) return false;
+    const ball = engine.balls[engine.balls.length - 1];
+    if (!game.launchBall(ball.id)) { engine.balls.pop(); return false; }
     lastPower = force; saveProgress(); $('boardHint').classList.add('hide');
-    if (game.round.remaining === 0) autoFire = false;
     updateUI(); return true;
   }
   function releaseCharge() {
@@ -309,43 +318,58 @@
     if (dragged) fire(force);
   }
   function prepareRound() {
-    clearTimeout(endTimer); endTimer = undefined; autoFire = false; rollingUntil = 0;
+    clearTimeout(endTimer); endTimer = undefined; rollingUntil = 0;
     if (!game.clearRound()) return;
     engine.reset(); hits.clear(); slotFlashes.clear(); particles.length = 0; recent.length = 0; roundAnnounced = false;
     $('floatingScores').replaceChildren(); $('recentShots').innerHTML = '<li class="history-empty">亮灯轨道，等你来命中 <span>↘</span></li>';
     $('boardHint').classList.remove('hide'); $('endDialog').close();
-    $('boardHint').innerHTML = '<span class="hint-star">✦</span> 先投珠抽倍率 · 亮灯轨道中奖 <span class="hint-star">✦</span>';
+    $('boardHint').innerHTML = '<span class="hint-star">✦</span> 投珠激活 · 确定倍率 · 一发定局 <span class="hint-star">✦</span>';
     saveProgress(); cancelCharge(); drawBackground();
   }
-  function startRound() {
-    const result = game.startRound(currentStake());
+  function depositStake() {
+    if (!canDeposit()) return;
+    const adding = isOpenRound();
+    if (!adding && game.round) prepareRound();
+    const result = adding ? game.addStake(currentStake()) : game.startRound(currentStake());
     if (!result.ok) { toast(result.error); return; }
-    clearTimeout(endTimer); endTimer = undefined; roundAnnounced = false; autoFire = false;
-    engine.reset(); hits.clear(); slotFlashes.clear(); particles.length = 0; recent.length = 0;
-    $('floatingScores').replaceChildren(); $('recentShots').innerHTML = '<li class="history-empty">亮灯轨道，等你来命中 <span>↘</span></li>';
-    $('boardHint').classList.remove('hide');
+    if (!adding) {
+      clearTimeout(endTimer); endTimer = undefined; roundAnnounced = false;
+      engine.reset(); hits.clear(); slotFlashes.clear(); particles.length = 0; recent.length = 0;
+      $('floatingScores').replaceChildren(); $('recentShots').innerHTML = '<li class="history-empty">一发定局，等你来命中 <span>↘</span></li>';
+      $('boardHint').classList.remove('hide');
+      $('boardHint').innerHTML = '<span class="hint-star">✦</span> 游戏已激活 · 请确定倍率 <span class="hint-star">✦</span>';
+    }
+    const limit = depositLimit();
+    if (limit > 0 && currentStake() > limit) $('stakeInput').value = limit;
+    saveProgress(); initAudio(); drawBackground(); updateUI();
+    toast(adding ? `加注成功，本金共 ${game.round.stake} 颗 · 发射前还可加注` : `已投入 ${game.round.stake} 颗，请点击确定倍率`);
+  }
+  function drawMultiplier() {
+    if (charging || performance.now() < rollingUntil) return;
+    const result = game.drawMultiplier();
+    if (!result.ok) { toast(result.error); return; }
     rollingUntil = performance.now() + 750; lastRollDigit = -1;
     saveProgress(); initAudio(); drawBackground(); updateUI();
   }
   function finishRound() {
     const r = game.round;
     if (!r || r.phase !== 'settled' || roundAnnounced || endTimer || document.querySelector('dialog[open]')) return;
-    autoFire = false; roundAnnounced = true; updateUI();
+    roundAnnounced = true; updateUI();
     endTimer = setTimeout(() => {
       endTimer = undefined;
       if (game.round !== r) return;
       if (document.querySelector('dialog[open]')) { roundAnnounced = false; return; }
       $('finalScore').textContent = r.won;
       $('finalCards').textContent = `+${r.cardsAwarded}`;
-      $('finalHits').textContent = `${r.hits} / ${r.launched}`;
+      $('finalHits').textContent = r.refunded ? '已取消' : r.hits ? '命中' : '未命中';
       $('finalStake').textContent = r.stake;
-      $('recordMessage').textContent = `命中 ${r.hits} 颗 × ${r.multiplier} 倍 = ${r.won} 颗返珠。${r.refunded ? `另退回未发射的 ${r.refunded} 颗。` : ''}${r.cardsAwarded ? `获得 ${r.cardsAwarded} 张积分卡！` : '本局返珠未满30颗，继续收集好运。'}`;
+      $('recordMessage').textContent = r.refunded ? `发射前取消本局，已退回全部 ${r.refunded} 颗本金。` : `${r.hits ? `本金 ${r.stake} 颗 × ${r.multiplier} 倍 = ${r.won} 颗返珠（含本金）。` : `本局唯一一发未命中亮灯轨道，${r.stake} 颗本金不返还。`}${r.cardsAwarded ? `获得 ${r.cardsAwarded} 张积分卡！` : '本局返珠未满30颗，未获得积分卡。'}`;
       $('endDialog').showModal();
     }, 650);
   }
   function endOrPrepare() {
     if (!game.round || game.round.phase === 'settled') { prepareRound(); return; }
-    autoFire = false; cancelCharge();
+    cancelCharge();
     const result = game.refundUnlaunched();
     if (!result.ok) { toast(result.error); return; }
     saveProgress(); updateUI(); finishRound();
@@ -361,7 +385,7 @@
     const first = document.querySelector('.stake-section');
     const behavior = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
     if (!matchMedia('(max-width:650px)').matches) { first.scrollIntoView({ behavior, block: 'center' }); return; }
-    const start = first.getBoundingClientRect(), end = document.querySelector('.multiplier-section').getBoundingClientRect();
+    const start = first.getBoundingClientRect(), end = start;
     const space = mobilePlayHeight();
     window.scrollTo({ top: window.scrollY + start.top - Math.max(12, (space - (end.bottom - start.top)) / 2), behavior });
   }
@@ -409,8 +433,7 @@
     element.addEventListener('pointerdown', e => {
       if (e.button !== 0 || e.isPrimary === false || charging) return;
       e.preventDefault();
-      if (element === launchButton && !isOpenRound()) { goToSetup(); return; }
-      if (element === launchButton && autoFire) { autoFire = false; updateUI(); return; }
+      if (element === launchButton && (!isOpenRound() || game.round.phase === 'activated')) { goToSetup(); return; }
       let source = mode;
       if (mode === 'canvas') {
         const bounds = canvas.getBoundingClientRect();
@@ -431,8 +454,7 @@
     element.addEventListener('contextmenu', e => e.preventDefault());
     if (mode !== 'canvas') element.addEventListener('click', e => {
       if (e.detail !== 0 || charging) return;
-      if (element === launchButton && !isOpenRound()) { goToSetup(); return; }
-      if (element === launchButton && autoFire) { autoFire = false; updateUI(); return; }
+      if (element === launchButton && (!isOpenRound() || game.round.phase === 'activated')) { goToSetup(); return; }
       if (beginCharge('accessible')) { revealBoard(); power = lastPower; releaseCharge(); }
     });
   }
@@ -442,24 +464,24 @@
   document.addEventListener('keydown', e => {
     if (e.target.matches('input,textarea,select,[contenteditable="true"]')) return;
     if (e.code === 'Space' && !document.querySelector('dialog[open]') && (!e.target.closest('button,a') || e.target === launchButton || e.target === $('leverHandle'))) {
-      e.preventDefault(); if (!e.repeat) { if (!isOpenRound()) goToSetup(); else beginCharge('keyboard'); }
+      e.preventDefault(); if (!e.repeat) { if (!isOpenRound() || game.round.phase === 'activated') goToSetup(); else beginCharge('keyboard'); }
     }
     if (e.code === 'KeyM' && !e.repeat) toggleSound();
   });
   document.addEventListener('keyup', e => { if (e.code === 'Space' && chargeSource === 'keyboard') { e.preventDefault(); releaseCharge(); } });
-  window.addEventListener('blur', () => { autoFire = false; cancelCharge(); });
-  document.addEventListener('visibilitychange', () => { if (document.hidden) { autoFire = false; cancelCharge(); } lastFrame = performance.now(); });
+  window.addEventListener('blur', cancelCharge);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) cancelCharge(); lastFrame = performance.now(); });
   $('soundButton').addEventListener('click', toggleSound);
-  $('drawMultiplier').addEventListener('click', startRound);
+  $('depositButton').addEventListener('click', depositStake);
+  $('drawMultiplier').addEventListener('click', drawMultiplier);
   $('stakeInput').addEventListener('input', updateUI);
-  function adjustStake(value) { if (isOpenRound()) return; $('stakeInput').value = Math.max(5, Math.min(99, value)); updateUI(); }
-  $('stakeMinus').addEventListener('click', () => adjustStake((currentStake() || 5) - 1));
-  $('stakePlus').addEventListener('click', () => adjustStake((currentStake() || 5) + 1));
+  function adjustStake(value) { if (!canDeposit() || depositLimit() < 1) return; $('stakeInput').value = Math.max(1, Math.min(depositLimit(), value)); updateUI(); }
+  $('stakeMinus').addEventListener('click', () => adjustStake((currentStake() || 1) - 1));
+  $('stakePlus').addEventListener('click', () => adjustStake((currentStake() || 1) + 1));
   document.querySelectorAll('[data-stake]').forEach(button => button.addEventListener('click', () => adjustStake(Number(button.dataset.stake))));
-  $('autoLaunchButton').addEventListener('click', () => {
-    if (!canLaunch()) return;
-    const enable = !autoFire; cancelCharge(); autoFire = enable; nextAutoFire = 0; initAudio(); updateUI();
-    if (enable) revealBoard();
+  $('addStakeButton').addEventListener('click', () => {
+    if (game.round?.phase === 'activated') drawMultiplier();
+    else goToSetup();
   });
   $('resetButton').addEventListener('click', endOrPrepare);
   $('playAgain').addEventListener('click', prepareRound);
@@ -468,7 +490,7 @@
     if (!result.ok) { toast(result.error); return; }
     saveProgress(); updateUI(); toast('50 颗弹珠补给到账，继续出发！');
   });
-  $('shopButton').addEventListener('click', () => { autoFire = false; cancelCharge(); renderShop(); $('shopDialog').showModal(); });
+  $('shopButton').addEventListener('click', () => { cancelCharge(); renderShop(); $('shopDialog').showModal(); });
   $('prizeList').addEventListener('click', e => {
     const button = e.target.closest('[data-prize]'); if (!button) return;
     const result = game.redeem(button.dataset.prize);
@@ -478,7 +500,7 @@
   $('playNav').addEventListener('click', () => { document.querySelector('.machine-section').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }); });
   document.querySelectorAll('[data-dialog]').forEach(button => {
     if (button.id === 'shopButton') return;
-    button.addEventListener('click', () => { autoFire = false; cancelCharge(); $(button.dataset.dialog).showModal(); });
+    button.addEventListener('click', () => { cancelCharge(); $(button.dataset.dialog).showModal(); });
   });
   document.querySelectorAll('.dialog-close').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
   document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('click', e => {
@@ -503,14 +525,10 @@
         if (digit !== lastRollDigit) { lastRollDigit = digit; $('multiplierValue').textContent = `${digit}×`; $('multiplierDigits').textContent = `${digit}×`; }
       } else {
         rollingUntil = 0; updateUI(); playSound('score', game.round.multiplier);
-        $('boardHint').innerHTML = '<span class="hint-star">✦</span> 拉动拉杆 · 瞄准亮灯轨道 <span class="hint-star">✦</span>';
+        $('boardHint').innerHTML = '<span class="hint-star">✦</span> 可继续加注 · 只发射一次 <span class="hint-star">✦</span>';
         revealBoard(matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
-        toast(`${game.round.multiplier} 倍好运 · ${game.round.litSlots.length} 条中奖轨道已亮灯`);
+        toast(`${game.round.multiplier} 倍已锁定 · 可加注，或拉杆一发定局`);
       }
-    }
-    if (autoFire && !charging && !document.hidden && !document.querySelector('dialog[open]') && now >= nextAutoFire) {
-      if (fire(lastPower, true)) nextAutoFire = now + 450;
-      else if (!canLaunch()) { autoFire = false; updateUI(); }
     }
     engine.step(dt); draw(now, dt); finishRound(); requestAnimationFrame(frame);
   }
@@ -518,6 +536,6 @@
   window.addEventListener('resize', measureLaunchConsole);
   measureLaunchConsole();
   saveProgress(); drawBackground(); updatePower(); updateUI(); updateSound(); requestAnimationFrame(frame);
-  if (game.recovered) toast(`已保留上局奖励，退回 ${game.recovered.refunded} 颗未落袋弹珠`);
-  window.PiggyGame = { getState: () => ({ ...game.serialize(), charging, power, autoFire, activeBalls: activeCount() }), engine };
+  if (game.recovered) toast(`上局未完成，已退回 ${game.recovered.refunded} 颗弹珠并保留已结算奖励`);
+  window.PiggyGame = { getState: () => ({ ...game.serialize(), charging, power, activeBalls: activeCount() }), engine };
 })();
