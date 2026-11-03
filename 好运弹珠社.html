@@ -362,6 +362,10 @@ button:disabled{opacity:.45}
   const STEP = 1 / 180;
   const BALL_RADIUS = 8.5;
   const GRAVITY = 780;
+  const LAUNCH_RAIL = Object.freeze({
+    centerX: 506, centerY: 112, radius: 56, halfWidth: 14,
+    angle: Math.PI / 2, startX: 562, startY: 112, exitX: 506, exitY: 56
+  });
   const VALUES = [10, 20, 50, 100, 200, 200, 100, 50, 20, 10];
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
@@ -393,10 +397,10 @@ button:disabled{opacity:.45}
       if (this.balls.filter(ball => ball.phase !== 'scored').length >= 10) return false;
       const force = clamp(Number(power) || 0, 0, 1);
       const ball = {
-        id: this._nextId++, x: 562, y: 704, vx: 0,
-        vy: -(980 + force * 340), radius: BALL_RADIUS,
+        id: this._nextId++, x: LAUNCH_RAIL.startX, y: 704, vx: 0,
+        vy: -(1050 + force * 350), radius: BALL_RADIUS,
         power: force, phase: 'launch', age: 0, trail: [],
-        railProgress: 0, trailClock: 0, hitCooldown: new Map(),
+        railAngle: 0, trailClock: 0, hitCooldown: new Map(),
         scored: false, fade: 1, slotIndex: -1, stallTime: 0
       };
       this.balls.push(ball);
@@ -411,6 +415,66 @@ button:disabled{opacity:.45}
         this._tick(STEP);
         this._accumulator -= STEP;
       }
+    }
+
+    _advanceLaunch(ball, dt) {
+      const speed = -ball.vy;
+      const distance = ball.y - LAUNCH_RAIL.startY;
+      const entrySpeed = Math.sqrt(Math.max(0, speed * speed - 2 * GRAVITY * distance));
+      const arrival = 2 * distance / (speed + entrySpeed);
+      if (arrival > dt) {
+        ball.y += ball.vy * dt + 0.5 * GRAVITY * dt * dt;
+        ball.vy += GRAVITY * dt;
+        return 0;
+      }
+      ball.x = LAUNCH_RAIL.startX;
+      ball.y = LAUNCH_RAIL.startY;
+      ball.vy = -entrySpeed;
+      ball.railEntrySpeed = entrySpeed;
+      ball.railAngle = 0;
+      ball.phase = 'rail';
+      return Math.max(0, dt - arrival);
+    }
+
+    _railSpeed(ball, angle) {
+      // A guide only redirects velocity. Gravity trades kinetic energy for
+      // height; no fixed animation speed or extra sideways kick is applied.
+      return Math.sqrt(Math.max(0, ball.railEntrySpeed * ball.railEntrySpeed
+        - 2 * GRAVITY * LAUNCH_RAIL.radius * Math.sin(angle)));
+    }
+
+    _railAngleAfter(ball, dt) {
+      const angularSpeed = angle => this._railSpeed(ball, clamp(angle, 0, LAUNCH_RAIL.angle)) / LAUNCH_RAIL.radius;
+      const angle = ball.railAngle;
+      const k1 = angularSpeed(angle);
+      const k2 = angularSpeed(angle + dt * k1 / 2);
+      const k3 = angularSpeed(angle + dt * k2 / 2);
+      const k4 = angularSpeed(angle + dt * k3);
+      return angle + dt * (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+    }
+
+    _advanceRail(ball, dt) {
+      let angle = this._railAngleAfter(ball, dt);
+      let leftover = 0;
+      if (angle >= LAUNCH_RAIL.angle) {
+        // Resolve the exact exit time and give the remainder to free flight.
+        let low = 0, high = dt;
+        for (let i = 0; i < 30; i++) {
+          const middle = (low + high) / 2;
+          if (this._railAngleAfter(ball, middle) < LAUNCH_RAIL.angle) low = middle;
+          else high = middle;
+        }
+        leftover = dt - high;
+        angle = LAUNCH_RAIL.angle;
+        ball.phase = 'board';
+      }
+      ball.railAngle = angle;
+      const speed = this._railSpeed(ball, angle);
+      ball.x = LAUNCH_RAIL.centerX + LAUNCH_RAIL.radius * Math.cos(angle);
+      ball.y = LAUNCH_RAIL.centerY - LAUNCH_RAIL.radius * Math.sin(angle);
+      ball.vx = -speed * Math.sin(angle);
+      ball.vy = -speed * Math.cos(angle);
+      return leftover;
     }
 
     _tick(dt) {
@@ -428,36 +492,22 @@ button:disabled{opacity:.45}
           ball.y += 28 * dt;
           continue;
         }
+        let motionDt = dt;
         if (ball.phase === 'launch') {
-          ball.vy += GRAVITY * 0.6 * dt;
-          ball.y += ball.vy * dt;
-          if (ball.y <= 62) {
-            ball.y = 62;
-            ball.phase = 'rail';
-            ball.railSpeed = 2.4 + ball.power * 1.4;
-          }
-          continue;
+          motionDt = this._advanceLaunch(ball, motionDt);
+          if (ball.phase === 'launch') continue;
         }
         if (ball.phase === 'rail') {
-          ball.railProgress = Math.min(1, ball.railProgress + ball.railSpeed * dt);
-          const t = ball.railProgress;
-          const u = 1 - t;
-          // A short guided arch connects the launch chute to the playfield.
-          ball.x = u * u * u * 562 + 3 * u * u * t * 562 + 3 * u * t * t * 486 + t * t * t * 486;
-          ball.y = u * u * u * 62 + 3 * u * u * t * 9 + 3 * u * t * t * 9 + t * t * t * 66;
-          if (t === 1) {
-            ball.phase = 'board';
-            ball.vx = -(140 + ball.power * 370);
-            ball.vy = 62 + ball.power * 32;
-          }
-          continue;
+          motionDt = this._advanceRail(ball, motionDt);
+          if (ball.phase === 'rail') continue;
         }
+        if (motionDt <= 0) continue;
 
-        ball.vy += GRAVITY * dt;
+        ball.vy += GRAVITY * motionDt;
         // Air resistance is deliberately small; impacts provide most damping.
-        ball.vx *= Math.exp(-0.065 * dt);
-        ball.x += ball.vx * dt;
-        ball.y += ball.vy * dt;
+        ball.vx *= Math.exp(-0.065 * motionDt);
+        ball.x += ball.vx * motionDt;
+        ball.y += ball.vy * motionDt;
         if (ball.x < 36 + BALL_RADIUS) {
           ball.x = 36 + BALL_RADIUS;
           ball.vx = Math.abs(ball.vx) * 0.7;
@@ -524,7 +574,7 @@ button:disabled{opacity:.45}
           }
         }
 
-        if (Math.abs(ball.vx) + Math.abs(ball.vy) < 36) ball.stallTime += dt;
+        if (Math.abs(ball.vx) + Math.abs(ball.vy) < 36) ball.stallTime += motionDt;
         else ball.stallTime = 0;
         if (ball.stallTime > 0.8) {
           ball.vx += ball.id % 2 ? 58 : -58;
@@ -566,6 +616,7 @@ button:disabled{opacity:.45}
     }
   }
 
+  PinballPhysics.LAUNCH_RAIL = LAUNCH_RAIL;
   if (typeof module !== 'undefined' && module.exports) module.exports = PinballPhysics;
   root.PinballPhysics = PinballPhysics;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -928,12 +979,25 @@ button:disabled{opacity:.45}
     }
     rounded(bg, 33, 20, 489, 715, 25, null, '#994c2e', 4);
     rounded(bg, 36, 23, 483, 710, 23, null, '#ffe1a1', 3);
-    rounded(bg, 542, 21, 42, 714, 19, '#a55f35', '#7e4a2c', 3);
+    const rail = PinballPhysics.LAUNCH_RAIL;
+    rounded(bg, 542, rail.startY, 42, 735 - rail.startY, 19, '#a55f35', '#7e4a2c', 3);
     const chute = bg.createLinearGradient(544, 0, 584, 0);
     chute.addColorStop(0, '#725d40'); chute.addColorStop(.16, '#dfcf9c'); chute.addColorStop(.28, '#b8a473'); chute.addColorStop(.7, '#d0b47d'); chute.addColorStop(1, '#7c603d');
-    rounded(bg, 550, 49, 25, 680, 10, chute);
-    bg.beginPath(); bg.moveTo(579, 681); bg.lineTo(579, 62); bg.bezierCurveTo(579, -8, 468, -8, 468, 66); bg.strokeStyle = '#775131'; bg.lineWidth = 4; bg.stroke();
-    bg.beginPath(); bg.moveTo(547, 680); bg.lineTo(547, 62); bg.bezierCurveTo(547, 29, 504, 29, 504, 66); bg.strokeStyle = '#ffdf9f'; bg.lineWidth = 4; bg.stroke();
+    // The painted channel and the simulation share one quarter-turn centerline.
+    // Paint over the cabinet edge so the outlet is visibly open to the playfield.
+    bg.save(); bg.lineCap = 'butt';
+    bg.beginPath(); bg.moveTo(rail.startX, 729); bg.lineTo(rail.startX, rail.startY);
+    bg.arc(rail.centerX, rail.centerY, rail.radius, 0, -rail.angle, true);
+    bg.strokeStyle = '#795132'; bg.lineWidth = rail.halfWidth * 2 + 8; bg.stroke();
+    bg.strokeStyle = chute; bg.lineWidth = rail.halfWidth * 2; bg.stroke();
+    for (const side of [-1, 1]) {
+      const radius = rail.radius + side * rail.halfWidth;
+      bg.beginPath(); bg.moveTo(rail.centerX + radius, 729); bg.lineTo(rail.centerX + radius, rail.centerY);
+      bg.arc(rail.centerX, rail.centerY, radius, 0, -rail.angle, true);
+      bg.strokeStyle = '#775131'; bg.lineWidth = 4; bg.stroke();
+      bg.strokeStyle = side < 0 ? '#ffdf9f' : '#dac99b'; bg.lineWidth = 1.6; bg.stroke();
+    }
+    bg.restore();
     for (let y = 258; y < 615; y += 100) {
       bg.beginPath(); bg.moveTo(555, y + 10); bg.lineTo(562, y); bg.lineTo(569, y + 10); bg.strokeStyle = '#fff0bc99'; bg.lineWidth = 3; bg.lineCap = 'round'; bg.stroke();
     }

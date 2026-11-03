@@ -96,12 +96,25 @@
     }
     rounded(bg, 33, 20, 489, 715, 25, null, '#994c2e', 4);
     rounded(bg, 36, 23, 483, 710, 23, null, '#ffe1a1', 3);
-    rounded(bg, 542, 21, 42, 714, 19, '#a55f35', '#7e4a2c', 3);
+    const rail = PinballPhysics.LAUNCH_RAIL;
+    rounded(bg, 542, rail.startY, 42, 735 - rail.startY, 19, '#a55f35', '#7e4a2c', 3);
     const chute = bg.createLinearGradient(544, 0, 584, 0);
     chute.addColorStop(0, '#725d40'); chute.addColorStop(.16, '#dfcf9c'); chute.addColorStop(.28, '#b8a473'); chute.addColorStop(.7, '#d0b47d'); chute.addColorStop(1, '#7c603d');
-    rounded(bg, 550, 49, 25, 680, 10, chute);
-    bg.beginPath(); bg.moveTo(579, 681); bg.lineTo(579, 62); bg.bezierCurveTo(579, -8, 468, -8, 468, 66); bg.strokeStyle = '#775131'; bg.lineWidth = 4; bg.stroke();
-    bg.beginPath(); bg.moveTo(547, 680); bg.lineTo(547, 62); bg.bezierCurveTo(547, 29, 504, 29, 504, 66); bg.strokeStyle = '#ffdf9f'; bg.lineWidth = 4; bg.stroke();
+    // The painted channel and the simulation share one quarter-turn centerline.
+    // Paint over the cabinet edge so the outlet is visibly open to the playfield.
+    bg.save(); bg.lineCap = 'butt';
+    bg.beginPath(); bg.moveTo(rail.startX, 729); bg.lineTo(rail.startX, rail.startY);
+    bg.arc(rail.centerX, rail.centerY, rail.radius, 0, -rail.angle, true);
+    bg.strokeStyle = '#795132'; bg.lineWidth = rail.halfWidth * 2 + 8; bg.stroke();
+    bg.strokeStyle = chute; bg.lineWidth = rail.halfWidth * 2; bg.stroke();
+    for (const side of [-1, 1]) {
+      const radius = rail.radius + side * rail.halfWidth;
+      bg.beginPath(); bg.moveTo(rail.centerX + radius, 729); bg.lineTo(rail.centerX + radius, rail.centerY);
+      bg.arc(rail.centerX, rail.centerY, radius, 0, -rail.angle, true);
+      bg.strokeStyle = '#775131'; bg.lineWidth = 4; bg.stroke();
+      bg.strokeStyle = side < 0 ? '#ffdf9f' : '#dac99b'; bg.lineWidth = 1.6; bg.stroke();
+    }
+    bg.restore();
     for (let y = 258; y < 615; y += 100) {
       bg.beginPath(); bg.moveTo(555, y + 10); bg.lineTo(562, y); bg.lineTo(569, y + 10); bg.strokeStyle = '#fff0bc99'; bg.lineWidth = 3; bg.lineCap = 'round'; bg.stroke();
     }

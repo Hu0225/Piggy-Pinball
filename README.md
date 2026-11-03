@@ -25,13 +25,15 @@
 
 `dist/index.html` 是页面结构，`dist/style.css` 是响应式外观，`dist/app.js` 是绘图和交互，`dist/physics.js` 是独立物理引擎，`dist/rules.js` 管理回合、返珠、积分卡与兑换。没有第三方图片、字体、脚本或网络请求。
 
+发射出口使用 90° 圆弧，绘制与物理共用 `PinballPhysics.LAUNCH_RAIL` 几何参数。弹珠沿切线离轨，轨道内按重力转换势能与动能，离轨时不额外施加横向速度。
+
 修改后运行 `node build-single.mjs`，重新生成单文件 HTML。
 
 ## 本地预览与验证
 
 在本目录运行 `python -m http.server 4173 --directory dist`，浏览器访问 http://localhost:4173 。
 
-运行 `node test-physics.cjs` 验证 101 档力度、所有奖励槽及物理引擎的 10 球并发能力；实际玩法每局仅发射一次。
+运行 `node test-physics.cjs` 验证轨道圆弧、离轨切线及速度连续性，以及 101 档力度、所有奖励槽和物理引擎的 10 球并发能力；实际玩法每局仅发射一次。
 
 运行 `node test-rules.cjs` 验证投珠激活、倍率锁定、发射前加注、单次发射限制、总本金结算、积分卡阈值、礼品兑换和新旧存档恢复。
 
