@@ -6,6 +6,11 @@
   const STEP = 1 / 180;
   const BALL_RADIUS = 8.5;
   const GRAVITY = 780;
+  const EXIT_SPEED_MIN = 12;
+  const EXIT_SPEED_RANGE = 518;
+  const PEG_RESTITUTION = 0.15;
+  const LIP_RESTITUTION = 0.05;
+  const CONTACT_DAMPING = 0.15;
   const LAUNCH_RAIL = Object.freeze({
     centerX: 506, centerY: 112, radius: 56, halfWidth: 14,
     angle: Math.PI / 2, startX: 562, startY: 112, exitX: 506, exitY: 56
@@ -24,11 +29,12 @@
       this.radius = BALL_RADIUS;
       this.pegs = [];
       let id = 0;
-      for (let row = 0; row < 8; row++) {
-        const count = row % 2 === 0 ? 9 : 8;
-        const start = row % 2 === 0 ? 62 : 90;
-        for (let column = 0; column < count; column++) {
-          this.pegs.push({ id: id++, x: start + column * 54, y: 170 + row * 60, radius: 6.2, row, column });
+      // Seven rows of cushioned guide pins line up with the scoring dividers.
+      // The open upper field lets launch speed select a region before contact;
+      // aligned lower rows avoid amplifying small aim changes across the table.
+      for (let row = 0; row < 7; row++) {
+        for (let column = 0; column < 9; column++) {
+          this.pegs.push({ id: id++, x: 88 + column * 48, y: 360 + row * 45, radius: 6.2, row, column });
         }
       }
       this.slots = VALUES.map((value, index) => ({ x: 40 + index * 48, y: 650, width: 48, height: 80, value, index }));
@@ -41,12 +47,15 @@
     launch(power = 0.65) {
       if (this.balls.filter(ball => ball.phase !== 'scored').length >= 10) return false;
       const force = clamp(Number(power) || 0, 0, 1);
+      // Spring energy pays for the climb first. The remaining exit speed is
+      // linear in the user's power; the rail still conserves that energy.
+      const exitSpeed = EXIT_SPEED_MIN + force * EXIT_SPEED_RANGE;
       const ball = {
         id: this._nextId++, x: LAUNCH_RAIL.startX, y: 704, vx: 0,
-        vy: -(1050 + force * 350), radius: BALL_RADIUS,
+        vy: -Math.sqrt(2 * GRAVITY * (704 - LAUNCH_RAIL.exitY) + exitSpeed * exitSpeed), radius: BALL_RADIUS,
         power: force, phase: 'launch', age: 0, trail: [],
         railAngle: 0, trailClock: 0, hitCooldown: new Map(),
-        scored: false, fade: 1, slotIndex: -1, stallTime: 0
+        scored: false, fade: 1, slotIndex: -1
       };
       this.balls.push(ball);
       this.onLaunch({ ballId: ball.id, power: force, x: ball.x, y: ball.y });
@@ -184,16 +193,19 @@
           const distanceSquared = dx * dx + dy * dy;
           if (distanceSquared >= required * required) continue;
           const distance = Math.sqrt(distanceSquared);
-          const nx = distance > 0.0001 ? dx / distance : 0.7;
-          const ny = distance > 0.0001 ? dy / distance : -0.714142;
+          const speed = Math.hypot(ball.vx, ball.vy);
+          const nx = distance > 0.0001 ? dx / distance : speed > 0.0001 ? -ball.vx / speed : 0;
+          const ny = distance > 0.0001 ? dy / distance : speed > 0.0001 ? -ball.vy / speed : -1;
           ball.x = peg.x + nx * (required + 0.06);
           ball.y = peg.y + ny * (required + 0.06);
           const normalSpeed = ball.vx * nx + ball.vy * ny;
           if (normalSpeed < 0) {
-            ball.vx -= (1 + 0.74) * normalSpeed * nx;
-            ball.vy -= (1 + 0.74) * normalSpeed * ny;
-            // Tiny asymmetric surface impulses prevent balancing on a peg.
-            if (Math.abs(nx) < 0.11) ball.vx += Math.sin(ball.id * 9.17 + peg.id * 3.11) * 23 + (ball.id % 2 ? 9 : -9);
+            ball.vx -= (1 + PEG_RESTITUTION) * normalSpeed * nx;
+            ball.vy -= (1 + PEG_RESTITUTION) * normalSpeed * ny;
+            // Cushioned contact only removes energy. There are no random or
+            // ball-ID-dependent impulses and no steering toward a target.
+            ball.vx *= CONTACT_DAMPING;
+            ball.vy *= CONTACT_DAMPING;
             const previousHit = ball.hitCooldown.get(peg.id) ?? -100;
             if (this.time - previousHit > 0.085 && -normalSpeed > 28) {
               ball.hitCooldown.set(peg.id, this.time);
@@ -212,18 +224,20 @@
               const dy = ball.y - 649;
               const radius = BALL_RADIUS + 3;
               if (dx * dx + dy * dy < radius * radius) {
-                const length = Math.sqrt(dx * dx + dy * dy) || 1;
-                const nx = dx / length;
-                const ny = dy / length;
+                const length = Math.sqrt(dx * dx + dy * dy);
+                const speed = Math.hypot(ball.vx, ball.vy);
+                const nx = length > 0.0001 ? dx / length : speed > 0.0001 ? -ball.vx / speed : 0;
+                const ny = length > 0.0001 ? dy / length : speed > 0.0001 ? -ball.vy / speed : -1;
                 ball.x = x + nx * (radius + 0.05);
                 ball.y = 649 + ny * (radius + 0.05);
                 const dot = ball.vx * nx + ball.vy * ny;
                 if (dot < 0) {
-                  ball.vx -= 1.4 * dot * nx;
-                  ball.vy -= 1.4 * dot * ny;
+                  ball.vx -= (1 + LIP_RESTITUTION) * dot * nx;
+                  ball.vy -= (1 + LIP_RESTITUTION) * dot * ny;
+                  ball.vx *= CONTACT_DAMPING;
+                  ball.vy *= CONTACT_DAMPING;
                   this._impact(ball, 'divider', -dot, x, 649);
                 }
-                if (Math.abs(dx) < 0.3) ball.vx += ball.id % 2 ? 17 : -17;
               }
             } else if (Math.abs(ball.x - x) < BALL_RADIUS + 3) {
               const side = ball.x < x ? -1 : 1;
@@ -237,14 +251,9 @@
           }
         }
 
-        if (Math.abs(ball.vx) + Math.abs(ball.vy) < 36) ball.stallTime += motionDt;
-        else ball.stallTime = 0;
-        if (ball.stallTime > 0.8) {
-          ball.vx += ball.id % 2 ? 58 : -58;
-          ball.vy = Math.max(ball.vy, 34);
-          ball.stallTime = 0;
-        }
-        if (ball.y >= 710 || ball.age > 20) this._score(ball);
+        // A score requires physically crossing the collection line. A timeout
+        // must never select a lane for a ball still on the board.
+        if (ball.y >= 710) this._score(ball);
       }
       this.balls = this.balls.filter(ball => ball.fade > 0);
     }
@@ -260,7 +269,7 @@
       ball.y = 710;
       ball.vx = 0;
       ball.vy = 0;
-      this.onScore({ value: slot.value, slotIndex, ballId: ball.id, x: ball.x, y: ball.y });
+      this.onScore({ value: slot.value, slotIndex, ballId: ball.id, power: ball.power, x: ball.x, y: ball.y });
     }
 
     reset() {

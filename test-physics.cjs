@@ -89,7 +89,7 @@ const divider = impactFixture({ x: 78, y: 670, vx: 100 });
 assert.equal(divider.events.length, 1);
 assert.equal(divider.events[0].kind, 'divider');
 near(divider.events[0].speed, 100 * Math.exp(-0.065 * tick), 1e-9, 'divider feedback uses incoming normal speed');
-const peg = impactFixture({ x: 62, y: 155, vy: 100 }, true);
+const peg = impactFixture({ x: 88, y: 345, vy: 100 }, true);
 assert.equal(peg.events.length, 1);
 assert.equal(peg.events[0].kind, 'peg');
 assert.equal(peg.pegEvents.length, 1, 'legacy peg animation/audio callback is retained');
@@ -107,7 +107,6 @@ for (const power of [0, 0.5, 1]) {
     withFeedback.step(1 / 120); plain.step(1 / 120);
     assert.deepEqual(withFeedback.getSnapshot().balls, plain.getSnapshot().balls);
   }
-  assert.ok(reported.some(event => event.kind === 'peg'));
   assert.equal(callbackScores.length, 1);
   assert.deepEqual(callbackScores, plainScores);
 }
@@ -129,7 +128,8 @@ for (let powerStep = 0; powerStep <= 100; powerStep++) {
   }
   assert.equal(scores.length, 1, 'each ball must score exactly once');
   assert.equal(physics.balls.length, 0, 'scored balls must leave the simulation');
-  assert.ok(frames / 120 < 20, 'normal launches must settle without the lifetime failsafe');
+  assert.ok(frames / 120 < 20, 'normal launches must physically settle within a reasonable time');
+  assert.equal(scores[0].power, powerStep / 100, 'history receives the exact launch power');
   assert.equal(scores[0].value, physics.slots[scores[0].slotIndex].value);
   visitedSlots.add(scores[0].slotIndex);
   maximumSeconds = Math.max(maximumSeconds, frames / 120);
@@ -150,4 +150,69 @@ multiball.step(NaN);
 multiball.step(-1);
 assert.equal(visitedSlots.size, 10);
 
-console.log(`Physics passed: 90-degree guide, continuous tangent/energy transitions, wall/peg/divider impact feedback, 101 power levels, all 10 slots, ${impacts} peg impacts, 10 simultaneous balls; longest flight ${maximumSeconds.toFixed(2)}s.`);
+// A ball still on the playfield cannot score simply because time has elapsed.
+const timeoutScores = [];
+const timeoutPhysics = new PinballPhysics({ onScore: event => timeoutScores.push(event) });
+timeoutPhysics.launch(.5);
+Object.assign(timeoutPhysics.balls[0], { phase: 'board', x: 300, y: 100, vx: 0, vy: 0, age: 25 });
+timeoutPhysics.step(tick);
+assert.equal(timeoutScores.length, 0);
+assert.ok(timeoutPhysics.balls[0].y < 710);
+
+function settle(physics, power, frameTimes = [1 / 60]) {
+  let result;
+  physics.reset();
+  physics.onScore = event => { result = event; };
+  physics.launch(power);
+  const ball = physics.balls[0];
+  let frame = 0;
+  while (!result && ball.age < 20) physics.step(frameTimes[frame++ % frameTimes.length]);
+  assert.ok(result, `power ${power} must physically reach a lane`);
+  assert.equal(result.y, 710);
+  return result;
+}
+
+// The UI exposes exact one-percent increments. Every step must be repeatable,
+// independent of ball ID, previous rounds, and browser render timing.
+const repeatPhysics = new PinballPhysics(), orderedSlots = [];
+for (const power of [.01, .25, .5, .75, 1]) {
+  const first = new PinballPhysics(), later = new PinballPhysics();
+  later._nextId = 901;
+  first.launch(power); later.launch(power);
+  for (let frame = 0; first.balls.length && frame < 3600; frame++) {
+    first.step(tick); later.step(tick);
+    const withoutId = physics => physics.getSnapshot().balls.map(({ id, ...state }) => state);
+    assert.deepEqual(withoutId(first), withoutId(later), 'full trajectory is independent of the ball number');
+  }
+  assert.equal(first.balls.length, 0);
+  assert.equal(later.balls.length, 0);
+}
+for (let percent = 1; percent <= 100; percent++) {
+  const power = percent / 100;
+  const first = settle(new PinballPhysics(), power);
+  orderedSlots.push(first.slotIndex);
+  for (const frames of [[1 / 30], [1 / 60], [1 / 120], [.013, .021, .008, .05, .016]]) {
+    const repeated = settle(repeatPhysics, power, frames);
+    assert.equal(repeated.slotIndex, first.slotIndex, 'same power retains its lane across IDs and frame rates');
+    near(repeated.x, first.x, 1e-9, 'same power retains its physical landing position');
+    assert.equal(repeated.power, power);
+  }
+}
+
+let adjacent = 0, monotonic = 0;
+for (let i = 1; i < orderedSlots.length; i++) {
+  if (Math.abs(orderedSlots[i] - orderedSlots[i - 1]) <= 1) adjacent++;
+  if (orderedSlots[i] <= orderedSlots[i - 1]) monotonic++;
+}
+assert.equal(adjacent, orderedSlots.length - 1, 'one-percent changes may only stay in a lane or move to its neighbor');
+assert.ok(monotonic / (orderedSlots.length - 1) >= .95, 'more power mostly moves the landing leftward');
+const windows = Array(10).fill(0);
+for (let start = 0; start < orderedSlots.length;) {
+  let end = start + 1;
+  while (orderedSlots[end] === orderedSlots[start]) end++;
+  windows[orderedSlots[start]] = Math.max(windows[orderedSlots[start]], end - start);
+  start = end;
+}
+assert.ok(windows.every(count => count >= 5), 'each lane has at least five consecutive whole-percent aim settings');
+
+console.log(`Physics passed: continuous 90-degree energy-conserving guide, real-contact feedback, 101 power levels, all 10 slots, ${impacts} peg impacts, ID/frame-rate repeatability, ${adjacent}/${orderedSlots.length - 1} adjacent aim steps, minimum ${Math.min(...windows)}-setting target windows, 10 simultaneous balls; longest flight ${maximumSeconds.toFixed(2)}s.`);
