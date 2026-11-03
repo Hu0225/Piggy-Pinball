@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#191a17">
   <meta name="description" content="好运弹珠社潮弹玩法：投珠激活，确定2至12倍倍率后可继续加注。每局本金1至99颗，只发射一次，命中亮灯轨道按总本金乘倍率返珠、攒卡兑礼。">
   <title>好运弹珠社 · PIGGY PINBALL</title>
@@ -19,7 +19,7 @@
       <button class="nav-item active" type="button" id="playNav">弹珠机<span>01</span></button>
       <button class="nav-item" type="button" data-dialog="helpDialog">玩法指南<span>02</span></button>
     </nav>
-    <div class="header-actions"><span class="open-badge"><i></i> 随时开玩</span><button class="icon-button" id="soundButton" type="button" aria-label="关闭音效" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4V5Z"/><path class="sound-waves" d="M15 8c2 2 2 6 0 8m3-11c4 4 4 10 0 14"/><path class="sound-muted" d="m16 9 5 6m0-6-5 6"/></svg></button></div>
+    <div class="header-actions"><span class="open-badge"><i></i> 随时开玩</span><button class="icon-button help-button" id="helpButton" type="button" data-dialog="helpDialog" aria-label="玩法说明">?</button><button class="icon-button" id="soundButton" type="button" aria-label="关闭音效" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4V5Z"/><path class="sound-waves" d="M15 8c2 2 2 6 0 8m3-11c4 4 4 10 0 14"/><path class="sound-muted" d="m16 9 5 6m0-6-5 6"/></svg></button></div>
   </header>
 
   <main class="arcade-layout">
@@ -49,7 +49,7 @@
         <div class="cabinet-bolt bolt-tl"></div><div class="cabinet-bolt bolt-tr"></div>
         <div class="marquee"><div class="marquee-side">★<br>★</div><div><span class="marquee-kicker">THE LITTLE BALL OF LUCK</span><h2>PIGGY <span>PINBALL</span></h2></div><div class="marquee-side">★<br>★</div></div>
         <div class="scoreboard">
-          <div class="score-display"><span>中奖返珠 <small>WIN</small></span><strong id="scoreDigits" aria-label="本局中奖返珠">0000</strong></div>
+          <div class="score-display"><span id="scoreDisplayLabel">命中可返</span><strong id="scoreDigits" aria-label="命中可返弹珠">0000</strong></div>
           <div class="score-display balls-display"><span>本局本金 <small>STAKE</small></span><strong id="ballDigits" aria-label="本局本金">00</strong></div>
           <div class="score-display multiplier-display"><span>本局倍率 <small>LUCK</small></span><strong id="multiplierDigits" aria-label="本局倍率">--×</strong></div>
         </div>
@@ -67,10 +67,12 @@
       <div class="session-score"><span id="sessionScore">0</span><span class="score-unit">颗弹珠<br><small>BALLS WON</small></span></div>
       <div class="round-status" id="roundStatus" role="status" aria-live="polite">选好投入，开启你的好运回合</div>
 
+      <div id="setupHome"><div id="setupControls">
       <section class="stake-section" aria-labelledby="stakeLabel">
         <div class="step-label"><span>01</span><label id="stakeLabel" for="stakeInput">投入 / 加注数量</label><small id="stakeLimit">总本金 1—99 颗</small></div>
         <div class="stake-stepper"><button type="button" id="stakeMinus" aria-label="减少投入">−</button><input id="stakeInput" type="number" min="1" max="99" step="1" value="5" inputmode="numeric" aria-describedby="stakeHint"><span>颗</span><button type="button" id="stakePlus" aria-label="增加投入">+</button></div>
         <div class="stake-presets" aria-label="快速选择投入"><button type="button" data-stake="1">1 颗</button><button type="button" data-stake="5" class="selected">5 颗</button><button type="button" data-stake="10">10 颗</button><button type="button" data-stake="30">30 颗</button></div>
+        <div class="mobile-stake-slider"><input id="stakeSlider" type="range" min="1" max="99" step="1" value="5" aria-label="选择投入弹珠数量"><div><span>1 颗</span><span id="stakeRangeMax">99 颗</span></div></div>
         <p class="field-hint" id="stakeHint">投入至少 1 颗即可激活；发射前可继续加注。</p>
         <button type="button" class="draw-button deposit-button" id="depositButton">投入 5 颗 · 激活游戏 <span>＋</span></button>
         <div class="principal-summary"><div><span>本局总本金</span><strong id="principalAmount">0</strong><small>颗</small></div><div><span>命中可返</span><strong id="potentialWin">—</strong><small>颗</small></div></div>
@@ -81,6 +83,7 @@
         <div class="multiplier-panel"><strong id="multiplierValue">--×</strong><div><span id="litCount">未抽取</span><small>倍率越低，亮灯洞口越多</small></div></div>
         <button type="button" class="draw-button" id="drawMultiplier" disabled>先投珠激活 <span>✦</span></button>
       </section>
+      </div></div>
 
       <div class="launch-console" id="launchConsole">
       <section class="launcher-section" aria-labelledby="launcherLabel">
@@ -100,7 +103,13 @@
   <footer class="site-footer"><span>© 2026 好运弹珠社</span><span>一点复古，一点随机，很多快乐。<i>✦</i></span><button type="button" data-dialog="helpDialog">玩法与说明 ↗</button></footer>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <dialog id="helpDialog" class="game-dialog"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">THE CHAODAN WAY TO PLAY</div><h2>五步，接住你的好运。</h2><ol class="help-steps"><li><b>投珠激活</b><p>投入至少 1 颗弹珠即可激活游戏。每次投入即时从口袋扣除，每局总本金最多 99 颗。</p></li><li><b>确定倍率，再加注</b><p>激活后点击“确定倍率”，随机抽出 2—12 倍并点亮中奖轨道。倍率越低，亮灯洞口越多。倍率确定后，发射前仍可继续加注，倍率和轨道保持不变。</p></li><li><b>只发射一次</b><p>发射前投入的所有弹珠都计入本金。向下拉动拉杆、松手发射 1 颗判定珠，决定整局结果；也可按住空格、发射按钮或台面蓄力。发射后不能加注或再次发射。</p></li><li><b>中奖收卡</b><p>落入亮灯轨道，返还“总本金 × 本局倍率”颗弹珠，返珠已含本金；未命中则不返珠。例如总本金 10 颗、倍率 6 倍，命中返还 60 颗并获得 2 张积分卡。中奖返珠每满 30 颗得 1 张卡，余数不跨局累计。</p></li><li><b>积分卡兑礼</b><p>进入礼品柜，用积分卡兑换贴纸、挂件、公仔等游戏内藏品。弹珠、积分卡和藏品保存在当前浏览器中。发射前取消可退回全部本金；刷新时未结算回合也会退回本金。</p></li></ol><div class="help-slots"><span>30 颗<small>1 张卡</small></span><span>60 颗<small>2 张卡</small></span><span>90 颗<small>3 张卡</small></span></div><p class="help-shortcuts"><kbd>M</kbd> 开关音效 · <kbd>SPACE</kbd> 蓄力发射 · <kbd>Esc</kbd> 关闭说明</p><button class="dialog-primary" type="button" id="startPlaying">知道了，开玩！ ↗</button></dialog>
+  <dialog id="stakeDialog" class="game-dialog stake-dialog" aria-labelledby="stakeDialogTitle"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">YOUR NEXT SHOT</div><h2 id="stakeDialogTitle">投入弹珠</h2><div id="stakeDialogContent"></div></dialog>
+  <dialog id="helpDialog" class="game-dialog" aria-labelledby="helpTitle"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">HOW TO PLAY</div><h2 id="helpTitle">一发，接住好运。</h2>
+    <section class="help-page" aria-label="投珠与倍率"><span class="help-page-icon" aria-hidden="true">①</span><h3>先投珠，再确定倍率</h3><p>投入 <b>1—99 颗</b>弹珠激活游戏，点击“确定倍率”随机抽取 <b>2—12 倍</b>。</p><p>发射前可继续加注，所有投入都算本金，合计最多 99 颗。倍率和亮灯轨道不会改变。</p><p class="help-note">倍率越低，亮灯轨道越多。</p></section>
+    <section class="help-page" aria-label="发射与返珠" hidden><span class="help-page-icon" aria-hidden="true">②</span><h3>只发射一次，一发定局</h3><p>向下拉动拉杆，松手发射。发射后不能加注，也不能再发第二颗。</p><p>命中亮灯轨道，返还 <b>总本金 × 倍率</b>颗弹珠，已含本金；未命中则不返珠。</p><div class="help-example">15 颗 × 6 倍 = <b>90 颗返珠</b></div></section>
+    <section class="help-page" aria-label="积分与礼品" hidden><span class="help-page-icon" aria-hidden="true">③</span><h3>攒积分卡，兑换小礼品</h3><p>中奖返珠每满 <b>30 颗</b>得 <b>1 张卡</b>，余数不跨局累计。礼品柜可兑换游戏内藏品。</p><div class="help-slots"><span>30 颗<small>1 张卡</small></span><span>60 颗<small>2 张卡</small></span><span>90 颗<small>3 张卡</small></span></div><p class="help-note">余额和藏品自动保存在当前浏览器。发射前取消或刷新未结算回合，可退回本金。</p></section>
+    <div class="help-pagination"><button id="helpPrev" type="button" disabled>← 上一页</button><span id="helpPageCount" aria-live="polite">1 / 3</span><button id="helpNext" type="button">下一页 →</button></div><button class="dialog-primary" type="button" id="startPlaying">知道了，开玩！ ↗</button>
+  </dialog>
   <dialog id="endDialog" class="game-dialog end-dialog"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">YOUR LUCK, COLLECTED</div><div class="end-star">✦</div><h2>这局好运，收下啦！</h2><strong id="finalScore">0</strong><span class="final-unit">本局中奖返珠</span><div class="result-summary"><div><span>本局本金</span><b id="finalStake">0</b></div><div><span>命中结果</span><b id="finalHits">0</b></div><div><span>获得积分卡</span><b id="finalCards">0</b></div></div><p id="recordMessage">快乐已经到账，再来收集一份好运。</p><button class="dialog-primary" type="button" id="playAgain">再来一局 ↗</button></dialog>
   <dialog id="shopDialog" class="game-dialog shop-dialog"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">LITTLE GIFTS, BIG SMILES</div><h2>把好运，装进礼品柜。</h2><div class="shop-balance"><span>可用积分卡</span><strong id="shopCardCount">0</strong><small>张</small></div><p class="shop-note">选择喜欢的小礼物，兑换后会加入你的游戏内收藏。</p><div class="prize-list" id="prizeList"></div><div class="inventory-heading">我的收藏 <span>COLLECTION</span></div><div id="inventoryList" class="inventory-list"><p>礼品柜还空着，第一份惊喜等你来。</p></div></dialog>
   <script src="physics.js"></script>

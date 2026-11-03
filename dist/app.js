@@ -23,6 +23,7 @@
   let charging = false, chargeStart = 0, power = 0, chargeSource = '', activePointer = null;
   let lastFrame = performance.now(), toastTimer, endTimer, roundAnnounced = false;
   let rollingUntil = 0, lastRollDigit = -1, lastPower = .65, dragStartY = 0;
+  let helpPage = 0, layoutFrame = 0;
   let audioContext, lastTick = 0;
   const hits = new Map(), slotFlashes = new Map(), particles = [], recent = [];
   const engine = new PinballPhysics({ onPegHit: onPegHit, onScore: onScore, onLaunch: () => playSound('launch') });
@@ -235,6 +236,7 @@
   function canDeposit() { return !charging && performance.now() >= rollingUntil && (!isOpenRound() || ['activated', 'ready'].includes(game.round.phase)); }
   function depositLimit() { return Math.min(game.wallet, 99 - (isOpenRound() ? game.round.stake : 0)); }
   function currentStake() { return Number($('stakeInput').value); }
+  function isMobile() { return matchMedia('(max-width:650px), (max-width:950px) and (max-height:500px)').matches; }
   function updateUI() {
     const r = game.round, open = isOpenRound(), rolling = performance.now() < rollingUntil;
     const stake = currentStake(), limit = depositLimit(), editable = canDeposit();
@@ -244,11 +246,15 @@
     $('walletCount').textContent = game.wallet;
     $('cardCount').textContent = game.cards;
     $('inventoryCount').textContent = Object.values(game.inventory).reduce((sum, count) => sum + count, 0);
-    $('scoreDigits').textContent = String(won).padStart(5, '0');
+    const settled = r?.phase === 'settled';
+    const possibleReturn = r?.multiplier && !rolling ? principal * r.multiplier : 0;
+    $('scoreDigits').textContent = String(settled ? won : possibleReturn).padStart(5, '0');
+    $('scoreDisplayLabel').textContent = settled ? '本局返珠' : '命中可返';
+    $('scoreDigits').setAttribute('aria-label', settled ? '本局实际返珠' : '命中亮灯轨道可返弹珠');
     $('ballDigits').textContent = String(principal).padStart(2, '0');
     $('remainingBalls').textContent = principal;
     $('principalAmount').textContent = principal;
-    $('potentialWin').textContent = r?.multiplier ? principal * r.multiplier : '—';
+    $('potentialWin').textContent = r?.multiplier && !rolling ? possibleReturn : '—';
     $('sessionScore').textContent = won;
     $('bestScore').textContent = String(game.bestWin).padStart(4, '0');
     $('roundNumber').textContent = `第 ${String(r ? game.roundNumber : game.roundNumber + 1).padStart(2, '0')} 局`;
@@ -262,6 +268,11 @@
     $('roundStatus').textContent = rolling ? '倍率抽取中…' : !r ? '投入任意数量弹珠，激活游戏' : r.phase === 'activated' ? `已投入 ${principal} 颗，请确定本局倍率` : r.phase === 'settled' ? '本局已结算，积分卡已入账' : r.phase === 'playing' ? '本金已锁定，等待这唯一一发落袋' : `可继续加注 · 命中返还 ${principal} × ${r.multiplier} = ${principal * r.multiplier} 颗`;
     $('stakeInput').disabled = !editable || limit === 0;
     $('stakeInput').max = Math.max(1, limit);
+    $('stakeSlider').max = Math.max(1, limit);
+    $('stakeSlider').value = Number.isFinite(stake) ? Math.max(1, Math.min(limit, stake)) : 1;
+    $('stakeSlider').disabled = !editable || limit === 0;
+    $('stakeRangeMax').textContent = `${limit} 颗`;
+    $('stakeDialogTitle').textContent = open ? '继续加注' : '投入弹珠';
     $('stakeMinus').disabled = !editable || limit === 0 || stake <= 1;
     $('stakePlus').disabled = !editable || stake >= limit;
     $('stakeLimit').textContent = r?.phase === 'playing' ? '发射后本金已锁定' : open ? `还可加注 ${limit} 颗` : '本金共 1—99 颗';
@@ -342,6 +353,7 @@
     const limit = depositLimit();
     if (limit > 0 && currentStake() > limit) $('stakeInput').value = limit;
     saveProgress(); initAudio(); drawBackground(); updateUI();
+    if ($('stakeDialog').open) $('stakeDialog').close();
     toast(adding ? `加注成功，本金共 ${game.round.stake} 颗 · 发射前还可加注` : `已投入 ${game.round.stake} 颗，请点击确定倍率`);
   }
   function drawMultiplier() {
@@ -382,26 +394,43 @@
   }
   function goToSetup() {
     if (game.round?.phase === 'settled') prepareRound();
+    if (isMobile()) {
+      if (!$('stakeDialog').open) $('stakeDialog').showModal();
+      $('stakePlus').focus({ preventScroll: true });
+      return;
+    }
     const first = document.querySelector('.stake-section');
     const behavior = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
-    if (!matchMedia('(max-width:650px)').matches) { first.scrollIntoView({ behavior, block: 'center' }); return; }
-    const start = first.getBoundingClientRect(), end = start;
-    const space = mobilePlayHeight();
-    window.scrollTo({ top: window.scrollY + start.top - Math.max(12, (space - (end.bottom - start.top)) / 2), behavior });
+    first.scrollIntoView({ behavior, block: 'center' });
   }
-  function mobilePlayHeight() {
-    return (window.visualViewport?.height || window.innerHeight) - $('launchConsole').getBoundingClientRect().height - 20;
-  }
-  function revealBoard(behavior = 'auto') {
-    if (!matchMedia('(max-width:650px)').matches) return;
-    const board = document.querySelector('.machine-section').getBoundingClientRect();
-    const top = Math.max(10, (mobilePlayHeight() - board.height) / 2);
-    window.scrollTo({ top: window.scrollY + board.top - top, behavior });
-  }
-  function measureLaunchConsole() {
-    if (matchMedia('(max-width:650px)').matches) {
-      document.documentElement.style.setProperty('--mobile-dock-height', `${$('launchConsole').getBoundingClientRect().height}px`);
+  function fitViewport() {
+    const mobile = isMobile(), controls = $('setupControls');
+    document.documentElement.style.setProperty('--app-height', `${window.visualViewport?.height || window.innerHeight}px`);
+    const home = mobile ? $('stakeDialogContent') : $('setupHome');
+    if (controls.parentElement !== home) {
+      if ($('stakeDialog').open) $('stakeDialog').close();
+      home.appendChild(controls);
     }
+    $('stakeInput').readOnly = mobile;
+    $('stakeInput').setAttribute('inputmode', mobile ? 'none' : 'numeric');
+    if (mobile) {
+      const board = document.querySelector('.machine-section').getBoundingClientRect();
+      const width = Math.max(0, Math.min(board.width - 12, (board.height - 33) * W / H));
+      document.documentElement.style.setProperty('--mobile-machine-width', `${width}px`);
+    }
+    document.documentElement.style.setProperty('--mobile-dock-height', `${$('launchConsole').getBoundingClientRect().height}px`);
+  }
+  function scheduleLayout() {
+    if (layoutFrame) return;
+    layoutFrame = requestAnimationFrame(() => { layoutFrame = 0; fitViewport(); });
+  }
+  function showHelpPage(index) {
+    const pages = [...document.querySelectorAll('.help-page')];
+    helpPage = Math.max(0, Math.min(pages.length - 1, index));
+    pages.forEach((page, i) => { page.hidden = i !== helpPage; });
+    $('helpPrev').disabled = helpPage === 0;
+    $('helpNext').disabled = helpPage === pages.length - 1;
+    $('helpPageCount').textContent = `${helpPage + 1} / ${pages.length}`;
   }
   function toast(message) {
     clearTimeout(toastTimer); $('toast').textContent = message; $('toast').classList.add('visible');
@@ -440,7 +469,6 @@
         if ((e.clientX - bounds.left) / bounds.width * W > 535) source = 'lever-canvas';
       }
       if (!beginCharge(source)) return;
-      if (mode !== 'canvas') revealBoard();
       activePointer = e.pointerId; dragStartY = e.clientY; element.setPointerCapture(e.pointerId);
     });
     element.addEventListener('pointermove', e => {
@@ -455,7 +483,7 @@
     if (mode !== 'canvas') element.addEventListener('click', e => {
       if (e.detail !== 0 || charging) return;
       if (element === launchButton && (!isOpenRound() || game.round.phase === 'activated')) { goToSetup(); return; }
-      if (beginCharge('accessible')) { revealBoard(); power = lastPower; releaseCharge(); }
+      if (beginCharge('accessible')) { power = lastPower; releaseCharge(); }
     });
   }
   bindLauncher(launchButton, 'pointer');
@@ -475,6 +503,7 @@
   $('depositButton').addEventListener('click', depositStake);
   $('drawMultiplier').addEventListener('click', drawMultiplier);
   $('stakeInput').addEventListener('input', updateUI);
+  $('stakeSlider').addEventListener('input', () => adjustStake(Number($('stakeSlider').value)));
   function adjustStake(value) { if (!canDeposit() || depositLimit() < 1) return; $('stakeInput').value = Math.max(1, Math.min(depositLimit(), value)); updateUI(); }
   $('stakeMinus').addEventListener('click', () => adjustStake((currentStake() || 1) - 1));
   $('stakePlus').addEventListener('click', () => adjustStake((currentStake() || 1) + 1));
@@ -497,10 +526,10 @@
     if (!result.ok) { toast(result.error); return; }
     saveProgress(); updateUI(); renderShop(); playSound('score', 12); toast(`已收藏「${result.prize.name}」`);
   });
-  $('playNav').addEventListener('click', () => { document.querySelector('.machine-section').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }); });
+  $('playNav').addEventListener('click', () => { if (!isMobile()) document.querySelector('.machine-section').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' }); });
   document.querySelectorAll('[data-dialog]').forEach(button => {
     if (button.id === 'shopButton') return;
-    button.addEventListener('click', () => { cancelCharge(); $(button.dataset.dialog).showModal(); });
+    button.addEventListener('click', () => { cancelCharge(); if (button.dataset.dialog === 'helpDialog') showHelpPage(0); $(button.dataset.dialog).showModal(); });
   });
   document.querySelectorAll('.dialog-close').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
   document.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('click', e => {
@@ -511,10 +540,11 @@
   $('startPlaying').addEventListener('click', () => {
     $('helpDialog').close();
     if (canLaunch()) {
-      revealBoard();
-      (matchMedia('(max-width:650px)').matches ? $('leverHandle') : launchButton).focus({ preventScroll: true });
-    } else $('stakeInput').focus({ preventScroll: true });
+      (isMobile() ? $('leverHandle') : launchButton).focus({ preventScroll: true });
+    } else (isMobile() ? isOpenRound() ? $('addStakeButton') : launchButton : $('stakeInput')).focus({ preventScroll: true });
   });
+  $('helpPrev').addEventListener('click', () => showHelpPage(helpPage - 1));
+  $('helpNext').addEventListener('click', () => showHelpPage(helpPage + 1));
 
   function frame(now) {
     const dt = Math.min((now - lastFrame) / 1000, .05); lastFrame = now;
@@ -526,15 +556,17 @@
       } else {
         rollingUntil = 0; updateUI(); playSound('score', game.round.multiplier);
         $('boardHint').innerHTML = '<span class="hint-star">✦</span> 可继续加注 · 只发射一次 <span class="hint-star">✦</span>';
-        revealBoard(matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
         toast(`${game.round.multiplier} 倍已锁定 · 可加注，或拉杆一发定局`);
       }
     }
     engine.step(dt); draw(now, dt); finishRound(); requestAnimationFrame(frame);
   }
-  new ResizeObserver(measureLaunchConsole).observe($('launchConsole'));
-  window.addEventListener('resize', measureLaunchConsole);
-  measureLaunchConsole();
+  const layoutObserver = new ResizeObserver(scheduleLayout);
+  layoutObserver.observe(document.querySelector('.machine-section'));
+  layoutObserver.observe($('launchConsole'));
+  window.addEventListener('resize', scheduleLayout);
+  window.visualViewport?.addEventListener('resize', scheduleLayout);
+  fitViewport(); showHelpPage(0);
   saveProgress(); drawBackground(); updatePower(); updateUI(); updateSound(); requestAnimationFrame(frame);
   if (game.recovered) toast(`上局未完成，已退回 ${game.recovered.refunded} 颗弹珠并保留已结算奖励`);
   window.PiggyGame = { getState: () => ({ ...game.serialize(), charging, power, activeBalls: activeCount() }), engine };
