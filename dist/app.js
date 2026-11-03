@@ -24,9 +24,10 @@
   let lastFrame = performance.now(), toastTimer, endTimer, roundAnnounced = false;
   let rollingUntil = 0, lastRollDigit = -1, lastPower = .65, dragStartY = 0;
   let helpPage = 0, layoutFrame = 0;
-  let audioContext, lastTick = 0;
+  let audioContext, audioBus, audioOutput, lastTick = 0;
+  const haptics = new PinballHaptics({ enabled: readStorage('piggyHaptics', 'true') !== 'false' });
   const hits = new Map(), slotFlashes = new Map(), particles = [], recent = [];
-  const engine = new PinballPhysics({ onPegHit: onPegHit, onScore: onScore, onLaunch: () => playSound('launch') });
+  const engine = new PinballPhysics({ onPegHit, onScore, onImpact, onLaunch: event => { playSound('launch'); haptics.launch(event.power); } });
 
   function readStorage(key, fallback) { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } }
   function saveStorage(key, value) { try { localStorage.setItem(key, String(value)); } catch { /* Game remains playable without storage. */ } }
@@ -105,12 +106,24 @@
     bg.save(); bg.lineCap = 'butt';
     bg.beginPath(); bg.moveTo(rail.startX, 729); bg.lineTo(rail.startX, rail.startY);
     bg.arc(rail.centerX, rail.centerY, rail.radius, 0, -rail.angle, true);
-    bg.strokeStyle = '#795132'; bg.lineWidth = rail.halfWidth * 2 + 8; bg.stroke();
+    bg.strokeStyle = '#795132'; bg.lineWidth = rail.halfWidth * 2 + 4; bg.stroke();
     bg.strokeStyle = chute; bg.lineWidth = rail.halfWidth * 2; bg.stroke();
+    // A softly flared, open mouth blends the channel floor into the playfield.
+    // Only the lip finish changes; the physical 90-degree guide stays intact.
+    const mouth = bg.createLinearGradient(rail.exitX - 20, 0, rail.exitX + 2, 0);
+    mouth.addColorStop(0, '#b8a47300'); mouth.addColorStop(1, '#b8a473');
+    bg.beginPath(); bg.moveTo(rail.exitX + 1, rail.exitY - rail.halfWidth);
+    bg.bezierCurveTo(rail.exitX - 6, rail.exitY - rail.halfWidth, rail.exitX - 10, rail.exitY - rail.halfWidth - 6, rail.exitX - 20, rail.exitY - rail.halfWidth - 6);
+    bg.lineTo(rail.exitX - 20, rail.exitY + rail.halfWidth + 6);
+    bg.bezierCurveTo(rail.exitX - 10, rail.exitY + rail.halfWidth + 6, rail.exitX - 6, rail.exitY + rail.halfWidth, rail.exitX + 1, rail.exitY + rail.halfWidth);
+    bg.closePath(); bg.fillStyle = mouth; bg.fill();
+    bg.lineCap = 'round'; bg.lineJoin = 'round';
     for (const side of [-1, 1]) {
       const radius = rail.radius + side * rail.halfWidth;
       bg.beginPath(); bg.moveTo(rail.centerX + radius, 729); bg.lineTo(rail.centerX + radius, rail.centerY);
       bg.arc(rail.centerX, rail.centerY, radius, 0, -rail.angle, true);
+      const endY = rail.centerY - radius;
+      bg.bezierCurveTo(rail.exitX - 6, endY, rail.exitX - 10, endY - side * 6, rail.exitX - 20, endY - side * 6);
       bg.strokeStyle = '#775131'; bg.lineWidth = 4; bg.stroke();
       bg.strokeStyle = side < 0 ? '#ffdf9f' : '#dac99b'; bg.lineWidth = 1.6; bg.stroke();
     }
@@ -224,6 +237,10 @@
     hits.set(event.pegId, { x: event.x, y: event.y, time: performance.now() });
     playSound('peg', event.peg.row);
   }
+  function onImpact(event) {
+    haptics.impact(event.speed);
+    if (event.kind !== 'peg') playSound('bounce', event.speed);
+  }
   function onScore(event) {
     const result = game.landBall(event.ballId, event.slotIndex);
     if (!result.accepted) return;
@@ -316,14 +333,17 @@
     powerLabel.textContent = charging ? `${Math.round(power * 100)}%` : '等待拉动';
     $('leverTrack').style.setProperty('--pull', String(power));
     if (charging) $('launchLabel').textContent = `${Math.round(power * 100)}% · 松手发射`;
+    if (charging) haptics.pull(power);
   }
   function beginCharge(source) {
     if (charging || !canLaunch() || document.querySelector('dialog[open]')) return false;
     if (activeCount() > 0) return false;
     initAudio(); charging = true; chargeSource = source; chargeStart = performance.now(); power = source.startsWith('lever') ? 0 : .08;
+    haptics.beginCharge();
     launchButton.classList.add('charging'); $('launchSublabel').textContent = 'RELEASE TO LAUNCH'; updatePower(); updateUI(); return true;
   }
   function cancelCharge() {
+    haptics.stop();
     charging = false; chargeSource = ''; activePointer = null; power = 0;
     launchButton.classList.remove('charging'); updatePower(); updateUI();
   }
@@ -450,9 +470,24 @@
     toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 2500);
   }
 
-  function initAudio() {
+  function initAudio(onReady) {
     if (!sound) return;
-    try { const Audio = window.AudioContext || window.webkitAudioContext; if (!Audio) return; if (!audioContext) audioContext = new Audio(); if (audioContext.state === 'suspended') audioContext.resume().catch(() => {}); } catch { /* Audio is optional. */ }
+    try {
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      if (!Audio) return;
+      if (!audioContext) {
+        audioContext = new Audio();
+        audioBus = audioContext.createDynamicsCompressor();
+        audioBus.threshold.value = -10; audioBus.knee.value = 12; audioBus.ratio.value = 8;
+        audioBus.attack.value = .003; audioBus.release.value = .14;
+        audioOutput = audioContext.createGain(); audioOutput.gain.value = .9;
+        audioBus.connect(audioOutput); audioOutput.connect(audioContext.destination);
+      }
+      audioOutput.gain.setTargetAtTime(.9, audioContext.currentTime, .015);
+      if (audioContext.state === 'suspended' || audioContext.state === 'interrupted') {
+        audioContext.resume().then(() => { if (sound && onReady) onReady(); }).catch(() => {});
+      } else if (onReady) onReady();
+    } catch { /* Audio is optional. */ }
   }
   function note(freq, duration, volume, delay = 0, wave = 'sine') {
     if (!audioContext || audioContext.state !== 'running') return;
@@ -460,16 +495,34 @@
     const oscillator = audioContext.createOscillator(), gain = audioContext.createGain();
     oscillator.type = wave; oscillator.frequency.setValueAtTime(freq, time);
     gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(volume, time + .005); gain.gain.exponentialRampToValueAtTime(.0001, time + duration);
-    oscillator.connect(gain); gain.connect(audioContext.destination); oscillator.start(time); oscillator.stop(time + duration + .02);
+    oscillator.connect(gain); gain.connect(audioBus); oscillator.start(time); oscillator.stop(time + duration + .02);
+    oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
   }
   function playSound(type, value) {
     if (!sound || !audioContext) return;
-    if (type === 'peg') { if (performance.now() - lastTick < 35) return; lastTick = performance.now(); note(780 + value * 95, .1, .035); }
-    if (type === 'launch') { note(170, .11, .06, 0, 'triangle'); note(370, .14, .045, .06, 'triangle'); }
-    if (type === 'score') { [523.25, 659.25, value >= 8 ? 1046.5 : 783.99].forEach((n, i) => note(n, .25, .055, i * .09, 'triangle')); }
+    if (type === 'peg' || type === 'bounce') {
+      if (performance.now() - lastTick < 40) return;
+      lastTick = performance.now();
+      note(type === 'peg' ? 780 + value * 95 : 440 + Math.min(value, 800) * .4, .12, type === 'peg' ? .14 : .11, 0, 'triangle');
+    }
+    if (type === 'launch') { note(260, .13, .23, 0, 'triangle'); note(520, .17, .18, .05, 'triangle'); }
+    if (type === 'score') { [523.25, 659.25, value >= 8 ? 1046.5 : 783.99].forEach((n, i) => note(n, .28, .2, i * .09, 'triangle')); }
   }
-  function toggleSound() { sound = !sound; saveStorage('piggySound', sound); updateSound(); if (sound) { initAudio(); playSound('score', 10); } toast(sound ? '音效已开启，听见好运叮当响' : '音效已关闭'); }
+  function toggleSound() { sound = !sound; saveStorage('piggySound', sound); updateSound(); if (sound) initAudio(() => playSound('score', 10)); else if (audioOutput) audioOutput.gain.setTargetAtTime(0, audioContext.currentTime, .015); toast(sound ? '音效已开启，听见好运叮当响' : '音效已关闭'); }
   function updateSound() { $('soundButton').classList.toggle('muted', !sound); $('soundButton').setAttribute('aria-pressed', String(sound)); $('soundButton').setAttribute('aria-label', sound ? '关闭音效' : '开启音效'); }
+  function updateHaptics() {
+    const status = haptics.getStatus(), supported = haptics.isSupported();
+    $('hapticButton').classList.toggle('muted', !status.enabled || !supported);
+    $('hapticButton').setAttribute('aria-pressed', String(status.enabled && supported));
+    $('hapticButton').setAttribute('aria-label', !supported ? '震动反馈：当前浏览器不支持' : status.enabled ? '关闭震动反馈' : '开启震动反馈');
+  }
+  function toggleHaptics() {
+    if (!haptics.isSupported()) { toast('当前浏览器不支持震动反馈，音效和游戏仍可正常使用'); return; }
+    const enabled = !haptics.getStatus().enabled;
+    haptics.setEnabled(enabled); saveStorage('piggyHaptics', enabled); updateHaptics();
+    if (enabled) haptics.preview();
+    toast(enabled ? '震动已开启：轻拉轻震，重碰更强' : '震动反馈已关闭');
+  }
 
   function bindLauncher(element, mode) {
     element.addEventListener('pointerdown', e => {
@@ -513,6 +566,7 @@
   window.addEventListener('blur', cancelCharge);
   document.addEventListener('visibilitychange', () => { if (document.hidden) cancelCharge(); lastFrame = performance.now(); });
   $('soundButton').addEventListener('click', toggleSound);
+  $('hapticButton').addEventListener('click', toggleHaptics);
   $('depositButton').addEventListener('click', depositStake);
   $('drawMultiplier').addEventListener('click', drawMultiplier);
   $('stakeInput').addEventListener('input', updateUI);
@@ -580,7 +634,7 @@
   window.addEventListener('resize', scheduleLayout);
   window.visualViewport?.addEventListener('resize', scheduleLayout);
   fitViewport(); showHelpPage(0);
-  saveProgress(); drawBackground(); updatePower(); updateUI(); updateSound(); requestAnimationFrame(frame);
+  saveProgress(); drawBackground(); updatePower(); updateUI(); updateSound(); updateHaptics(); requestAnimationFrame(frame);
   if (game.recovered) toast(`上局未完成，已退回 ${game.recovered.refunded} 颗弹珠并保留已结算奖励`);
   window.PiggyGame = { getState: () => ({ ...game.serialize(), charging, power, activeBalls: activeCount() }), engine };
 })();

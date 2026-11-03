@@ -147,6 +147,8 @@ button:disabled{opacity:.45}
 
 /* Compact game surface: controls and playfield share one WebView-sized screen. */
 .help-button{font-family:var(--mono);font-size:20px;font-weight:700}
+.haptic-button[aria-pressed=true]{color:var(--yellow);border-color:#77764c}
+.haptic-button.muted{opacity:.55}
 .mobile-stake-slider{display:none}
 #setupHome,#setupControls{min-width:0}
 #helpDialog{overflow:hidden}

@@ -16,6 +16,7 @@
   class PinballPhysics {
     constructor(callbacks = {}) {
       this.onPegHit = callbacks.onPegHit || function () {};
+      this.onImpact = callbacks.onImpact || function () {};
       this.onScore = callbacks.onScore || function () {};
       this.onLaunch = callbacks.onLaunch || function () {};
       this.width = WIDTH;
@@ -121,6 +122,12 @@
       return leftover;
     }
 
+    _impact(ball, kind, speed, x = ball.x, y = ball.y) {
+      if (Number.isFinite(speed) && speed > 28) {
+        this.onImpact({ kind, ballId: ball.id, x, y, speed });
+      }
+    }
+
     _tick(dt) {
       this.time += dt;
       for (const ball of this.balls) {
@@ -154,14 +161,20 @@
         ball.y += ball.vy * motionDt;
         if (ball.x < 36 + BALL_RADIUS) {
           ball.x = 36 + BALL_RADIUS;
+          const impactSpeed = -ball.vx;
           ball.vx = Math.abs(ball.vx) * 0.7;
+          this._impact(ball, 'wall', impactSpeed);
         } else if (ball.x > 520 - BALL_RADIUS) {
           ball.x = 520 - BALL_RADIUS;
+          const impactSpeed = ball.vx;
           ball.vx = -Math.abs(ball.vx) * 0.7;
+          this._impact(ball, 'wall', impactSpeed);
         }
         if (ball.y < 30 + BALL_RADIUS) {
           ball.y = 30 + BALL_RADIUS;
+          const impactSpeed = -ball.vy;
           ball.vy = Math.abs(ball.vy) * 0.65;
+          this._impact(ball, 'wall', impactSpeed);
         }
 
         for (const peg of this.pegs) {
@@ -185,6 +198,7 @@
             if (this.time - previousHit > 0.085 && -normalSpeed > 28) {
               ball.hitCooldown.set(peg.id, this.time);
               this.onPegHit({ peg, pegId: peg.id, ballId: ball.id, x: peg.x, y: peg.y, speed: -normalSpeed });
+              this._impact(ball, 'peg', -normalSpeed, peg.x, peg.y);
             }
           }
         }
@@ -207,13 +221,18 @@
                 if (dot < 0) {
                   ball.vx -= 1.4 * dot * nx;
                   ball.vy -= 1.4 * dot * ny;
+                  this._impact(ball, 'divider', -dot, x, 649);
                 }
                 if (Math.abs(dx) < 0.3) ball.vx += ball.id % 2 ? 17 : -17;
               }
             } else if (Math.abs(ball.x - x) < BALL_RADIUS + 3) {
               const side = ball.x < x ? -1 : 1;
               ball.x = x + side * (BALL_RADIUS + 3.05);
-              if (ball.vx * side < 0) ball.vx = -ball.vx * 0.42;
+              if (ball.vx * side < 0) {
+                const impactSpeed = Math.abs(ball.vx);
+                ball.vx = -ball.vx * 0.42;
+                this._impact(ball, 'divider', impactSpeed, x, ball.y);
+              }
             }
           }
         }

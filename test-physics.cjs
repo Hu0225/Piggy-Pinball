@@ -55,6 +55,63 @@ const visitedSlots = new Set();
 let maximumSeconds = 0;
 let impacts = 0;
 
+// Feedback reports incoming normal speed only for genuine reflections.
+// Isolated fixtures distinguish side walls, top walls, divider lips and pegs.
+function impactFixture(state, includePegs = false) {
+  const events = [], pegEvents = [];
+  const physics = new PinballPhysics({ onImpact: event => events.push(event), onPegHit: event => pegEvents.push(event) });
+  physics.launch(0);
+  if (!includePegs) physics.pegs = [];
+  Object.assign(physics.balls[0], { phase: 'board', x: 300, y: 100, vx: 0, vy: 0 }, state);
+  physics.step(tick);
+  for (const event of events) {
+    assert.equal(event.ballId, physics.balls[0].id);
+    assert.ok([event.x, event.y, event.speed].every(Number.isFinite));
+    assert.ok(event.speed > 28 && event.speed < 1500);
+  }
+  return { physics, events, pegEvents };
+}
+for (const [state, incomingSpeed] of [
+  [{ x: 44.6, vx: -200 }, 200 * Math.exp(-0.065 * tick)],
+  [{ x: 511.4, vx: 200 }, 200 * Math.exp(-0.065 * tick)],
+  [{ y: 39, vy: -200 }, 200 - gravity * tick]
+]) {
+  const { events } = impactFixture(state);
+  assert.equal(events.length, 1);
+  assert.equal(events[0].kind, 'wall');
+  near(events[0].speed, incomingSpeed, 1e-9, 'wall feedback uses incoming normal speed');
+}
+const lip = impactFixture({ x: 88, y: 637, vy: 100 });
+assert.equal(lip.events.length, 1);
+assert.equal(lip.events[0].kind, 'divider');
+near(lip.events[0].speed, 100 + gravity * tick, 1e-9, 'rounded lip feedback uses incoming normal speed');
+const divider = impactFixture({ x: 78, y: 670, vx: 100 });
+assert.equal(divider.events.length, 1);
+assert.equal(divider.events[0].kind, 'divider');
+near(divider.events[0].speed, 100 * Math.exp(-0.065 * tick), 1e-9, 'divider feedback uses incoming normal speed');
+const peg = impactFixture({ x: 62, y: 155, vy: 100 }, true);
+assert.equal(peg.events.length, 1);
+assert.equal(peg.events[0].kind, 'peg');
+assert.equal(peg.pegEvents.length, 1, 'legacy peg animation/audio callback is retained');
+assert.equal(peg.events[0].speed, peg.pegEvents[0].speed);
+assert.equal(impactFixture({ x: 40, vx: 50 }).events.length, 0, 'position correction while moving away is not an impact');
+assert.equal(impactFixture({ x: 44.5, vx: -20 }).events.length, 0, 'imperceptible wall contacts are suppressed');
+
+// Registering feedback cannot change positions, scoring or elapsed time.
+for (const power of [0, 0.5, 1]) {
+  const reported = [], callbackScores = [], plainScores = [];
+  const withFeedback = new PinballPhysics({ onImpact: event => reported.push(event), onScore: event => callbackScores.push(event) });
+  const plain = new PinballPhysics({ onScore: event => plainScores.push(event) });
+  withFeedback.launch(power); plain.launch(power);
+  for (let frame = 0; frame < 2400 && (withFeedback.balls.length || plain.balls.length); frame++) {
+    withFeedback.step(1 / 120); plain.step(1 / 120);
+    assert.deepEqual(withFeedback.getSnapshot().balls, plain.getSnapshot().balls);
+  }
+  assert.ok(reported.some(event => event.kind === 'peg'));
+  assert.equal(callbackScores.length, 1);
+  assert.deepEqual(callbackScores, plainScores);
+}
+
 for (let powerStep = 0; powerStep <= 100; powerStep++) {
   const scores = [];
   const physics = new PinballPhysics({
@@ -93,4 +150,4 @@ multiball.step(NaN);
 multiball.step(-1);
 assert.equal(visitedSlots.size, 10);
 
-console.log(`Physics passed: 90-degree guide, continuous tangent/energy transitions, 101 power levels, all 10 slots, ${impacts} peg impacts, 10 simultaneous balls; longest flight ${maximumSeconds.toFixed(2)}s.`);
+console.log(`Physics passed: 90-degree guide, continuous tangent/energy transitions, wall/peg/divider impact feedback, 101 power levels, all 10 slots, ${impacts} peg impacts, 10 simultaneous balls; longest flight ${maximumSeconds.toFixed(2)}s.`);

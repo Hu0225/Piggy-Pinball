@@ -156,6 +156,8 @@ button:disabled{opacity:.45}
 
 /* Compact game surface: controls and playfield share one WebView-sized screen. */
 .help-button{font-family:var(--mono);font-size:20px;font-weight:700}
+.haptic-button[aria-pressed=true]{color:var(--yellow);border-color:#77764c}
+.haptic-button.muted{opacity:.55}
 .mobile-stake-slider{display:none}
 #setupHome,#setupControls{min-width:0}
 #helpDialog{overflow:hidden}
@@ -260,7 +262,7 @@ button:disabled{opacity:.45}
       <button class="nav-item active" type="button" id="playNav">弹珠机<span>01</span></button>
       <button class="nav-item" type="button" data-dialog="helpDialog">玩法指南<span>02</span></button>
     </nav>
-    <div class="header-actions"><span class="open-badge"><i></i> 随时开玩</span><button class="icon-button help-button" id="helpButton" type="button" data-dialog="helpDialog" aria-label="玩法说明">?</button><button class="icon-button" id="soundButton" type="button" aria-label="关闭音效" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4V5Z"/><path class="sound-waves" d="M15 8c2 2 2 6 0 8m3-11c4 4 4 10 0 14"/><path class="sound-muted" d="m16 9 5 6m0-6-5 6"/></svg></button></div>
+    <div class="header-actions"><span class="open-badge"><i></i> 随时开玩</span><button class="icon-button help-button" id="helpButton" type="button" data-dialog="helpDialog" aria-label="玩法说明">?</button><button class="icon-button haptic-button" id="hapticButton" type="button" aria-label="关闭震动反馈" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="4" width="8" height="16" rx="2"/><path d="M5 7 3 10l2 4-2 3m16-10 2 3-2 4 2 3M11 17h2"/></svg></button><button class="icon-button" id="soundButton" type="button" aria-label="关闭音效" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4V5Z"/><path class="sound-waves" d="M15 8c2 2 2 6 0 8m3-11c4 4 4 10 0 14"/><path class="sound-muted" d="m16 9 5 6m0-6-5 6"/></svg></button></div>
   </header>
 
   <main class="arcade-layout">
@@ -372,6 +374,7 @@ button:disabled{opacity:.45}
   class PinballPhysics {
     constructor(callbacks = {}) {
       this.onPegHit = callbacks.onPegHit || function () {};
+      this.onImpact = callbacks.onImpact || function () {};
       this.onScore = callbacks.onScore || function () {};
       this.onLaunch = callbacks.onLaunch || function () {};
       this.width = WIDTH;
@@ -477,6 +480,12 @@ button:disabled{opacity:.45}
       return leftover;
     }
 
+    _impact(ball, kind, speed, x = ball.x, y = ball.y) {
+      if (Number.isFinite(speed) && speed > 28) {
+        this.onImpact({ kind, ballId: ball.id, x, y, speed });
+      }
+    }
+
     _tick(dt) {
       this.time += dt;
       for (const ball of this.balls) {
@@ -510,14 +519,20 @@ button:disabled{opacity:.45}
         ball.y += ball.vy * motionDt;
         if (ball.x < 36 + BALL_RADIUS) {
           ball.x = 36 + BALL_RADIUS;
+          const impactSpeed = -ball.vx;
           ball.vx = Math.abs(ball.vx) * 0.7;
+          this._impact(ball, 'wall', impactSpeed);
         } else if (ball.x > 520 - BALL_RADIUS) {
           ball.x = 520 - BALL_RADIUS;
+          const impactSpeed = ball.vx;
           ball.vx = -Math.abs(ball.vx) * 0.7;
+          this._impact(ball, 'wall', impactSpeed);
         }
         if (ball.y < 30 + BALL_RADIUS) {
           ball.y = 30 + BALL_RADIUS;
+          const impactSpeed = -ball.vy;
           ball.vy = Math.abs(ball.vy) * 0.65;
+          this._impact(ball, 'wall', impactSpeed);
         }
 
         for (const peg of this.pegs) {
@@ -541,6 +556,7 @@ button:disabled{opacity:.45}
             if (this.time - previousHit > 0.085 && -normalSpeed > 28) {
               ball.hitCooldown.set(peg.id, this.time);
               this.onPegHit({ peg, pegId: peg.id, ballId: ball.id, x: peg.x, y: peg.y, speed: -normalSpeed });
+              this._impact(ball, 'peg', -normalSpeed, peg.x, peg.y);
             }
           }
         }
@@ -563,13 +579,18 @@ button:disabled{opacity:.45}
                 if (dot < 0) {
                   ball.vx -= 1.4 * dot * nx;
                   ball.vy -= 1.4 * dot * ny;
+                  this._impact(ball, 'divider', -dot, x, 649);
                 }
                 if (Math.abs(dx) < 0.3) ball.vx += ball.id % 2 ? 17 : -17;
               }
             } else if (Math.abs(ball.x - x) < BALL_RADIUS + 3) {
               const side = ball.x < x ? -1 : 1;
               ball.x = x + side * (BALL_RADIUS + 3.05);
-              if (ball.vx * side < 0) ball.vx = -ball.vx * 0.42;
+              if (ball.vx * side < 0) {
+                const impactSpeed = Math.abs(ball.vx);
+                ball.vx = -ball.vx * 0.42;
+                this._impact(ball, 'divider', impactSpeed, x, ball.y);
+              }
             }
           }
         }
@@ -881,6 +902,147 @@ button:disabled{opacity:.45}
 
 </script>
   <script>
+(function (root) {
+  'use strict';
+
+  const clampPower = value => Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : 0;
+  const levelForPower = power => power < 0.35 ? 'light' : power < 0.75 ? 'medium' : 'heavy';
+  const PULL_PATTERNS = Object.freeze({ light: 5, medium: 9, heavy: 14 });
+  const LAUNCH_PATTERNS = Object.freeze({ light: 12, medium: 24, heavy: 40 });
+  const IMPACT_PATTERNS = Object.freeze({ light: 8, medium: 18, heavy: Object.freeze([25, 12, 15]) });
+
+  class PinballHaptics {
+    constructor(options = {}) {
+      this.enabled = options.enabled !== false;
+      this._navigator = options.navigator === undefined ? root.navigator : options.navigator;
+      this._document = options.document === undefined ? root.document : options.document;
+      this._now = typeof options.now === 'function' ? options.now : () => root.performance?.now?.() ?? Date.now();
+      // Native hosts may explicitly inject an amplitude-aware adapter. A web
+      // page never assumes that the WeChat JS SDK exposes native haptic APIs.
+      this._native = options.nativeHaptics || null;
+      this._gestureUnlocked = false;
+      this._charging = false;
+      this._lastDetent = 0;
+      this._lastPulseAt = -Infinity;
+      this._lastImpactAt = -Infinity;
+      this._lastResult = 'idle';
+    }
+
+    _backend() {
+      if (typeof this._native?.impact === 'function') return 'native';
+      if (typeof this._navigator?.vibrate === 'function') return 'web';
+      return 'none';
+    }
+
+    isSupported() { return this._backend() !== 'none'; }
+
+    getStatus() {
+      return { enabled: this.enabled, supported: this.isSupported(), backend: this._backend(), lastResult: this._lastResult };
+    }
+
+    setEnabled(enabled) {
+      this.enabled = !!enabled;
+      if (!this.enabled) this.stop();
+      return this.enabled;
+    }
+
+    _canRun() {
+      if (!this.enabled || this._document?.hidden) return false;
+      const activation = this._navigator?.userActivation;
+      if (typeof activation?.hasBeenActive === 'boolean') return activation.hasBeenActive;
+      return this._gestureUnlocked;
+    }
+
+    _pulse(strength, pattern) {
+      if (!this._canRun()) { this._lastResult = 'suppressed'; return false; }
+      const backend = this._backend();
+      if (backend === 'none') { this._lastResult = 'unsupported'; return false; }
+      const now = this._now();
+      if (now - this._lastPulseAt < 60) { this._lastResult = 'throttled'; return false; }
+      this._lastPulseAt = now;
+      try {
+        // Web vibration has no motor-amplitude control. Shorter/longer pulses
+        // and the heavy double tap provide distinct tactile patterns instead.
+        const result = backend === 'native'
+          ? this._native.impact(strength)
+          : this._navigator.vibrate(Array.isArray(pattern) ? [...pattern] : pattern);
+        if (result === false) { this._lastResult = 'rejected'; return false; }
+        if (typeof result?.catch === 'function') result.catch(() => { this._lastResult = 'rejected'; });
+        this._lastResult = 'requested';
+        return true;
+      } catch {
+        this._lastResult = 'rejected';
+        return false;
+      }
+    }
+
+    // These entry points belong in direct user gesture handlers.
+    preview() {
+      this._gestureUnlocked = true;
+      return this._pulse('medium', 18);
+    }
+
+    beginCharge() {
+      this._gestureUnlocked = true;
+      this._charging = true;
+      this._lastDetent = 0;
+      return this._pulse('light', 5);
+    }
+
+    pull(value) {
+      if (!this._charging) return false;
+      const power = clampPower(value);
+      const detent = Math.floor(power * 4 + 1e-8);
+      if (detent <= this._lastDetent) return false;
+      const strength = detent < 2 ? 'light' : detent < 4 ? 'medium' : 'heavy';
+      const sent = this._pulse(strength, PULL_PATTERNS[strength]);
+      // Retry a throttled crossing on a later frame, but never pulse repeatedly
+      // while the handle remains at an already acknowledged detent.
+      if (sent) this._lastDetent = detent;
+      return sent;
+    }
+
+    launch(value) {
+      this._charging = false;
+      const strength = levelForPower(clampPower(value));
+      return this._pulse(strength, LAUNCH_PATTERNS[strength]);
+    }
+
+    impact(speed) {
+      if (!Number.isFinite(speed) || speed < 28) return false;
+      const now = this._now();
+      if (now - this._lastImpactAt < 85) return false;
+      const strength = speed < 220 ? 'light' : speed < 480 ? 'medium' : 'heavy';
+      const sent = this._pulse(strength, IMPACT_PATTERNS[strength]);
+      if (sent) this._lastImpactAt = now;
+      return sent;
+    }
+
+    stop() {
+      this._charging = false;
+      this._lastDetent = 0;
+      // Explicit cancellation ends the previous gesture and lets its following
+      // release/launch immediately start a new, stronger pulse.
+      this._lastPulseAt = -Infinity;
+      this._lastImpactAt = -Infinity;
+      this._lastResult = 'stopped';
+      try {
+        if (this._backend() === 'native') {
+          if (typeof this._native.stop === 'function') {
+            const result = this._native.stop();
+            if (typeof result?.catch === 'function') result.catch(() => {});
+          }
+        } else if (this._backend() === 'web') this._navigator.vibrate(0);
+      } catch { /* Hardware feedback is optional and must never block play. */ }
+    }
+  }
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = PinballHaptics;
+  root.PinballHaptics = PinballHaptics;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+  <script>
 (() => {
   'use strict';
   const $ = id => document.getElementById(id);
@@ -907,9 +1069,10 @@ button:disabled{opacity:.45}
   let lastFrame = performance.now(), toastTimer, endTimer, roundAnnounced = false;
   let rollingUntil = 0, lastRollDigit = -1, lastPower = .65, dragStartY = 0;
   let helpPage = 0, layoutFrame = 0;
-  let audioContext, lastTick = 0;
+  let audioContext, audioBus, audioOutput, lastTick = 0;
+  const haptics = new PinballHaptics({ enabled: readStorage('piggyHaptics', 'true') !== 'false' });
   const hits = new Map(), slotFlashes = new Map(), particles = [], recent = [];
-  const engine = new PinballPhysics({ onPegHit: onPegHit, onScore: onScore, onLaunch: () => playSound('launch') });
+  const engine = new PinballPhysics({ onPegHit, onScore, onImpact, onLaunch: event => { playSound('launch'); haptics.launch(event.power); } });
 
   function readStorage(key, fallback) { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } }
   function saveStorage(key, value) { try { localStorage.setItem(key, String(value)); } catch { /* Game remains playable without storage. */ } }
@@ -988,12 +1151,24 @@ button:disabled{opacity:.45}
     bg.save(); bg.lineCap = 'butt';
     bg.beginPath(); bg.moveTo(rail.startX, 729); bg.lineTo(rail.startX, rail.startY);
     bg.arc(rail.centerX, rail.centerY, rail.radius, 0, -rail.angle, true);
-    bg.strokeStyle = '#795132'; bg.lineWidth = rail.halfWidth * 2 + 8; bg.stroke();
+    bg.strokeStyle = '#795132'; bg.lineWidth = rail.halfWidth * 2 + 4; bg.stroke();
     bg.strokeStyle = chute; bg.lineWidth = rail.halfWidth * 2; bg.stroke();
+    // A softly flared, open mouth blends the channel floor into the playfield.
+    // Only the lip finish changes; the physical 90-degree guide stays intact.
+    const mouth = bg.createLinearGradient(rail.exitX - 20, 0, rail.exitX + 2, 0);
+    mouth.addColorStop(0, '#b8a47300'); mouth.addColorStop(1, '#b8a473');
+    bg.beginPath(); bg.moveTo(rail.exitX + 1, rail.exitY - rail.halfWidth);
+    bg.bezierCurveTo(rail.exitX - 6, rail.exitY - rail.halfWidth, rail.exitX - 10, rail.exitY - rail.halfWidth - 6, rail.exitX - 20, rail.exitY - rail.halfWidth - 6);
+    bg.lineTo(rail.exitX - 20, rail.exitY + rail.halfWidth + 6);
+    bg.bezierCurveTo(rail.exitX - 10, rail.exitY + rail.halfWidth + 6, rail.exitX - 6, rail.exitY + rail.halfWidth, rail.exitX + 1, rail.exitY + rail.halfWidth);
+    bg.closePath(); bg.fillStyle = mouth; bg.fill();
+    bg.lineCap = 'round'; bg.lineJoin = 'round';
     for (const side of [-1, 1]) {
       const radius = rail.radius + side * rail.halfWidth;
       bg.beginPath(); bg.moveTo(rail.centerX + radius, 729); bg.lineTo(rail.centerX + radius, rail.centerY);
       bg.arc(rail.centerX, rail.centerY, radius, 0, -rail.angle, true);
+      const endY = rail.centerY - radius;
+      bg.bezierCurveTo(rail.exitX - 6, endY, rail.exitX - 10, endY - side * 6, rail.exitX - 20, endY - side * 6);
       bg.strokeStyle = '#775131'; bg.lineWidth = 4; bg.stroke();
       bg.strokeStyle = side < 0 ? '#ffdf9f' : '#dac99b'; bg.lineWidth = 1.6; bg.stroke();
     }
@@ -1107,6 +1282,10 @@ button:disabled{opacity:.45}
     hits.set(event.pegId, { x: event.x, y: event.y, time: performance.now() });
     playSound('peg', event.peg.row);
   }
+  function onImpact(event) {
+    haptics.impact(event.speed);
+    if (event.kind !== 'peg') playSound('bounce', event.speed);
+  }
   function onScore(event) {
     const result = game.landBall(event.ballId, event.slotIndex);
     if (!result.accepted) return;
@@ -1199,14 +1378,17 @@ button:disabled{opacity:.45}
     powerLabel.textContent = charging ? `${Math.round(power * 100)}%` : '等待拉动';
     $('leverTrack').style.setProperty('--pull', String(power));
     if (charging) $('launchLabel').textContent = `${Math.round(power * 100)}% · 松手发射`;
+    if (charging) haptics.pull(power);
   }
   function beginCharge(source) {
     if (charging || !canLaunch() || document.querySelector('dialog[open]')) return false;
     if (activeCount() > 0) return false;
     initAudio(); charging = true; chargeSource = source; chargeStart = performance.now(); power = source.startsWith('lever') ? 0 : .08;
+    haptics.beginCharge();
     launchButton.classList.add('charging'); $('launchSublabel').textContent = 'RELEASE TO LAUNCH'; updatePower(); updateUI(); return true;
   }
   function cancelCharge() {
+    haptics.stop();
     charging = false; chargeSource = ''; activePointer = null; power = 0;
     launchButton.classList.remove('charging'); updatePower(); updateUI();
   }
@@ -1333,9 +1515,24 @@ button:disabled{opacity:.45}
     toastTimer = setTimeout(() => $('toast').classList.remove('visible'), 2500);
   }
 
-  function initAudio() {
+  function initAudio(onReady) {
     if (!sound) return;
-    try { const Audio = window.AudioContext || window.webkitAudioContext; if (!Audio) return; if (!audioContext) audioContext = new Audio(); if (audioContext.state === 'suspended') audioContext.resume().catch(() => {}); } catch { /* Audio is optional. */ }
+    try {
+      const Audio = window.AudioContext || window.webkitAudioContext;
+      if (!Audio) return;
+      if (!audioContext) {
+        audioContext = new Audio();
+        audioBus = audioContext.createDynamicsCompressor();
+        audioBus.threshold.value = -10; audioBus.knee.value = 12; audioBus.ratio.value = 8;
+        audioBus.attack.value = .003; audioBus.release.value = .14;
+        audioOutput = audioContext.createGain(); audioOutput.gain.value = .9;
+        audioBus.connect(audioOutput); audioOutput.connect(audioContext.destination);
+      }
+      audioOutput.gain.setTargetAtTime(.9, audioContext.currentTime, .015);
+      if (audioContext.state === 'suspended' || audioContext.state === 'interrupted') {
+        audioContext.resume().then(() => { if (sound && onReady) onReady(); }).catch(() => {});
+      } else if (onReady) onReady();
+    } catch { /* Audio is optional. */ }
   }
   function note(freq, duration, volume, delay = 0, wave = 'sine') {
     if (!audioContext || audioContext.state !== 'running') return;
@@ -1343,16 +1540,34 @@ button:disabled{opacity:.45}
     const oscillator = audioContext.createOscillator(), gain = audioContext.createGain();
     oscillator.type = wave; oscillator.frequency.setValueAtTime(freq, time);
     gain.gain.setValueAtTime(0, time); gain.gain.linearRampToValueAtTime(volume, time + .005); gain.gain.exponentialRampToValueAtTime(.0001, time + duration);
-    oscillator.connect(gain); gain.connect(audioContext.destination); oscillator.start(time); oscillator.stop(time + duration + .02);
+    oscillator.connect(gain); gain.connect(audioBus); oscillator.start(time); oscillator.stop(time + duration + .02);
+    oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
   }
   function playSound(type, value) {
     if (!sound || !audioContext) return;
-    if (type === 'peg') { if (performance.now() - lastTick < 35) return; lastTick = performance.now(); note(780 + value * 95, .1, .035); }
-    if (type === 'launch') { note(170, .11, .06, 0, 'triangle'); note(370, .14, .045, .06, 'triangle'); }
-    if (type === 'score') { [523.25, 659.25, value >= 8 ? 1046.5 : 783.99].forEach((n, i) => note(n, .25, .055, i * .09, 'triangle')); }
+    if (type === 'peg' || type === 'bounce') {
+      if (performance.now() - lastTick < 40) return;
+      lastTick = performance.now();
+      note(type === 'peg' ? 780 + value * 95 : 440 + Math.min(value, 800) * .4, .12, type === 'peg' ? .14 : .11, 0, 'triangle');
+    }
+    if (type === 'launch') { note(260, .13, .23, 0, 'triangle'); note(520, .17, .18, .05, 'triangle'); }
+    if (type === 'score') { [523.25, 659.25, value >= 8 ? 1046.5 : 783.99].forEach((n, i) => note(n, .28, .2, i * .09, 'triangle')); }
   }
-  function toggleSound() { sound = !sound; saveStorage('piggySound', sound); updateSound(); if (sound) { initAudio(); playSound('score', 10); } toast(sound ? '音效已开启，听见好运叮当响' : '音效已关闭'); }
+  function toggleSound() { sound = !sound; saveStorage('piggySound', sound); updateSound(); if (sound) initAudio(() => playSound('score', 10)); else if (audioOutput) audioOutput.gain.setTargetAtTime(0, audioContext.currentTime, .015); toast(sound ? '音效已开启，听见好运叮当响' : '音效已关闭'); }
   function updateSound() { $('soundButton').classList.toggle('muted', !sound); $('soundButton').setAttribute('aria-pressed', String(sound)); $('soundButton').setAttribute('aria-label', sound ? '关闭音效' : '开启音效'); }
+  function updateHaptics() {
+    const status = haptics.getStatus(), supported = haptics.isSupported();
+    $('hapticButton').classList.toggle('muted', !status.enabled || !supported);
+    $('hapticButton').setAttribute('aria-pressed', String(status.enabled && supported));
+    $('hapticButton').setAttribute('aria-label', !supported ? '震动反馈：当前浏览器不支持' : status.enabled ? '关闭震动反馈' : '开启震动反馈');
+  }
+  function toggleHaptics() {
+    if (!haptics.isSupported()) { toast('当前浏览器不支持震动反馈，音效和游戏仍可正常使用'); return; }
+    const enabled = !haptics.getStatus().enabled;
+    haptics.setEnabled(enabled); saveStorage('piggyHaptics', enabled); updateHaptics();
+    if (enabled) haptics.preview();
+    toast(enabled ? '震动已开启：轻拉轻震，重碰更强' : '震动反馈已关闭');
+  }
 
   function bindLauncher(element, mode) {
     element.addEventListener('pointerdown', e => {
@@ -1396,6 +1611,7 @@ button:disabled{opacity:.45}
   window.addEventListener('blur', cancelCharge);
   document.addEventListener('visibilitychange', () => { if (document.hidden) cancelCharge(); lastFrame = performance.now(); });
   $('soundButton').addEventListener('click', toggleSound);
+  $('hapticButton').addEventListener('click', toggleHaptics);
   $('depositButton').addEventListener('click', depositStake);
   $('drawMultiplier').addEventListener('click', drawMultiplier);
   $('stakeInput').addEventListener('input', updateUI);
@@ -1463,7 +1679,7 @@ button:disabled{opacity:.45}
   window.addEventListener('resize', scheduleLayout);
   window.visualViewport?.addEventListener('resize', scheduleLayout);
   fitViewport(); showHelpPage(0);
-  saveProgress(); drawBackground(); updatePower(); updateUI(); updateSound(); requestAnimationFrame(frame);
+  saveProgress(); drawBackground(); updatePower(); updateUI(); updateSound(); updateHaptics(); requestAnimationFrame(frame);
   if (game.recovered) toast(`上局未完成，已退回 ${game.recovered.refunded} 颗弹珠并保留已结算奖励`);
   window.PiggyGame = { getState: () => ({ ...game.serialize(), charging, power, activeBalls: activeCount() }), engine };
 })();

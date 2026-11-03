@@ -7,6 +7,7 @@ on:
       - 'dist/**'
       - 'test-physics.cjs'
       - 'test-rules.cjs'
+      - 'test-haptics.cjs'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -33,8 +34,10 @@ jobs:
           node --check dist/app.js
           node --check dist/physics.js
           node --check dist/rules.js
+          node --check dist/haptics.js
           node test-physics.cjs
           node test-rules.cjs
+          node test-haptics.cjs
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload game files

@@ -19,7 +19,7 @@
       <button class="nav-item active" type="button" id="playNav">弹珠机<span>01</span></button>
       <button class="nav-item" type="button" data-dialog="helpDialog">玩法指南<span>02</span></button>
     </nav>
-    <div class="header-actions"><span class="open-badge"><i></i> 随时开玩</span><button class="icon-button help-button" id="helpButton" type="button" data-dialog="helpDialog" aria-label="玩法说明">?</button><button class="icon-button" id="soundButton" type="button" aria-label="关闭音效" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4V5Z"/><path class="sound-waves" d="M15 8c2 2 2 6 0 8m3-11c4 4 4 10 0 14"/><path class="sound-muted" d="m16 9 5 6m0-6-5 6"/></svg></button></div>
+    <div class="header-actions"><span class="open-badge"><i></i> 随时开玩</span><button class="icon-button help-button" id="helpButton" type="button" data-dialog="helpDialog" aria-label="玩法说明">?</button><button class="icon-button haptic-button" id="hapticButton" type="button" aria-label="关闭震动反馈" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="4" width="8" height="16" rx="2"/><path d="M5 7 3 10l2 4-2 3m16-10 2 3-2 4 2 3M11 17h2"/></svg></button><button class="icon-button" id="soundButton" type="button" aria-label="关闭音效" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m11 5-6 4H2v6h3l6 4V5Z"/><path class="sound-waves" d="M15 8c2 2 2 6 0 8m3-11c4 4 4 10 0 14"/><path class="sound-muted" d="m16 9 5 6m0-6-5 6"/></svg></button></div>
   </header>
 
   <main class="arcade-layout">
@@ -114,6 +114,7 @@
   <dialog id="shopDialog" class="game-dialog shop-dialog"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">LITTLE GIFTS, BIG SMILES</div><h2>把好运，装进礼品柜。</h2><div class="shop-balance"><span>可用积分卡</span><strong id="shopCardCount">0</strong><small>张</small></div><p class="shop-note">选择喜欢的小礼物，兑换后会加入你的游戏内收藏。</p><div class="prize-list" id="prizeList"></div><div class="inventory-heading">我的收藏 <span>COLLECTION</span></div><div id="inventoryList" class="inventory-list"><p>礼品柜还空着，第一份惊喜等你来。</p></div></dialog>
   <script src="physics.js"></script>
   <script src="rules.js"></script>
+  <script src="haptics.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
