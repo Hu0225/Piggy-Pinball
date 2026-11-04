@@ -1,7 +1,7 @@
 (function (root) {
   'use strict';
 
-  const WIDTH = 600, HEIGHT = 112;
+  const WIDTH = 600, HEIGHT = 136;
   const LAUNCH_X = 562, LAUNCH_Y = 78;
   const DROP_TIME = .16, ROLL_TIME = .32;
   const BRANCH_TIME = DROP_TIME + ROLL_TIME;
@@ -78,7 +78,7 @@
       if (age < DROP_TIME) {
         const fall = (age / DROP_TIME) ** 2;
         x = 48 + 8 * fall;
-        y = -12 + 44 * fall;
+        y = -12 + 68 * fall;
         // The ball becomes visible as it emerges from the dark inlet, instead
         // of materializing halfway along the trough.
         opacity = clamp((y + 10) / 18, 0, 1);
@@ -86,16 +86,16 @@
         const t = (age - DROP_TIME) / ROLL_TIME;
         const roll = .65 * t + .35 * t * t;
         x = 56 + 204 * roll;
-        y = 32 + 24 * roll + ball.lane * 1.9 * Math.sin(Math.PI * roll);
+        y = 56 + 14 * roll + ball.lane * 1.9 * Math.sin(Math.PI * roll);
       } else if (ball.kind === 'launch') {
         const t = (age - BRANCH_TIME) / (LAUNCH_LIFE - BRANCH_TIME);
         x = 260 + (LAUNCH_X - 260) * t;
-        y = 56 + (LAUNCH_Y - 56) * t;
+        y = 70 + (LAUNCH_Y - 70) * (2 * t - t * t);
       } else {
         const t = (age - BRANCH_TIME) / (POINT_LIFE - BRANCH_TIME);
         x = 260 + 40 * Math.sin(t * Math.PI / 2);
-        y = 56 + 39 * t * t;
-        opacity = 1 - clamp((y - 78) / 17, 0, 1);
+        y = 70 + 44 * t * t;
+        opacity = 1 - clamp((y - 94) / 20, 0, 1);
       }
       return { id: ball.id, kind: ball.kind, x, y, opacity, scale: ball.scale };
     }

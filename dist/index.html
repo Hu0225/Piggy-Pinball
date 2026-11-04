@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#191a17">
   <meta name="description" content="好运弹珠社潮弹玩法：设置每次投入数量，一键投珠自动获取2至12倍倍率，发射前可继续加注。每局本金1至99颗，只发射一次，命中亮灯轨道按总本金乘倍率返珠、攒卡兑礼。">
   <title>好运弹珠社 · PIGGY PINBALL</title>
-  <link rel="stylesheet" href="style.css?v=20261104-feeder">
+  <link rel="stylesheet" href="style.css?v=20261104-art">
 </head>
 <body>
   <div class="noise" aria-hidden="true"></div>
@@ -55,8 +55,8 @@
         </div>
         <div class="board-surround"><div class="led-strip led-left"></div><div class="led-strip led-right"></div><div class="board-window"><canvas id="gameCanvas" width="600" height="760" aria-label="弹珠台面。首次投珠自动激活并获取倍率，发射前可以继续投珠加注。每局仅发射一次，命中亮灯轨道按总本金乘倍率返珠。"></canvas>
           <div class="feeder-panel" aria-label="投珠槽，首颗送入右侧发射轨道，其余入洞获得独立积分">
-            <canvas id="feederCanvas" width="600" height="112" aria-hidden="true"></canvas>
-            <span class="feeder-inlet">进珠口 ↓</span><span class="feeder-collector">积分收集口</span><span class="feeder-ready" id="feederReady">待发射 0 颗</span>
+            <canvas id="feederCanvas" width="600" height="136" aria-hidden="true"></canvas>
+            <span class="feeder-inlet">投珠槽</span><span class="feeder-collector">积分收集口</span><span class="feeder-ready" id="feederReady">待发射 0 颗</span>
             <span class="sr-only" id="feederStatus" role="status" aria-live="polite">等待投珠</span>
           </div>
           <div class="board-hint" id="boardHint"><span class="hint-star">✦</span> 投珠激活 · 每局只发射一次 <span class="hint-star">✦</span></div><div class="floating-scores" id="floatingScores" aria-hidden="true"></div></div></div>
@@ -120,9 +120,9 @@
   <dialog id="shopDialog" class="game-dialog shop-dialog"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">LITTLE GIFTS, BIG SMILES</div><h2>把好运，装进礼品柜。</h2><div class="shop-balance"><span>可用积分卡</span><strong id="shopCardCount">0</strong><small>张</small></div><p class="shop-note">选择喜欢的小礼物，兑换后会加入你的游戏内收藏。</p><div class="prize-list" id="prizeList"></div><div class="inventory-heading">我的收藏 <span>COLLECTION</span></div><div id="inventoryList" class="inventory-list"><p>礼品柜还空着，第一份惊喜等你来。</p></div></dialog>
   <script src="physics.js?v=20261104-feeder"></script>
   <script src="rules.js?v=20261104-feeder"></script>
-  <script src="feeder.js?v=20261104-feeder"></script>
+  <script src="feeder.js?v=20261104-art"></script>
   <script src="haptics.js"></script>
   <script src="audio.js?v=20261103-safari"></script>
-  <script src="app.js?v=20261104-feeder"></script>
+  <script src="app.js?v=20261104-art"></script>
 </body>
 </html>

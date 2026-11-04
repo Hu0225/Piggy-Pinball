@@ -165,15 +165,37 @@
     // Every round has a fixed, clearly illuminated set of winning lanes.
     engine.slots.forEach((slot, i) => {
       const gold = !!game.round?.litSlots.includes(i);
-      const dark = bg.createLinearGradient(slot.x, 0, slot.x + slot.width, 0);
-      dark.addColorStop(0, gold ? '#95622e' : '#695338'); dark.addColorStop(.3, gold ? '#bf8d3c' : '#977646'); dark.addColorStop(.5, gold ? '#d4a54e' : '#b18d54'); dark.addColorStop(1, gold ? '#9a6d2b' : '#705538');
-      rounded(bg, slot.x + 4, 653, slot.width - 8, 72, 13, dark, '#67482e', 2);
-      rounded(bg, slot.x + 12, 660, slot.width - 24, 40, 7, '#443e2d', '#c1a570', 1.3);
-      line(bg, slot.x + 16, 665, slot.x + 16, 692, '#e1d2a681', 2);
-      text(bg, String(i + 1).padStart(2, '0'), slot.x + 24, 713, 14, gold ? '#fff5c2' : '#ead5ab', 'monospace', '700');
-      text(bg, gold ? `×${game.round.multiplier}` : '—', slot.x + 24, 678, game.round?.multiplier >= 10 ? 19 : 23, gold ? '#fff1a0' : '#9e947a', 'monospace', '700');
-      ellipse(bg, slot.x + 24, 638, 11, 8, '#75442d', '#b66c3c', 2);
-      ellipse(bg, slot.x + 24, 636, 7.5, 5, gold ? '#de7e36' : '#b67142');
+      const x = slot.x + 4, width = slot.width - 8, center = slot.x + slot.width / 2;
+      bg.save();
+      // A copper bezel surrounds a wide glass window and a separate number plate.
+      rounded(bg, x + 1, 654, width, 76, 10, '#56331f', '#794326', 2);
+      const rim = bg.createLinearGradient(x, 650, x + width, 727);
+      rim.addColorStop(0, gold ? '#fff1ae' : '#cdb58a');
+      rim.addColorStop(.22, gold ? '#ffbb61' : '#a38a5b');
+      rim.addColorStop(.48, gold ? '#aa5429' : '#66573b');
+      rim.addColorStop(.75, gold ? '#f4b766' : '#a08c64');
+      rim.addColorStop(1, gold ? '#ffe3a0' : '#c5ad7e');
+      bg.shadowBlur = gold ? 16 : 0; bg.shadowColor = '#ff9d32';
+      rounded(bg, x, 650, width, 77, 10, rim, gold ? '#ffe1a0' : '#755638', 1.6);
+      bg.shadowBlur = 0;
+      rounded(bg, x + 2.5, 652.5, width - 5, 72, 8, gold ? '#c68438' : '#726046', gold ? '#7c3d20' : '#514730', 1.5);
+      const glass = bg.createLinearGradient(x, 656, x + width, 698);
+      glass.addColorStop(0, gold ? '#453b23' : '#30352b');
+      glass.addColorStop(.42, gold ? '#503418' : '#1c211a');
+      glass.addColorStop(1, gold ? '#62441d' : '#404332');
+      rounded(bg, x + 4, 655, width - 8, 43, 6, glass, gold ? '#fbd37f' : '#ad976a', 1.4);
+      line(bg, x + 8, 658, x + width - 8, 658, gold ? '#fff0ac88' : '#ddd0a83d', 1);
+      line(bg, x + 5, 700, x + width - 5, 700, gold ? '#f9cc84' : '#a18c65', 1);
+      text(bg, String(i + 1).padStart(2, '0'), center, 713, 20, gold ? '#fff1ce' : '#e0d5b7', 'Arial, sans-serif', '700');
+      bg.shadowBlur = gold ? 7 : 0; bg.shadowColor = '#ffac31';
+      bg.fillStyle = gold ? '#fff3bc' : '#a8aa8c';
+      bg.font = `700 ${gold ? (game.round.multiplier >= 10 ? 23 : 27) : 22}px Arial, sans-serif`;
+      bg.textAlign = 'center'; bg.textBaseline = 'middle';
+      bg.fillText(gold ? `×${game.round.multiplier}` : '—', center, 678, width - 8);
+      bg.shadowBlur = 0;
+      ellipse(bg, center, 638, 10, 7, '#75442d', '#d59655', 1.4);
+      ellipse(bg, center, 636, 6.8, 4.4, gold ? '#f0ad50' : '#a66a43');
+      bg.restore();
     });
     for (let i = 0; i <= 10; i++) {
       const x = 40 + i * 48;
@@ -198,11 +220,12 @@
 
   function drawBall(c, x, y, radius, alpha = 1) {
     c.save(); c.globalAlpha = alpha;
-    ellipse(c, x + 3, y + 6, radius + 1, radius * .65, '#5a442b55');
-    const metal = c.createRadialGradient(x - 3, y - 4, .5, x, y, radius);
-    metal.addColorStop(0, '#fff'); metal.addColorStop(.25, '#f9fff6'); metal.addColorStop(.5, '#b2c9c2'); metal.addColorStop(.7, '#6e8880'); metal.addColorStop(.85, '#d5e1ce'); metal.addColorStop(1, '#4e675c');
-    ellipse(c, x, y, radius, radius, metal, '#faf3d4', .8);
-    ellipse(c, x - 2.3, y - 3.3, 2.2, 1.5, '#fff'); c.restore();
+    ellipse(c, x + radius * .2, y + radius * .75, radius * 1.12, radius * .48, '#21150e66');
+    const metal = c.createRadialGradient(x - radius * .34, y - radius * .42, radius * .02, x, y, radius);
+    metal.addColorStop(0, '#ffffff'); metal.addColorStop(.23, '#f2f2e9'); metal.addColorStop(.47, '#b4b8b8'); metal.addColorStop(.72, '#6b7275'); metal.addColorStop(.88, '#383f45'); metal.addColorStop(1, '#a4a59d');
+    ellipse(c, x, y, radius, radius, metal, '#393b36', 1.1);
+    c.beginPath(); c.arc(x, y, radius * .82, .25, 1.7); c.strokeStyle = '#d1c7aa88'; c.lineWidth = radius * .12; c.stroke();
+    ellipse(c, x - radius * .32, y - radius * .42, radius * .24, radius * .14, '#ffffffcc'); c.restore();
   }
 
   function draw(now, dt) {
@@ -213,8 +236,9 @@
       const lit = rolling ? i === Math.floor(now / 65) % 10 : game.round?.litSlots.includes(i);
       if (!lit) return;
       ctx.save(); ctx.globalAlpha = rolling ? .85 : .7 + Math.sin(now / 450) * .15;
-      ctx.shadowBlur = 20; ctx.shadowColor = '#fff39a';
-      ellipse(ctx, slot.x + 24, 636, 8, 6, '#fff6ad');
+      ctx.shadowBlur = 18; ctx.shadowColor = '#ffac28';
+      rounded(ctx, slot.x + 5, 651, slot.width - 10, 75, 9, null, '#ffe39b', 2.2);
+      ellipse(ctx, slot.x + 24, 636, 7, 4.5, '#ffe6a0');
       ctx.restore();
     });
     for (const [id, hit] of hits) {
@@ -277,52 +301,102 @@
     $('pointCount').title = `${game.points} 积分`;
     saveProgress();
   }
-  function drawFeeder(now) {
-    const c = feederCtx, snapshot = feeder.getSnapshot(), height = PinballFeeder.HEIGHT;
-    c.clearRect(0, 0, W, height);
-    const copper = c.createLinearGradient(0, 0, 0, height);
-    copper.addColorStop(0, '#d99355'); copper.addColorStop(.45, '#94512f'); copper.addColorStop(1, '#c47b46');
-    c.fillStyle = copper; c.fillRect(0, 0, W, height);
-    rounded(c, 7, 5, 586, 102, 9, '#5e3e29', '#f0b576', 2);
-    rounded(c, 14, 12, 572, 88, 7, '#302c24', '#6e5037', 2);
-    // Recessed downward trough: the first ball crosses the bridge to the right.
-    c.save(); c.lineCap = 'round'; c.lineJoin = 'round';
-    c.beginPath(); c.moveTo(48, 15); c.lineTo(56, 32); c.lineTo(260, 56); c.lineTo(562, 78);
-    c.strokeStyle = '#1b211d'; c.lineWidth = 29; c.stroke();
-    c.strokeStyle = '#8b754d'; c.lineWidth = 23; c.stroke();
-    c.strokeStyle = '#b6a57d'; c.lineWidth = 15; c.stroke();
-    line(c, 58, 44, 260, 68, '#f6d899', 3);
-    line(c, 337, 73.5, 548, 89, '#eed399', 3);
-    // Collection well beneath the switch. Balls disappear into its depth.
-    ellipse(c, 300, 80, 39, 23, '#ae7e47', '#e3b779', 2);
-    ellipse(c, 300, 80, 33, 18, '#111b18', '#493b29', 3);
-    ellipse(c, 300, 84, 25, 10, '#090f0d');
-    // The shared right shaft continues directly into the playfield above.
+  let feederArtwork;
+  function makeFeederArtwork() {
+    const art = document.createElement('canvas'); art.width = W * dpr; art.height = PinballFeeder.HEIGHT * dpr;
+    const c = art.getContext('2d'); c.scale(dpr, dpr); c.lineCap = 'round'; c.lineJoin = 'round';
+    const gradient = (y1, y2, stops) => { const g = c.createLinearGradient(0, y1, 0, y2); stops.forEach(([at, color]) => g.addColorStop(at, color)); return g; };
+    const copper = gradient(4, 131, [[0,'#ffe2a9'],[.06,'#c46c32'],[.12,'#ffb969'],[.2,'#8a3d1e'],[.55,'#b36632'],[.87,'#69351e'],[.94,'#f5b76e'],[1,'#70321c']]);
+    const recess = gradient(18, 118, [[0,'#20150e'],[.38,'#57331c'],[.8,'#81502a'],[1,'#372014']]);
+    const rim = gradient(63, 112, [[0,'#fff0bb'],[.2,'#d49851'],[.48,'#80441e'],[.7,'#f3bf73'],[1,'#713e24']]);
+    c.fillStyle = '#823e23'; c.fillRect(0, 0, W, 136);
+    line(c, 12, 3, 585, 3, '#472516', 7);
+    rounded(c, 3, 7, 594, 127, 22, '#5e2e1b', '#e5a66b', 2);
+    rounded(c, 7, 9, 586, 119, 19, copper, '#ffdfaa', 1.8);
+    rounded(c, 14, 16, 572, 104, 15, '#582b19', '#672e19', 4);
+    rounded(c, 18, 19, 564, 98, 13, recess, '#efad65', 1.8);
+    rounded(c, 22, 23, 556, 90, 11, null, '#29170e', 3);
+    // The shallow left bowl has a rounded entry and a polished raised floor.
+    c.beginPath(); c.moveTo(31, 32); c.bezierCurveTo(27, 63, 36, 81, 60, 84);
+    c.bezierCurveTo(122, 88, 204, 85, 245, 95); c.quadraticCurveTo(258, 99, 269, 112);
+    c.lineTo(273, 87); c.quadraticCurveTo(256, 76, 242, 76); c.lineTo(64, 62);
+    c.quadraticCurveTo(45, 61, 47, 33); c.closePath(); c.fillStyle = rim; c.fill();
+    c.beginPath(); c.moveTo(34, 32); c.bezierCurveTo(31, 56, 39, 67, 56, 67);
+    c.bezierCurveTo(122, 72, 213, 77, 260, 81);
+    c.strokeStyle = '#492716'; c.lineWidth = 9; c.stroke();
+    c.strokeStyle = '#f6c882'; c.lineWidth = 5; c.stroke();
+    c.strokeStyle = '#fff0bd'; c.lineWidth = 1.3; c.stroke();
+    // A deep copper-lined well reads as a recess even while no balls are moving.
+    ellipse(c, 300, 101, 51, 29, '#26170f', '#bf7a3f', 2);
+    ellipse(c, 300, 98, 47, 28, rim, '#f9cd8b', 1.5);
+    const well = c.createRadialGradient(293, 86, 3, 300, 101, 43);
+    well.addColorStop(0, '#775333'); well.addColorStop(.48, '#32251a'); well.addColorStop(.9, '#100f0c'); well.addColorStop(1, '#48311e');
+    ellipse(c, 300, 99, 40, 23, well, '#c09560', 1.5);
+    ellipse(c, 300, 110, 25, 9, '#0d0d0a');
+    // Smooth lower ramp into the existing right-hand launch shaft.
+    c.beginPath(); c.moveTo(334, 82); c.bezierCurveTo(383, 86, 472, 91, 562, 90);
+    c.quadraticCurveTo(583, 88, 580, 65); c.lineTo(578, 108);
+    c.bezierCurveTo(469, 111, 387, 103, 339, 93); c.closePath(); c.fillStyle = rim; c.fill();
+    c.beginPath(); c.moveTo(335, 82); c.bezierCurveTo(402, 86, 485, 90, 562, 90);
+    c.strokeStyle = '#482718'; c.lineWidth = 8; c.stroke();
+    c.strokeStyle = '#e5ac68'; c.lineWidth = 5; c.stroke();
+    c.strokeStyle = '#ffedb1'; c.lineWidth = 1.4; c.stroke();
+    // Subtle engraved direction cue above the ramp.
+    c.beginPath(); c.moveTo(371, 57); c.quadraticCurveTo(398, 58, 422, 68);
+    c.strokeStyle = '#e68a3c88'; c.lineWidth = 3; c.stroke();
+    c.beginPath(); c.moveTo(416, 60); c.lineTo(427, 70); c.lineTo(412, 71); c.fillStyle = '#e4a24caa'; c.fill();
+    // Open at the top: this is the same shaft as the launch lane on the board.
     const shaft = c.createLinearGradient(548, 0, 576, 0);
-    shaft.addColorStop(0, '#dfcf9c'); shaft.addColorStop(.2, '#b8a473'); shaft.addColorStop(.7, '#d0b47d'); shaft.addColorStop(1, '#7c603d');
-    c.fillStyle = shaft; c.fillRect(548, 0, 28, 100);
-    line(c, 548, 0, 548, 63, '#ffdf9f', 2);
-    line(c, 576, 0, 576, 101, '#dac99b', 2);
-    // Hinged bridge closes for the first ball, opens before the next arrives.
-    c.save(); c.translate(264, 65); c.rotate(snapshot.gate * .9);
-    rounded(c, 0, -3, 72, 6, 3, '#b49b69', '#f1d799', 1.5); c.restore();
-    ellipse(c, 264, 65, 4, 4, '#e5d5a9', '#66442b', 1);
+    shaft.addColorStop(0, '#dfcf9c'); shaft.addColorStop(.18, '#baa474'); shaft.addColorStop(.45, '#ccb17b'); shaft.addColorStop(.78, '#a2804d'); shaft.addColorStop(1, '#6b4c2a');
+    c.fillStyle = shaft; c.fillRect(548, 0, 28, 121);
+    line(c, 548, 0, 548, 64, '#ffe8b0', 2); line(c, 576, 0, 576, 119, '#ffe1a0', 2);
+    line(c, 579, 7, 579, 116, '#56341d', 2);
+    // The physical inlet is behind a hood; labels sit above the cavity.
+    rounded(c, 31, -10, 36, 53, 8, '#452c1b', '#c39458', 2);
+    rounded(c, 38, -12, 22, 49, 5, '#171610', '#795735', 1);
+    line(c, 35, 39, 64, 39, '#f7ca89', 3);
+    for (const [x,y] of [[21,15],[583,16],[21,122],[582,122]]) {
+      ellipse(c, x, y, 3.4, 3.4, '#d7a266', '#61351f', 1); line(c, x - 1.5, y + 1.5, x + 1.5, y - 1.5, '#6b4527', 1);
+    }
+    return art;
+  }
+  function drawFeeder(now) {
+    const c = feederCtx, snapshot = feeder.getSnapshot();
+    if (!feederArtwork) feederArtwork = makeFeederArtwork();
+    c.clearRect(0, 0, W, PinballFeeder.HEIGHT); c.drawImage(feederArtwork, 0, 0, W, PinballFeeder.HEIGHT);
+    c.save(); c.lineCap = 'round'; c.lineJoin = 'round';
+    // A substantial copper bridge swings upward after the first ball clears it.
+    c.save(); c.translate(336, 88); c.rotate(-Math.PI + .028 + snapshot.gate * (Math.PI - .38));
+    const bridge = c.createLinearGradient(0, -6, 0, 7);
+    bridge.addColorStop(0,'#ffe4a7'); bridge.addColorStop(.3,'#d99951'); bridge.addColorStop(.7,'#995126'); bridge.addColorStop(1,'#f3b66d');
+    rounded(c, -6, -6, 82, 13, 6, '#321d1266');
+    rounded(c, -7, -8, 82, 13, 6, bridge, '#ffe4ad', 1.5);
+    line(c, 4, -4, 63, -4, '#fff1bf', 1.4);
+    ellipse(c, 67, -1.5, 4, 4, '#774020', '#efc07e', 1.2); c.restore();
+    ellipse(c, 336, 86, 6.5, 6.5, '#d49750', '#ffe6b6', 1.6);
+    ellipse(c, 336, 86, 2.8, 2.8, '#75421f', '#f5c17a', 1);
     const springTop = 89 + (charging ? power * 10 : 0);
     c.beginPath(); c.moveTo(552, springTop);
-    for (let i = 0; i <= 9; i++) c.lineTo(i % 2 ? 571 : 553, springTop + i * (106 - springTop) / 9);
-    c.strokeStyle = '#766b50'; c.lineWidth = 2.5; c.stroke();
-    line(c, 551, springTop - 2, 573, springTop - 2, '#efe0b6', 3);
-    snapshot.balls.forEach(ball => drawBall(c, ball.x, ball.y, 8.5 * ball.scale, ball.opacity));
+    for (let i = 0; i <= 9; i++) c.lineTo(i % 2 ? 571 : 553, springTop + i * (120 - springTop) / 9);
+    c.strokeStyle = '#665539'; c.lineWidth = 3; c.stroke();
+    c.strokeStyle = '#d4bc87'; c.lineWidth = 1.3; c.stroke();
+    line(c, 551, springTop - 2, 573, springTop - 2, '#f5dfaa', 3);
+    snapshot.balls.forEach(ball => drawBall(c, ball.x, ball.y, (ball.kind === 'point' ? 11 : 8.5) * ball.scale, ball.opacity));
     if (launchReady) drawBall(c, PinballFeeder.LAUNCH_X, PinballFeeder.LAUNCH_Y + (charging ? power * 10 : 0), 8.5);
     for (const ball of engine.balls) if (ball.y + ball.radius >= H) drawBall(c, ball.x, ball.y - H, ball.radius, Math.max(0, ball.fade));
-    // Opaque mouth and front lip provide a clear origin and occlusion.
-    rounded(c, 33, -6, 31, 24, 4, '#20271f', '#dbaf73', 2);
-    line(c, 35, 17, 62, 17, '#d6ac71', 3);
-    c.beginPath(); c.ellipse(300, 80, 36, 22, 0, 0, Math.PI);
-    c.strokeStyle = '#b7854e'; c.lineWidth = 5; c.stroke();
-    [ [19, 19], [582, 103], [19, 94] ].forEach(([x, y]) => { ellipse(c, x, y, 3, 3, '#ddbb83'); line(c, x - 1, y + 1, x + 1, y - 1, '#685036'); });
+    // Foreground hood and well lip hide the source and the depth transition.
+    rounded(c, 31, -10, 36, 39, 7, '#704822', '#e6b475', 2);
+    rounded(c, 35, -12, 28, 35, 4, '#2f2418', '#976a3e', 1);
+    line(c, 34, 29, 65, 29, '#ffdda2', 2.5);
+    c.beginPath(); c.ellipse(300, 99, 44, 26, 0, .1, Math.PI - .1);
+    c.strokeStyle = '#7b431f'; c.lineWidth = 7; c.stroke();
+    c.strokeStyle = '#e9ba79'; c.lineWidth = 3; c.stroke();
+    c.strokeStyle = '#fff0bd'; c.lineWidth = .9; c.stroke();
     const age = (now - feedPointAt) / 650;
-    if (age >= 0 && age < 1) { c.globalAlpha = 1 - age; text(c, '+1', 302, 54 - age * 22, 20, '#fff5b2', 'monospace'); }
+    if (age >= 0 && age < 1) {
+      c.globalAlpha = Math.min(1, (1 - age) * 1.5); c.shadowColor = '#ff9b2f'; c.shadowBlur = 10;
+      text(c, '+1 积分', 304, 62 - age * 9, 16, '#ffe2a0', 'Microsoft YaHei, sans-serif');
+    }
     c.restore();
   }
 

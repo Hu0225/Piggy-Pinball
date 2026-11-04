@@ -6,7 +6,7 @@ const PinballFeeder = require('./dist/feeder.js');
 const near = (a, b, note) => assert.ok(Math.abs(a - b) < 1e-8, `${note}: ${a} vs ${b}`);
 
 assert.equal(PinballFeeder.WIDTH, 600);
-assert.equal(PinballFeeder.HEIGHT, 112);
+assert.equal(PinballFeeder.HEIGHT, 136);
 assert.equal(PinballFeeder.LAUNCH_X, 562);
 assert.equal(PinballFeeder.LAUNCH_Y, 78);
 const browser = { window: {} };
@@ -41,7 +41,7 @@ function run(count, launchBall, pointOffset, frameTimes) {
     for (const ball of state.balls) {
       assert.ok([ball.x, ball.y, ball.opacity, ball.scale].every(Number.isFinite));
       assert.ok(ball.opacity >= 0 && ball.opacity <= 1 && ball.scale > 0 && ball.scale <= 1);
-      assert.ok(ball.x >= 48 && ball.x <= 562 && ball.y >= -12 && ball.y <= 95);
+      assert.ok(ball.x >= 48 && ball.x <= 562 && ball.y >= -12 && ball.y <= 114);
       if (last.has(ball.id)) {
         assert.ok(ball.x >= last.get(ball.id).x - 1e-9, 'beads move forward');
         assert.ok(ball.y >= last.get(ball.id).y - 1e-9, 'beads roll downhill');
@@ -85,7 +85,7 @@ route.step(.48);
 const atGate = route.getSnapshot();
 const first = atGate.balls.find(b => b.kind === 'launch');
 near(first.x, 260, 'first ball reaches split x');
-near(first.y, 56, 'first ball reaches split y');
+near(first.y, 70, 'first ball reaches split y');
 near(atGate.gate, 0, 'bridge stays closed as first ball enters');
 route.step(.11);
 const bridgeCleared = route.getSnapshot();
@@ -98,7 +98,7 @@ assert.ok(bridgeOpen.balls.filter(b => b.kind === 'point').every(b => b.x < 260)
 route.step(.03);
 const firstPoint = route.getSnapshot().balls.find(b => b.kind === 'point');
 near(firstPoint.x, 260, 'first point reaches split after the bridge opens');
-near(firstPoint.y, 56, 'first point starts the collection path without a jump');
+near(firstPoint.y, 70, 'first point starts the collection path without a jump');
 
 let calls = 0;
 const canceled = new PinballFeeder({ onCollect: () => calls++, onReady: () => calls++, onComplete: () => calls++ });
