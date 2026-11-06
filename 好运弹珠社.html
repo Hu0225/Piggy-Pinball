@@ -678,7 +678,8 @@ button:disabled{opacity:.45}
 (function (root) {
   'use strict';
 
-  const LIT_COUNTS = Object.freeze({ 2: 6, 3: 5, 4: 4, 5: 4, 6: 3, 7: 3, 8: 2, 9: 2, 10: 2, 11: 1, 12: 1 });
+  const LIT_COUNTS = Object.freeze({ 2: 4, 3: 3, 4: 2, 5: 2, 6: 2, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1 });
+  const LEGACY_LIT_COUNTS = Object.freeze({ 2: 6, 3: 5, 4: 4, 5: 4, 6: 3, 7: 3, 8: 2, 9: 2, 10: 2, 11: 1, 12: 1 });
   const PRIZES = Object.freeze([
     Object.freeze({ id: 'sticker', name: '小猪贴纸', cost: 1, icon: '✿' }),
     Object.freeze({ id: 'charm', name: '好运挂件', cost: 3, icon: '✦' }),
@@ -752,13 +753,22 @@ button:disabled{opacity:.45}
       const round = this.round;
       if (!round || round.phase !== 'activated') return { ok: false, error: '先投入弹珠激活游戏，每局只能抽取一次倍率' };
       const multiplier = 2 + Math.floor(this._random() * 11);
-      const lanes = Array.from({ length: 10 }, (_, index) => index);
-      for (let index = lanes.length - 1; index > 0; index--) {
+      const count = LIT_COUNTS[multiplier];
+      // Balanced circular gaps prevent clusters; a random rotation gives every
+      // lane the same chance of lighting without fixing the two edge lanes.
+      const gaps = Array.from({ length: count }, (_, index) => Math.floor(10 / count) + (index < 10 % count ? 1 : 0));
+      for (let index = gaps.length - 1; index > 0; index--) {
         const other = Math.floor(this._random() * (index + 1));
-        [lanes[index], lanes[other]] = [lanes[other], lanes[index]];
+        [gaps[index], gaps[other]] = [gaps[other], gaps[index]];
       }
+      let lane = Math.floor(this._random() * 10);
+      const lanes = gaps.map(gap => {
+        const current = lane;
+        lane = (lane + gap) % 10;
+        return current;
+      });
       round.multiplier = multiplier;
-      round.litSlots = lanes.slice(0, LIT_COUNTS[multiplier]).sort((a, b) => a - b);
+      round.litSlots = lanes.sort((a, b) => a - b);
       round.phase = 'ready';
       return { ok: true, round };
     }
@@ -942,7 +952,10 @@ button:disabled{opacity:.45}
     }
 
     _validLanes(round) {
-      return Array.isArray(round.litSlots) && round.litSlots.length === LIT_COUNTS[round.multiplier]
+      // Old layouts remain valid for recovery, including their original counts
+      // and adjacent lamps. An interrupted saved round must still be refunded.
+      return Array.isArray(round.litSlots)
+        && [LIT_COUNTS[round.multiplier], LEGACY_LIT_COUNTS[round.multiplier]].includes(round.litSlots.length)
         && new Set(round.litSlots).size === round.litSlots.length
         && round.litSlots.every(slot => Number.isInteger(slot) && slot >= 0 && slot < 10);
     }

@@ -41,10 +41,11 @@ assert.equal(game.round.multiplier, 2);
 assert.equal(game.round.litSlots.length, PinballRules.LIT_COUNTS[2]);
 assert.equal(game.round.remaining, 1);
 assert.equal(game.round.launched, 0);
-assert.equal(randomCalls, 10);
+const lockedRandomCalls = randomCalls;
+assert.ok(lockedRandomCalls > 0);
 assert.equal(game.startRound(99).ok, false);
 assert.equal(game.wallet, 989);
-assert.equal(randomCalls, 10);
+assert.equal(randomCalls, lockedRandomCalls);
 assert.equal(game.clearRound(), false);
 const fixedLanes = [...game.round.litSlots];
 assert.equal(game.addStake(4).ok, true);
@@ -53,7 +54,7 @@ assert.equal(game.wallet, 985);
 assert.equal(game.drawMultiplier().ok, false);
 assert.equal(game.round.phase, 'ready');
 assert.equal(game.round.multiplier, 2);
-assert.equal(randomCalls, 10);
+assert.equal(randomCalls, lockedRandomCalls);
 
 // Additional investments change principal, but never redraw lamps or grant shots.
 assert.equal(game.addStake(10).ok, true);
@@ -61,12 +62,12 @@ assert.equal(game.round.stake, 15);
 assert.equal(game.wallet, 975);
 assert.equal(game.round.remaining, 1);
 assert.equal(game.drawMultiplier().ok, false);
-assert.equal(randomCalls, 10);
+assert.equal(randomCalls, lockedRandomCalls);
 assert.deepEqual(game.round.litSlots, fixedLanes);
 for (const invalid of [undefined, null, '5', NaN, Infinity, -1, 0, 0.5, 85, 100]) assert.equal(game.addStake(invalid).ok, false);
 assert.equal(game.wallet, 975);
 assert.equal(game.round.stake, 15);
-assert.equal(randomCalls, 10);
+assert.equal(randomCalls, lockedRandomCalls);
 assert.deepEqual(game.round.litSlots, fixedLanes);
 
 let poorRandomCalls = 0;
@@ -109,6 +110,8 @@ assert.equal(game.newRound(), true);
 assert.equal(game.round, null);
 
 // All multipliers are reachable, with increasingly fewer illuminated lanes.
+const expectedLitCounts = { 2: 4, 3: 3, 4: 2, 5: 2, 6: 2, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 12: 1 };
+assert.deepEqual(PinballRules.LIT_COUNTS, expectedLitCounts);
 let previousLitCount = 10;
 for (let multiplier = 2; multiplier <= 12; multiplier++) {
   const sample = readyGame(1, multiplier);
@@ -118,6 +121,48 @@ for (let multiplier = 2; multiplier <= 12; multiplier++) {
   assert.equal(new Set(sample.round.litSlots).size, sample.round.litSlots.length);
   assert.ok(sample.round.litSlots.every(slot => slot >= 0 && slot <= 9));
   previousLitCount = sample.round.litSlots.length;
+}
+
+// Repeatable samples cover every lane and different layouts, with balanced gaps
+// and no adjacent lamps. The wraparound gap prevents crowding at the two edges.
+for (let multiplier = 2; multiplier <= 12; multiplier++) {
+  const reached = new Set();
+  const layouts = new Set();
+  for (let seed = 1; seed <= 128; seed++) {
+    let state = Math.imul(seed, 2654435761) >>> 0;
+    let first = true;
+    const sample = new PinballRules(undefined, () => {
+      if (first) { first = false; return (multiplier - 2 + 0.5) / 11; }
+      state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+      return state / 4294967296;
+    });
+    assert.equal(sample.startRound(1).ok, true);
+    const lanes = sample.round.litSlots;
+    assert.equal(sample.round.multiplier, multiplier);
+    assert.equal(lanes.length, expectedLitCounts[multiplier]);
+    assert.equal(new Set(lanes).size, lanes.length);
+    assert.deepEqual(lanes, [...lanes].sort((a, b) => a - b));
+    assert.ok(lanes.every(lane => Number.isInteger(lane) && lane >= 0 && lane < 10));
+    const gaps = lanes.map((lane, index) => (index + 1 < lanes.length ? lanes[index + 1] : lanes[0] + 10) - lane);
+    assert.ok(Math.min(...gaps) >= 2, `multiplier ${multiplier} has crowded lamps`);
+    assert.ok(Math.max(...gaps) - Math.min(...gaps) <= 1, `multiplier ${multiplier} has unbalanced gaps`);
+    lanes.forEach(lane => reached.add(lane));
+    layouts.add(lanes.join(','));
+  }
+  assert.equal(reached.size, 10, `every lane must be eligible at ${multiplier}x`);
+  assert.ok(layouts.size > 1, `layouts must vary at ${multiplier}x`);
+
+  // Keep the gap order fixed and exhaust all ten equally likely rotations.
+  // No lane should gain or lose eligibility because of the spacing rule.
+  const coverage = Array(10).fill(0);
+  const count = expectedLitCounts[multiplier];
+  for (let start = 0; start < 10; start++) {
+    const draws = [(multiplier - 2 + 0.5) / 11, ...Array(count - 1).fill(0.5), (start + 0.5) / 10];
+    const sample = new PinballRules(undefined, () => draws.shift());
+    assert.equal(sample.startRound(1).ok, true);
+    sample.round.litSlots.forEach(lane => coverage[lane]++);
+  }
+  assert.deepEqual(coverage, Array(10).fill(count), `balanced layouts must treat lanes equally at ${multiplier}x`);
 }
 for (const [random, expected] of [[() => 1, 12], [() => 0, 2], [() => NaN, 7], [() => { throw Error(); }, 7]]) {
   const sample = new PinballRules(undefined, random);
@@ -353,6 +398,71 @@ assert.equal(migratedV2.wallet, 990);
 assert.deepEqual(migratedV2.recovered, { refunded: 10, cardsAwarded: 0 });
 assert.equal(migrated.points, 0);
 
+// Existing saves may have more lamps, including adjacent ones. Preserve their
+// recovery and completed rewards when the difficulty configuration changes.
+const originalLitCounts = { 2: 6, 3: 5, 4: 4, 5: 4, 6: 3, 7: 3, 8: 2, 9: 2, 10: 2, 11: 1, 12: 1 };
+for (let multiplier = 2; multiplier <= 12; multiplier++) {
+  const originalLanes = Array.from({ length: originalLitCounts[multiplier] }, (_, index) => index);
+  for (const version of [2, 3]) {
+    for (const phase of ['ready', 'playing', 'settled']) {
+      const previous = readyGame(10, multiplier, { version: 3, points: 11 });
+      previous.round.litSlots = [...originalLanes];
+      if (phase === 'ready') {
+        previous.collectPoint(1);
+        previous.collectPoint(2);
+      } else {
+        collectRemaining(previous);
+        assert.equal(previous.launchBall('old-layout'), true);
+        if (phase === 'settled') previous.landBall('old-layout', originalLanes[0]);
+      }
+      const snapshot = previous.serialize();
+      snapshot.version = version;
+      if (version === 2) {
+        delete snapshot.round.pointTokens;
+        delete snapshot.round.pointsEarned;
+      }
+      const recovered = new PinballRules(snapshot);
+      assert.equal(recovered.wallet, phase === 'settled' ? 980 + 10 * multiplier : 990);
+      assert.equal(recovered.cards, phase === 'settled' ? Math.floor(10 * multiplier / 30) : 0);
+      assert.equal(recovered.points, version === 2 ? 0 : phase === 'settled' ? 20 : 11);
+      assert.deepEqual(recovered.recovered, phase === 'settled' ? null : { refunded: 10, cardsAwarded: 0 });
+      const reloaded = new PinballRules(recovered.serialize());
+      assert.equal(reloaded.wallet, recovered.wallet, 'old-layout recovery refunds only once');
+      assert.equal(reloaded.points, recovered.points);
+      assert.equal(reloaded.recovered, null);
+    }
+  }
+  for (const phase of ['ready', 'playing', 'settled']) {
+    const won = phase === 'ready' ? 0 : 5 * multiplier;
+    const earnedCards = Math.floor(won / 30);
+    const snapshot = {
+      version: 1, wallet: 980 + won + (phase === 'settled' ? 4 : 0),
+      cards: phase === 'settled' ? earnedCards : 0, bestWin: won,
+      round: {
+        stake: 10, multiplier, litSlots: [...originalLanes],
+        remaining: phase === 'ready' ? 10 : phase === 'playing' ? 4 : 0,
+        launched: phase === 'ready' ? 0 : 6, resolved: phase === 'ready' ? 0 : phase === 'playing' ? 5 : 6,
+        hits: phase === 'ready' ? 0 : 5, won,
+        refunded: phase === 'settled' ? 4 : 0, cardsAwarded: phase === 'settled' ? earnedCards : 0, phase
+      }
+    };
+    const recovered = new PinballRules(snapshot);
+    const refund = phase === 'ready' ? 10 : 5;
+    assert.equal(recovered.wallet, snapshot.wallet + (phase === 'settled' ? 0 : refund));
+    assert.equal(recovered.cards, earnedCards);
+    assert.deepEqual(recovered.recovered, phase === 'settled' ? null : { refunded: refund, cardsAwarded: earnedCards });
+  }
+}
+for (const version of [1, 2, 3]) {
+  const corruptLayout = readyGame(10, 2).serialize();
+  corruptLayout.version = version;
+  corruptLayout.round.litSlots = [0, 1, 2, 3, 4]; // Neither the old six lamps nor the new four.
+  if (version === 1) corruptLayout.round.remaining = corruptLayout.round.stake;
+  const rejected = new PinballRules(corruptLayout);
+  assert.equal(rejected.wallet, 980, 'unknown lamp counts cannot trigger a refund');
+  assert.equal(rejected.recovered, null);
+}
+
 // Damaged saves do not create invalid balances or refund corrupt round metadata.
 for (const damaged of ['not json', '[]', null, { wallet: NaN, cards: -3, bestWin: Infinity }, { version: 200, wallet: 3 }]) {
   const sample = new PinballRules(damaged);
@@ -386,4 +496,4 @@ for (const corrupt of [
   assert.equal(restored.wallet, 980);
   assert.equal(restored.points, 6);
 }
-console.log('Rules passed: automatic multiplier, locked top-ups, per-ball independent points and duplicate protection, collection-before-launch gate, 1–99 principal, single-shot/card settlement, safe-integer saturation, v1/v2/v3 migration and point rollback on interrupted rounds.');
+console.log('Rules passed: automatic multiplier, reduced lamp counts and balanced random layouts, locked top-ups, per-ball independent points and duplicate protection, collection-before-launch gate, 1–99 principal, single-shot/card settlement, safe-integer saturation, v1/v2/v3 old-layout migration and point rollback on interrupted rounds.');
