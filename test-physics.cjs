@@ -26,7 +26,35 @@ near(rail.exitY, rail.centerY - rail.radius, 1e-12, 'guide has the agreed outlet
 assert.ok(rail.halfWidth > 8.5, 'ball fits between the guide walls');
 assert.ok(rail.exitX <= 520 - 8.5 && rail.exitY >= 30 + 8.5, 'outlet is inside the free-flight bounds');
 
-for (const startY of [704, 838, 848]) for (const power of [0, 0.25, 0.5, 0.75, 1]) {
+const launchOrigins = [() => 704, () => 838, () => 848, power => 838 + 10 * power];
+// Measure release speeds rather than duplicating the input-to-speed formula.
+// Ten percent supplies exactly the gravitational climb energy; higher powers
+// add evenly spaced speed gains instead of compressing the low/middle range.
+for (const originForPower of launchOrigins) {
+  const initialSpeeds = [];
+  for (let percent = 0; percent <= 100; percent++) {
+    const power = percent / 100;
+    const physics = new PinballPhysics();
+    assert.equal(physics.launch(power, { startY: originForPower(power) }), true);
+    const ball = physics.balls[0];
+    assert.equal(ball.vx, 0, 'release starts vertically in the existing chute');
+    assert.ok(Number.isFinite(ball.vy) && ball.vy <= 0, 'release speed is finite and never starts downward');
+    initialSpeeds.push(-ball.vy);
+    if (percent > 0) assert.ok(initialSpeeds[percent] > initialSpeeds[percent - 1], 'each displayed percent increases actual release speed');
+  }
+  assert.equal(initialSpeeds[0], 0, 'zero power receives no hidden launch energy');
+  const climbEnergy = power => 2 * gravity * (originForPower(power) - rail.exitY);
+  assert.ok(initialSpeeds[9] ** 2 < climbEnergy(.09), 'nine percent cannot supply enough energy to exit');
+  near(initialSpeeds[10] ** 2, climbEnergy(.1), 1e-8, 'ten percent has no spare exit energy');
+  assert.ok(initialSpeeds[11] ** 2 > climbEnergy(.11), 'eleven percent has positive exit energy');
+  const upperGains = [40, 70, 100].map(percent => initialSpeeds[percent] - initialSpeeds[percent - 30]);
+  assert.ok(Math.max(...upperGains) / Math.min(...upperGains) < 1.05, 'equal intervals above the threshold produce similar release-speed gains');
+  const fullToThresholdRatio = initialSpeeds[100] / initialSpeeds[10];
+  assert.ok(fullToThresholdRatio >= 1.9 && fullToThresholdRatio <= 2.25, 'full power retains approximately twice the threshold release speed');
+}
+
+for (const originForPower of launchOrigins) for (const power of [.11, 0.25, 0.5, 0.75, 1]) {
+  const startY = originForPower(power);
   const physics = new PinballPhysics();
   physics.launch(power, { startY });
   const ball = physics.balls[0];
@@ -59,8 +87,90 @@ for (const startY of [704, 838, 848]) for (const power of [0, 0.25, 0.5, 0.75, 1
       near(-ball.vx, expectedExitSpeed, expectedExitSpeed * 0.065 * tick + 1e-6, 'exit retains rail speed instead of receiving an arbitrary kick');
     }
   }
-  assert.ok(sawEntry && sawExit, 'all launch powers traverse both continuous transitions');
+  assert.ok(sawEntry && sawExit, 'successful powers traverse both continuous transitions');
 }
+
+// Failed attempts must travel back down the same physical guide, never enter
+// the board, score, or rely on a timeout teleport to become launchable again.
+function returnToChamber(physics, power, frameTimes = [tick], startY = 838 + 10 * power) {
+  const launches = [], exits = [], returns = [], scores = [];
+  physics.onLaunch = event => launches.push(event);
+  physics.onExit = event => exits.push(event);
+  physics.onReturn = event => returns.push(event);
+  physics.onScore = event => scores.push(event);
+  assert.equal(physics.launch(power, { startY }), true);
+  const ball = physics.balls.at(-1), initialEnergy = ball.vy ** 2 - 2 * gravity * ball.y;
+  let minimumY = ball.y, sawDescent = false, frame = 0;
+  while (physics.balls.length && frame < 3600) {
+    const previous = { x: ball.x, y: ball.y, speed: Math.hypot(ball.vx, ball.vy) };
+    const dt = frameTimes[frame++ % frameTimes.length];
+    physics.step(dt);
+    assert.ok([ball.x, ball.y, ball.vx, ball.vy].every(Number.isFinite), 'weak attempts retain finite state');
+    assert.notEqual(ball.phase, 'board', 'insufficient energy cannot enter the playfield');
+    assert.ok(ball.y <= startY + 1e-9, 'the waiting chamber supports returning balls');
+    minimumY = Math.min(minimumY, ball.y);
+    if (ball.vy > 0) sawDescent = true;
+    if (frameTimes.length === 1 && dt === tick) {
+      assert.ok(Math.hypot(ball.x - previous.x, ball.y - previous.y) <= previous.speed * tick + .025, 'return motion does not teleport at turns or guide boundaries');
+    }
+    if (!returns.length) {
+      const energy = ball.vx ** 2 + ball.vy ** 2 - 2 * gravity * ball.y;
+      assert.ok(energy <= initialEnergy + 1e-5, 'the guide cannot add energy to a weak attempt');
+      assert.ok(initialEnergy - energy < .05, 'top turnaround dissipates only a tiny amount of energy');
+    }
+    if (ball.phase === 'rail') {
+      const rx = ball.x - rail.centerX, ry = ball.y - rail.centerY;
+      near(Math.hypot(rx, ry), rail.radius, 1e-9, 'both directions remain on the drawn circular guide');
+      near(ball.vx * rx + ball.vy * ry, 0, 1e-7, 'return velocity remains tangent to the guide');
+    }
+  }
+  assert.equal(physics.balls.length, 0, 'returned balls leave the active simulation');
+  assert.ok(ball.age < 20, 'the critical top turnaround does not stall indefinitely');
+  assert.equal(launches.length, 1, 'each pull reports one attempt');
+  assert.equal(exits.length, 0, 'failed attempts never report a real launch');
+  assert.equal(scores.length, 0, 'failed attempts never fabricate a lane or reward');
+  assert.equal(returns.length, 1, 'each failed attempt reports exactly one return');
+  assert.equal(returns[0].ballId, ball.id);
+  assert.equal(returns[0].power, power);
+  near(returns[0].x, rail.startX, 1e-9, 'return event is at the original chute');
+  near(returns[0].y, startY, 1e-9, 'return event occurs only at the waiting chamber');
+  if (power >= .001) {
+    assert.ok(minimumY < startY, 'nonzero attempts visibly rise before returning');
+    assert.ok(sawDescent, 'nonzero attempts reverse and fall under gravity');
+  }
+  physics.step(.1);
+  assert.equal(returns.length, 1, 'removed attempts cannot fire return twice');
+  return { minimumY, seconds: ball.age, event: returns[0] };
+}
+
+const weakPowers = [0, .000001, .001, .01, .02, .03, .04, .05, .06, .07, .08, .09, .099, .0999, .0999999, .1];
+for (const originForPower of launchOrigins) {
+  let previousRise = -Infinity;
+  for (const power of weakPowers) {
+    const startY = originForPower(power);
+    const result = returnToChamber(new PinballPhysics(), power, [tick], startY);
+    const rise = startY - result.minimumY;
+    assert.ok(rise >= previousRise, 'more sub-threshold energy produces at least as much climb');
+    previousRise = rise;
+    if (power === .1) {
+      assert.ok(result.minimumY > rail.exitY && result.minimumY - rail.exitY < .01, 'ten percent reaches visually the top without crossing the outlet');
+    }
+  }
+}
+// Reusing the same engine after failed pulls must retain deterministic motion
+// across frame rates and ball IDs, without consuming capacity or future shots.
+const retryPhysics = new PinballPhysics();
+for (const power of [.000001, .09, .0999, .1]) {
+  const first = returnToChamber(retryPhysics, power);
+  for (const frames of [[1 / 30], [1 / 120], [.013, .021, .008, .05, .016]]) {
+    const later = new PinballPhysics(); later._nextId = 901;
+    const repeated = returnToChamber(later, power, frames);
+    near(repeated.seconds, first.seconds, 1e-9, 'return time is independent of rendering and ball IDs');
+    assert.equal(repeated.event.power, first.event.power);
+  }
+}
+assert.equal(retryPhysics.launch(.11), true, 'repeated weak attempts leave the engine ready for a real shot');
+retryPhysics.reset();
 
 for (const invalidY of [null, '838', NaN, Infinity, -1, 703, 901]) {
   const physics = new PinballPhysics();
@@ -142,7 +252,7 @@ assert.equal(impactFixture({ x: 40, vx: 50 }).events.length, 0, 'position correc
 assert.equal(impactFixture({ x: 44.5, vx: -20 }).events.length, 0, 'imperceptible wall contacts are suppressed');
 
 // Registering feedback cannot change positions, scoring or elapsed time.
-for (const power of [0, 0.5, 1]) {
+for (const power of [0, .1, 0.5, 1]) {
   const reported = [], callbackScores = [], plainScores = [];
   const withFeedback = new PinballPhysics({ onImpact: event => reported.push(event), onScore: event => callbackScores.push(event) });
   const plain = new PinballPhysics({ onScore: event => plainScores.push(event) });
@@ -151,14 +261,16 @@ for (const power of [0, 0.5, 1]) {
     withFeedback.step(1 / 120); plain.step(1 / 120);
     assert.deepEqual(withFeedback.getSnapshot().balls, plain.getSnapshot().balls);
   }
-  assert.equal(callbackScores.length, 1);
+  assert.equal(callbackScores.length, Number(power > .1));
   assert.deepEqual(callbackScores, plainScores);
 }
 
-for (let powerStep = 0; powerStep <= 100; powerStep++) {
-  const scores = [];
+for (let powerStep = 11; powerStep <= 100; powerStep++) {
+  const scores = [], exits = [], returns = [];
   const physics = new PinballPhysics({
     onScore: event => scores.push(event),
+    onExit: event => exits.push(event),
+    onReturn: event => returns.push(event),
     onPegHit: () => impacts++
   });
   assert.equal(physics.launch(powerStep / 100), true);
@@ -171,6 +283,12 @@ for (let powerStep = 0; powerStep <= 100; powerStep++) {
     frames++;
   }
   assert.equal(scores.length, 1, 'each ball must score exactly once');
+  assert.equal(exits.length, 1, 'each successful shot reports its real outlet crossing exactly once');
+  assert.equal(returns.length, 0, 'successful shots cannot also return to the launch chamber');
+  assert.equal(exits[0].ballId, scores[0].ballId);
+  assert.equal(exits[0].power, powerStep / 100);
+  near(exits[0].x, rail.exitX, 1e-9, 'exit callback occurs at the real guide outlet');
+  near(exits[0].y, rail.exitY, 1e-9, 'exit callback occurs at the real guide outlet');
   assert.equal(physics.balls.length, 0, 'scored balls must leave the simulation');
   assert.ok(frames / 120 < 20, 'normal launches must physically settle within a reasonable time');
   assert.equal(scores[0].power, powerStep / 100, 'history receives the exact launch power');
@@ -181,7 +299,7 @@ for (let powerStep = 0; powerStep <= 100; powerStep++) {
 
 const scores = [];
 const multiball = new PinballPhysics({ onScore: event => scores.push(event) });
-for (let index = 0; index < 10; index++) assert.equal(multiball.launch(index / 9), true);
+for (let index = 0; index < 10; index++) assert.equal(multiball.launch(.11 + index * .89 / 9), true);
 assert.equal(multiball.launch(0.5), false);
 for (let frame = 0; frame < 1800; frame++) multiball.step(frame % 3 === 0 ? 1 / 30 : 1 / 60);
 assert.equal(scores.length, 10);
@@ -205,23 +323,28 @@ assert.ok(timeoutPhysics.balls[0].y < 710);
 
 function settle(physics, power, frameTimes = [1 / 60], startY = 704) {
   let result;
+  const exits = [], returns = [];
   physics.reset();
   physics.onScore = event => { result = event; };
+  physics.onExit = event => exits.push(event);
+  physics.onReturn = event => returns.push(event);
   physics.launch(power, { startY });
   const ball = physics.balls[0];
   let frame = 0;
   while (!result && ball.age < 20) physics.step(frameTimes[frame++ % frameTimes.length]);
   assert.ok(result, `power ${power} must physically reach a lane`);
   assert.equal(result.y, 710);
+  assert.equal(exits.length, 1, 'real shots cross the outlet exactly once before scoring');
+  assert.equal(returns.length, 0, 'real shots never report a failed return');
   return { ...result, seconds: ball.age };
 }
 
 // Feeding extends the existing launch chute below the board. It changes only
-// the climb length: every power must still leave the guide naturally and settle.
+// the climb length: powers above ten percent leave the guide and settle.
 let feederMaximumSeconds = 0;
 for (const originForPower of [() => 838, () => 848, power => 838 + 10 * power]) {
   const feederSlots = new Set();
-  for (let percent = 1; percent <= 100; percent++) {
+  for (let percent = 11; percent <= 100; percent++) {
     const power = percent / 100, startY = originForPower(power);
     const first = settle(new PinballPhysics(), power, [1 / 60], startY);
     feederSlots.add(first.slotIndex);
@@ -239,7 +362,7 @@ for (const originForPower of [() => 838, () => 848, power => 838 + 10 * power]) 
 // The UI exposes exact one-percent increments. Every step must be repeatable,
 // independent of ball ID, previous rounds, and browser render timing.
 const repeatPhysics = new PinballPhysics();
-for (const power of [.01, .25, .5, .75, 1]) {
+for (const power of [.01, .1, .11, .25, .5, .75, 1]) {
   const first = new PinballPhysics(), later = new PinballPhysics();
   later._nextId = 901;
   first.launch(power); later.launch(power);
@@ -251,7 +374,7 @@ for (const power of [.01, .25, .5, .75, 1]) {
   assert.equal(first.balls.length, 0);
   assert.equal(later.balls.length, 0);
 }
-for (let percent = 1; percent <= 100; percent++) {
+for (let percent = 11; percent <= 100; percent++) {
   const power = percent / 100;
   const first = settle(new PinballPhysics(), power);
   for (const frames of [[1 / 30], [1 / 60], [1 / 120], [.013, .021, .008, .05, .016]]) {
@@ -264,4 +387,4 @@ for (let percent = 1; percent <= 100; percent++) {
 
 // The restored lively rebounds amplify small aim changes on dense pins.
 // Neighboring powers need not produce neighboring lanes; identical powers do.
-console.log(`Physics passed: original 68-pin layout and rebound strength, continuous 90-degree energy-conserving guide, real-contact feedback, 101 power levels, all 10 slots, ${impacts} peg impacts, ID/frame-rate repeatability, 10 simultaneous balls; longest flight ${maximumSeconds.toFixed(2)}s; extended feeder origins 838–848 cover every lane and settle within ${feederMaximumSeconds.toFixed(2)}s.`);
+console.log(`Physics passed: original 68-pin layout and rebound strength, continuous 90-degree guide, 0–10% physical returns with a dissipative critical turnaround, 11–100% real outlet crossings, real-contact feedback, all 10 slots, ${impacts} peg impacts, ID/frame-rate repeatability, repeated weak attempts, 10 simultaneous balls; longest flight ${maximumSeconds.toFixed(2)}s; extended feeder origins 838–848 cover every lane and settle within ${feederMaximumSeconds.toFixed(2)}s.`);

@@ -6,8 +6,10 @@ on:
     paths:
       - 'dist/**'
       - 'test-physics.cjs'
+      - 'test-launch.cjs'
       - 'test-rules.cjs'
       - 'test-feeder.cjs'
+      - 'test-collector.cjs'
       - 'test-haptics.cjs'
       - 'test-audio.cjs'
       - '.github/workflows/pages.yml'
@@ -37,11 +39,14 @@ jobs:
           node --check dist/physics.js
           node --check dist/rules.js
           node --check dist/feeder.js
+          node --check dist/collector.js
           node --check dist/haptics.js
           node --check dist/audio.js
           node test-physics.cjs
+          node test-launch.cjs
           node test-rules.cjs
           node test-feeder.cjs
+          node test-collector.cjs
           node test-haptics.cjs
           node test-audio.cjs
       - name: Configure GitHub Pages

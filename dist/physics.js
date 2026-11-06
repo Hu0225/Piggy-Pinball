@@ -6,8 +6,12 @@
   const STEP = 1 / 180;
   const BALL_RADIUS = 8.5;
   const GRAVITY = 780;
-  const EXIT_SPEED_MIN = 12;
-  const EXIT_SPEED_RANGE = 928;
+  const EXIT_POWER_THRESHOLD = 0.1;
+  const LAUNCH_SPEED_RANGE = 1100;
+  // The exact zero-speed top of an ideal quarter-circle is approached only
+  // asymptotically. Stop a critical attempt 0.056px before it, dissipating at
+  // most 0.022 units of energy per unit mass, so gravity can roll it back.
+  const RAIL_RETURN_MARGIN = 0.001;
   const PEG_RESTITUTION = 0.74;
   const LIP_RESTITUTION = 0.4;
   const LAUNCH_RAIL = Object.freeze({
@@ -23,6 +27,8 @@
       this.onImpact = callbacks.onImpact || function () {};
       this.onScore = callbacks.onScore || function () {};
       this.onLaunch = callbacks.onLaunch || function () {};
+      this.onExit = callbacks.onExit || function () {};
+      this.onReturn = callbacks.onReturn || function () {};
       this.width = WIDTH;
       this.height = HEIGHT;
       this.radius = BALL_RADIUS;
@@ -48,14 +54,17 @@
       if (this.balls.filter(ball => ball.phase !== 'scored').length >= 10) return false;
       const force = clamp(Number(power) || 0, 0, 1);
       const originY = Number.isFinite(startY) && startY >= 704 && startY <= 900 ? startY : 704;
-      // Spring energy pays for the climb first. The remaining exit speed is
-      // linear in the user's power; the rail still conserves that energy.
-      const exitSpeed = EXIT_SPEED_MIN + force * EXIT_SPEED_RANGE;
+      // Ten percent supplies exactly the gravitational climb energy. Lower
+      // attempts turn inside the chute; only powers above it can leave.
+      const criticalSpeed = Math.sqrt(2 * GRAVITY * (originY - LAUNCH_RAIL.exitY));
+      const launchSpeed = force <= EXIT_POWER_THRESHOLD
+        ? criticalSpeed * force / EXIT_POWER_THRESHOLD
+        : criticalSpeed + LAUNCH_SPEED_RANGE * (force - EXIT_POWER_THRESHOLD) / (1 - EXIT_POWER_THRESHOLD);
       const ball = {
         id: this._nextId++, x: LAUNCH_RAIL.startX, y: originY, vx: 0,
-        vy: -Math.sqrt(2 * GRAVITY * (originY - LAUNCH_RAIL.exitY) + exitSpeed * exitSpeed), radius: BALL_RADIUS,
-        power: force, phase: 'launch', age: 0, trail: [],
-        railAngle: 0, trailClock: 0, hitCooldown: new Map(),
+        vy: -launchSpeed, radius: BALL_RADIUS,
+        power: force, originY, returning: false, phase: 'launch', age: 0, trail: [],
+        railAngle: 0, railVelocity: 0, trailClock: 0, hitCooldown: new Map(),
         scored: false, fade: 1, slotIndex: -1
       };
       this.balls.push(ball);
@@ -73,22 +82,41 @@
     }
 
     _advanceLaunch(ball, dt) {
-      const speed = -ball.vy;
-      const distance = ball.y - LAUNCH_RAIL.startY;
-      const entrySpeed = Math.sqrt(Math.max(0, speed * speed - 2 * GRAVITY * distance));
-      const arrival = 2 * distance / (speed + entrySpeed);
-      if (arrival > dt) {
-        ball.y += ball.vy * dt + 0.5 * GRAVITY * dt * dt;
-        ball.vy += GRAVITY * dt;
+      const bottomDistance = Math.max(0, ball.originY - ball.y);
+      const bottomSpeed = Math.sqrt(ball.vy * ball.vy + 2 * GRAVITY * bottomDistance);
+      const returnTime = ball.vy < 0
+        ? (bottomSpeed - ball.vy) / GRAVITY
+        : bottomDistance === 0 ? 0 : 2 * bottomDistance / (bottomSpeed + ball.vy);
+      if (returnTime <= dt) {
+        ball.x = LAUNCH_RAIL.startX;
+        ball.y = ball.originY;
+        ball.vx = ball.vy = 0;
+        ball.returning = true;
+        ball.phase = 'returned';
+        ball.fade = 0;
+        this.onReturn({ ballId: ball.id, power: ball.power, x: ball.x, y: ball.y });
         return 0;
       }
-      ball.x = LAUNCH_RAIL.startX;
-      ball.y = LAUNCH_RAIL.startY;
-      ball.vy = -entrySpeed;
-      ball.railEntrySpeed = entrySpeed;
-      ball.railAngle = 0;
-      ball.phase = 'rail';
-      return Math.max(0, dt - arrival);
+      const distance = ball.y - LAUNCH_RAIL.startY;
+      const entryEnergy = ball.vy * ball.vy - 2 * GRAVITY * distance;
+      if (ball.vy < 0 && entryEnergy >= 0) {
+        const entrySpeed = Math.sqrt(entryEnergy);
+        const arrival = 2 * distance / (-ball.vy + entrySpeed);
+        if (arrival <= dt) {
+          ball.x = LAUNCH_RAIL.startX;
+          ball.y = LAUNCH_RAIL.startY;
+          ball.vy = -entrySpeed;
+          ball.railEntrySpeed = entrySpeed;
+          ball.railVelocity = entrySpeed;
+          ball.railAngle = 0;
+          ball.phase = 'rail';
+          return Math.max(0, dt - arrival);
+        }
+      }
+      ball.y += ball.vy * dt + 0.5 * GRAVITY * dt * dt;
+      ball.vy += GRAVITY * dt;
+      if (ball.vy >= 0) ball.returning = true;
+      return 0;
     }
 
     _railSpeed(ball, angle) {
@@ -98,38 +126,70 @@
         - 2 * GRAVITY * LAUNCH_RAIL.radius * Math.sin(angle)));
     }
 
-    _railAngleAfter(ball, dt) {
-      const angularSpeed = angle => this._railSpeed(ball, clamp(angle, 0, LAUNCH_RAIL.angle)) / LAUNCH_RAIL.radius;
-      const angle = ball.railAngle;
-      const k1 = angularSpeed(angle);
-      const k2 = angularSpeed(angle + dt * k1 / 2);
-      const k3 = angularSpeed(angle + dt * k2 / 2);
-      const k4 = angularSpeed(angle + dt * k3);
-      return angle + dt * (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+    _railMotionAfter(ball, dt) {
+      // Integrate a signed tangential velocity so gravity can reverse motion
+      // at a turning point instead of clamping the ball motionless there.
+      const radius = LAUNCH_RAIL.radius;
+      const acceleration = angle => -GRAVITY * Math.cos(clamp(angle, 0, LAUNCH_RAIL.angle));
+      const angle = ball.railAngle, velocity = ball.railVelocity;
+      const a1 = velocity / radius, v1 = acceleration(angle);
+      const a2 = (velocity + dt * v1 / 2) / radius, v2 = acceleration(angle + dt * a1 / 2);
+      const a3 = (velocity + dt * v2 / 2) / radius, v3 = acceleration(angle + dt * a2 / 2);
+      const a4 = (velocity + dt * v3) / radius, v4 = acceleration(angle + dt * a3);
+      return {
+        angle: angle + dt * (a1 + 2 * a2 + 2 * a3 + a4) / 6,
+        velocity: velocity + dt * (v1 + 2 * v2 + 2 * v3 + v4) / 6
+      };
     }
 
-    _advanceRail(ball, dt) {
-      let angle = this._railAngleAfter(ball, dt);
-      let leftover = 0;
-      if (angle >= LAUNCH_RAIL.angle) {
-        // Resolve the exact exit time and give the remainder to free flight.
-        let low = 0, high = dt;
-        for (let i = 0; i < 30; i++) {
-          const middle = (low + high) / 2;
-          if (this._railAngleAfter(ball, middle) < LAUNCH_RAIL.angle) low = middle;
-          else high = middle;
-        }
-        leftover = dt - high;
-        angle = LAUNCH_RAIL.angle;
-        ball.phase = 'board';
-      }
+    _setRailState(ball, angle, direction) {
       ball.railAngle = angle;
-      const speed = this._railSpeed(ball, angle);
+      // Reconstruct speed from the conserved energy to avoid numerical
+      // integration injecting energy over a long, near-critical turnaround.
+      const speed = direction * this._railSpeed(ball, angle);
+      ball.railVelocity = speed;
       ball.x = LAUNCH_RAIL.centerX + LAUNCH_RAIL.radius * Math.cos(angle);
       ball.y = LAUNCH_RAIL.centerY - LAUNCH_RAIL.radius * Math.sin(angle);
       ball.vx = -speed * Math.sin(angle);
       ball.vy = -speed * Math.cos(angle);
-      return leftover;
+      if (speed <= 0) ball.returning = true;
+    }
+
+    _advanceRail(ball, dt) {
+      const motion = this._railMotionAfter(ball, dt);
+      const canExit = ball.power > EXIT_POWER_THRESHOLD;
+      const upperAngle = LAUNCH_RAIL.angle - (canExit ? 0 : RAIL_RETURN_MARGIN);
+      const crossesBottom = motion.angle <= 0 && motion.velocity < 0;
+      const crossesTop = motion.angle >= upperAngle && motion.velocity > 0;
+      if (crossesBottom || crossesTop) {
+        const boundary = crossesBottom ? 0 : upperAngle;
+        let low = 0, high = dt;
+        for (let i = 0; i < 30; i++) {
+          const middle = (low + high) / 2;
+          const nextAngle = this._railMotionAfter(ball, middle).angle;
+          if (crossesBottom ? nextAngle > boundary : nextAngle < boundary) low = middle;
+          else high = middle;
+        }
+        if (crossesBottom) {
+          this._setRailState(ball, 0, -1);
+          ball.phase = 'launch';
+        } else if (canExit) {
+          this._setRailState(ball, LAUNCH_RAIL.angle, 1);
+          ball.phase = 'board';
+          this.onExit({ ballId: ball.id, power: ball.power, x: ball.x, y: ball.y });
+        } else {
+          // Remove only the vanishing kinetic remainder; the position stays
+          // below the summit, where gravity supplies the return acceleration.
+          ball.railEntrySpeed = Math.sqrt(2 * GRAVITY * LAUNCH_RAIL.radius * Math.sin(upperAngle));
+          this._setRailState(ball, upperAngle, 0);
+        }
+        return Math.max(0, dt - high);
+      }
+      const energyFraction = ball.railEntrySpeed * ball.railEntrySpeed / (2 * GRAVITY * LAUNCH_RAIL.radius);
+      const turningAngle = energyFraction < 1 ? Math.asin(energyFraction) : LAUNCH_RAIL.angle;
+      const angle = clamp(motion.angle, 0, turningAngle);
+      this._setRailState(ball, angle, motion.velocity > 0 ? 1 : -1);
+      return 0;
     }
 
     _impact(ball, kind, speed, x = ball.x, y = ball.y) {
@@ -154,15 +214,10 @@
           continue;
         }
         let motionDt = dt;
-        if (ball.phase === 'launch') {
-          motionDt = this._advanceLaunch(ball, motionDt);
-          if (ball.phase === 'launch') continue;
+        for (let transition = 0; motionDt > 0 && transition < 4 && (ball.phase === 'launch' || ball.phase === 'rail'); transition++) {
+          motionDt = ball.phase === 'launch' ? this._advanceLaunch(ball, motionDt) : this._advanceRail(ball, motionDt);
         }
-        if (ball.phase === 'rail') {
-          motionDt = this._advanceRail(ball, motionDt);
-          if (ball.phase === 'rail') continue;
-        }
-        if (motionDt <= 0) continue;
+        if (motionDt <= 0 || ball.phase === 'launch' || ball.phase === 'rail' || ball.phase === 'returned') continue;
 
         ball.vy += GRAVITY * motionDt;
         // Air resistance is deliberately small; impacts provide most damping.
@@ -278,7 +333,7 @@
     getSnapshot() {
       return {
         width: WIDTH, height: HEIGHT, time: this.time,
-        balls: this.balls.map(({ id, x, y, vx, vy, radius, phase, power, age, fade, slotIndex, trail }) => ({ id, x, y, vx, vy, radius, phase, power, age, fade, slotIndex, trail: trail.map(point => ({ ...point })) })),
+        balls: this.balls.map(({ id, x, y, vx, vy, radius, phase, power, originY, returning, age, fade, slotIndex, trail }) => ({ id, x, y, vx, vy, radius, phase, power, originY, returning, age, fade, slotIndex, trail: trail.map(point => ({ ...point })) })),
         pegs: this.pegs.map(peg => ({ ...peg })),
         slots: this.slots.map(slot => ({ ...slot }))
       };

@@ -251,10 +251,8 @@ button:disabled{opacity:.45}
   .shop-dialog .shop-balance{margin-bottom:8px}.shop-dialog .inventory-heading{margin-top:8px;padding-top:7px}.shop-dialog .inventory-list{margin-top:6px}
 }
 
-/* A connected, compact feed tray below the playfield. */
+/* One open feed tray; status stays accessible without covering the bowl. */
 .feeder-panel{position:relative;line-height:1;pointer-events:none;container-type:inline-size}
-.feeder-panel>span:not(.sr-only){position:absolute;color:#ffe1a0;font-size:clamp(8px,3.1cqw,13px);font-weight:600;white-space:nowrap;text-shadow:0 1px 2px #291709;background:linear-gradient(120deg,#654020,#39291a 70%,#76502b);border:1px solid #dba162;border-radius:9px;padding:3px 6px;box-shadow:inset 0 1px 0 #ffcf8c55,0 2px 3px #1d120f88;line-height:1.15}
-.feeder-inlet{left:11.5%;top:9%}.feeder-collector{left:50%;top:7%;transform:translateX(-50%)}.feeder-ready{right:9.5%;top:13%}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .floating-scores{height:calc(100% * 760 / 896);bottom:auto}
 .wallet-balances{grid-template-columns:1.25fr 1fr 1fr;gap:9px}.wallet-balances>div+div{padding-left:9px}
@@ -263,9 +261,8 @@ button:disabled{opacity:.45}
   .wallet-card{gap:8px}.wallet-balances{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:7px}
   .wallet-balances>div{gap:4px}.wallet-balances>div+div{padding-left:7px}
   .wallet-label{font-size:8px;flex:none}.wallet-balances strong{font-size:18px;letter-spacing:-.7px}
-  .shop-button{font-size:9px}.feeder-panel>span:not(.sr-only){font-size:10px;padding:2px 4px;border-radius:6px}
+  .shop-button{font-size:9px}
 }
-@media(max-width:650px) and (max-height:620px){.feeder-panel>span:not(.sr-only){font-size:8px;padding:2px 3px}.feeder-inlet{left:9%}.feeder-collector{left:46%}}
 @media(max-width:350px){.wallet-card{padding:6px 7px;gap:6px}.wallet-balances{gap:5px}.wallet-balances>div+div{padding-left:5px}.wallet-balances>div{gap:3px}.wallet-balances strong{font-size:16px}}
 
 </style>
@@ -316,9 +313,9 @@ button:disabled{opacity:.45}
           <div class="score-display multiplier-display"><span>本局倍率 <small>LUCK</small></span><strong id="multiplierDigits" aria-label="本局倍率">--×</strong></div>
         </div>
         <div class="board-surround"><div class="led-strip led-left"></div><div class="led-strip led-right"></div><div class="board-window"><canvas id="gameCanvas" width="600" height="760" aria-label="弹珠台面。首次投珠自动激活并获取倍率，发射前可以继续投珠加注。每局仅发射一次，命中亮灯轨道按总本金乘倍率返珠。"></canvas>
-          <div class="feeder-panel" aria-label="投珠槽，首颗送入右侧发射轨道，其余入洞获得独立积分">
+          <div class="feeder-panel" aria-label="上层弧形滑槽与下层水平储珠盘，首颗顺坡进入右侧发射位，其余从分流口落入储珠盘获得独立积分">
             <canvas id="feederCanvas" width="600" height="136" aria-hidden="true"></canvas>
-            <span class="feeder-inlet">投珠槽</span><span class="feeder-collector">积分收集口</span><span class="feeder-ready" id="feederReady">待发射 0 颗</span>
+            <span class="sr-only" id="feederReady">待发射 0 颗</span>
             <span class="sr-only" id="feederStatus" role="status" aria-live="polite">等待投珠</span>
           </div>
           <div class="board-hint" id="boardHint"><span class="hint-star">✦</span> 投珠激活 · 每局只发射一次 <span class="hint-star">✦</span></div><div class="floating-scores" id="floatingScores" aria-hidden="true"></div></div></div>
@@ -374,7 +371,7 @@ button:disabled{opacity:.45}
   <dialog id="stakeDialog" class="game-dialog stake-dialog" aria-labelledby="stakeDialogTitle"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">YOUR NEXT SHOT</div><h2 id="stakeDialogTitle">设置投珠数量</h2><div id="stakeDialogContent"></div></dialog>
   <dialog id="helpDialog" class="game-dialog" aria-labelledby="helpTitle"><button class="dialog-close" type="button" aria-label="关闭">×</button><div class="dialog-eyebrow">HOW TO PLAY</div><h2 id="helpTitle">一发，接住好运。</h2>
     <section class="help-page" aria-label="投珠与倍率"><span class="help-page-icon" aria-hidden="true">①</span><h3>一键投珠，自动获取倍率</h3><p>“设置数量”选择每次投几颗，点击 <b>“投珠 N 颗”</b> 才扣珠。首次投入自动抽取 <b>2—12 倍</b>。</p><p>弹珠从左侧进珠口流入，首颗进入右侧发射轨道，其余进入收集口，每颗立即获得 <b>1 积分</b>。</p><p class="help-note">发射前可继续加注，新增弹珠全部入洞计分；合计最多 99 颗，倍率与亮灯轨道不变。</p></section>
-    <section class="help-page" aria-label="发射与返珠" hidden><span class="help-page-icon" aria-hidden="true">②</span><h3>调准力度，一发定局</h3><p>下拉蓄力，松手发射。每局仅一次发射机会，同力度可复现落点。</p><p>参考上次记录练习。密集碰撞下，加力不一定让落点向同一方向移动。</p><p class="help-note" id="shotMemory">落袋后记录力度与轨道</p><div class="help-example">亮灯命中返还 <b>本金 × 倍率</b><br>每局仅一发，未命中不返珠</div></section>
+    <section class="help-page" aria-label="发射与返珠" hidden><span class="help-page-icon" aria-hidden="true">②</span><h3>调准力度，一发定局</h3><p>下拉蓄力，松手发射。弹珠回到发射位后可重新拉杆。</p><p>每局仅一次发射机会。同力度可复现落点，密集碰撞下加力不一定让落点向同一方向移动。</p><p class="help-note" id="shotMemory">落袋后记录力度与轨道</p><div class="help-example">亮灯命中返还 <b>本金 × 倍率</b><br>每局仅一发，未命中不返珠</div></section>
     <section class="help-page" aria-label="积分与礼品" hidden><span class="help-page-icon" aria-hidden="true">③</span><h3>积分与积分卡，分别积攒</h3><p>入洞得到的 <b>积分</b> 独立累计，本局未中奖也保留。中奖返珠每满 <b>30 颗</b>得 <b>1 张积分卡</b>，余数不跨局累计。</p><div class="help-slots"><span>30 颗<small>1 张卡</small></span><span>60 颗<small>2 张卡</small></span><span>90 颗<small>3 张卡</small></span></div><p class="help-note">积分卡可兑换游戏内藏品；独立积分暂不参与兑换。进度自动保存在当前浏览器。</p></section>
     <div class="help-pagination"><button id="helpPrev" type="button" disabled>← 上一页</button><span id="helpPageCount" aria-live="polite">1 / 3</span><button id="helpNext" type="button">下一页 →</button></div><button class="dialog-primary" type="button" id="startPlaying">知道了，开玩！ ↗</button>
   </dialog>
@@ -389,8 +386,12 @@ button:disabled{opacity:.45}
   const STEP = 1 / 180;
   const BALL_RADIUS = 8.5;
   const GRAVITY = 780;
-  const EXIT_SPEED_MIN = 12;
-  const EXIT_SPEED_RANGE = 928;
+  const EXIT_POWER_THRESHOLD = 0.1;
+  const LAUNCH_SPEED_RANGE = 1100;
+  // The exact zero-speed top of an ideal quarter-circle is approached only
+  // asymptotically. Stop a critical attempt 0.056px before it, dissipating at
+  // most 0.022 units of energy per unit mass, so gravity can roll it back.
+  const RAIL_RETURN_MARGIN = 0.001;
   const PEG_RESTITUTION = 0.74;
   const LIP_RESTITUTION = 0.4;
   const LAUNCH_RAIL = Object.freeze({
@@ -406,6 +407,8 @@ button:disabled{opacity:.45}
       this.onImpact = callbacks.onImpact || function () {};
       this.onScore = callbacks.onScore || function () {};
       this.onLaunch = callbacks.onLaunch || function () {};
+      this.onExit = callbacks.onExit || function () {};
+      this.onReturn = callbacks.onReturn || function () {};
       this.width = WIDTH;
       this.height = HEIGHT;
       this.radius = BALL_RADIUS;
@@ -431,14 +434,17 @@ button:disabled{opacity:.45}
       if (this.balls.filter(ball => ball.phase !== 'scored').length >= 10) return false;
       const force = clamp(Number(power) || 0, 0, 1);
       const originY = Number.isFinite(startY) && startY >= 704 && startY <= 900 ? startY : 704;
-      // Spring energy pays for the climb first. The remaining exit speed is
-      // linear in the user's power; the rail still conserves that energy.
-      const exitSpeed = EXIT_SPEED_MIN + force * EXIT_SPEED_RANGE;
+      // Ten percent supplies exactly the gravitational climb energy. Lower
+      // attempts turn inside the chute; only powers above it can leave.
+      const criticalSpeed = Math.sqrt(2 * GRAVITY * (originY - LAUNCH_RAIL.exitY));
+      const launchSpeed = force <= EXIT_POWER_THRESHOLD
+        ? criticalSpeed * force / EXIT_POWER_THRESHOLD
+        : criticalSpeed + LAUNCH_SPEED_RANGE * (force - EXIT_POWER_THRESHOLD) / (1 - EXIT_POWER_THRESHOLD);
       const ball = {
         id: this._nextId++, x: LAUNCH_RAIL.startX, y: originY, vx: 0,
-        vy: -Math.sqrt(2 * GRAVITY * (originY - LAUNCH_RAIL.exitY) + exitSpeed * exitSpeed), radius: BALL_RADIUS,
-        power: force, phase: 'launch', age: 0, trail: [],
-        railAngle: 0, trailClock: 0, hitCooldown: new Map(),
+        vy: -launchSpeed, radius: BALL_RADIUS,
+        power: force, originY, returning: false, phase: 'launch', age: 0, trail: [],
+        railAngle: 0, railVelocity: 0, trailClock: 0, hitCooldown: new Map(),
         scored: false, fade: 1, slotIndex: -1
       };
       this.balls.push(ball);
@@ -456,22 +462,41 @@ button:disabled{opacity:.45}
     }
 
     _advanceLaunch(ball, dt) {
-      const speed = -ball.vy;
-      const distance = ball.y - LAUNCH_RAIL.startY;
-      const entrySpeed = Math.sqrt(Math.max(0, speed * speed - 2 * GRAVITY * distance));
-      const arrival = 2 * distance / (speed + entrySpeed);
-      if (arrival > dt) {
-        ball.y += ball.vy * dt + 0.5 * GRAVITY * dt * dt;
-        ball.vy += GRAVITY * dt;
+      const bottomDistance = Math.max(0, ball.originY - ball.y);
+      const bottomSpeed = Math.sqrt(ball.vy * ball.vy + 2 * GRAVITY * bottomDistance);
+      const returnTime = ball.vy < 0
+        ? (bottomSpeed - ball.vy) / GRAVITY
+        : bottomDistance === 0 ? 0 : 2 * bottomDistance / (bottomSpeed + ball.vy);
+      if (returnTime <= dt) {
+        ball.x = LAUNCH_RAIL.startX;
+        ball.y = ball.originY;
+        ball.vx = ball.vy = 0;
+        ball.returning = true;
+        ball.phase = 'returned';
+        ball.fade = 0;
+        this.onReturn({ ballId: ball.id, power: ball.power, x: ball.x, y: ball.y });
         return 0;
       }
-      ball.x = LAUNCH_RAIL.startX;
-      ball.y = LAUNCH_RAIL.startY;
-      ball.vy = -entrySpeed;
-      ball.railEntrySpeed = entrySpeed;
-      ball.railAngle = 0;
-      ball.phase = 'rail';
-      return Math.max(0, dt - arrival);
+      const distance = ball.y - LAUNCH_RAIL.startY;
+      const entryEnergy = ball.vy * ball.vy - 2 * GRAVITY * distance;
+      if (ball.vy < 0 && entryEnergy >= 0) {
+        const entrySpeed = Math.sqrt(entryEnergy);
+        const arrival = 2 * distance / (-ball.vy + entrySpeed);
+        if (arrival <= dt) {
+          ball.x = LAUNCH_RAIL.startX;
+          ball.y = LAUNCH_RAIL.startY;
+          ball.vy = -entrySpeed;
+          ball.railEntrySpeed = entrySpeed;
+          ball.railVelocity = entrySpeed;
+          ball.railAngle = 0;
+          ball.phase = 'rail';
+          return Math.max(0, dt - arrival);
+        }
+      }
+      ball.y += ball.vy * dt + 0.5 * GRAVITY * dt * dt;
+      ball.vy += GRAVITY * dt;
+      if (ball.vy >= 0) ball.returning = true;
+      return 0;
     }
 
     _railSpeed(ball, angle) {
@@ -481,38 +506,70 @@ button:disabled{opacity:.45}
         - 2 * GRAVITY * LAUNCH_RAIL.radius * Math.sin(angle)));
     }
 
-    _railAngleAfter(ball, dt) {
-      const angularSpeed = angle => this._railSpeed(ball, clamp(angle, 0, LAUNCH_RAIL.angle)) / LAUNCH_RAIL.radius;
-      const angle = ball.railAngle;
-      const k1 = angularSpeed(angle);
-      const k2 = angularSpeed(angle + dt * k1 / 2);
-      const k3 = angularSpeed(angle + dt * k2 / 2);
-      const k4 = angularSpeed(angle + dt * k3);
-      return angle + dt * (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+    _railMotionAfter(ball, dt) {
+      // Integrate a signed tangential velocity so gravity can reverse motion
+      // at a turning point instead of clamping the ball motionless there.
+      const radius = LAUNCH_RAIL.radius;
+      const acceleration = angle => -GRAVITY * Math.cos(clamp(angle, 0, LAUNCH_RAIL.angle));
+      const angle = ball.railAngle, velocity = ball.railVelocity;
+      const a1 = velocity / radius, v1 = acceleration(angle);
+      const a2 = (velocity + dt * v1 / 2) / radius, v2 = acceleration(angle + dt * a1 / 2);
+      const a3 = (velocity + dt * v2 / 2) / radius, v3 = acceleration(angle + dt * a2 / 2);
+      const a4 = (velocity + dt * v3) / radius, v4 = acceleration(angle + dt * a3);
+      return {
+        angle: angle + dt * (a1 + 2 * a2 + 2 * a3 + a4) / 6,
+        velocity: velocity + dt * (v1 + 2 * v2 + 2 * v3 + v4) / 6
+      };
     }
 
-    _advanceRail(ball, dt) {
-      let angle = this._railAngleAfter(ball, dt);
-      let leftover = 0;
-      if (angle >= LAUNCH_RAIL.angle) {
-        // Resolve the exact exit time and give the remainder to free flight.
-        let low = 0, high = dt;
-        for (let i = 0; i < 30; i++) {
-          const middle = (low + high) / 2;
-          if (this._railAngleAfter(ball, middle) < LAUNCH_RAIL.angle) low = middle;
-          else high = middle;
-        }
-        leftover = dt - high;
-        angle = LAUNCH_RAIL.angle;
-        ball.phase = 'board';
-      }
+    _setRailState(ball, angle, direction) {
       ball.railAngle = angle;
-      const speed = this._railSpeed(ball, angle);
+      // Reconstruct speed from the conserved energy to avoid numerical
+      // integration injecting energy over a long, near-critical turnaround.
+      const speed = direction * this._railSpeed(ball, angle);
+      ball.railVelocity = speed;
       ball.x = LAUNCH_RAIL.centerX + LAUNCH_RAIL.radius * Math.cos(angle);
       ball.y = LAUNCH_RAIL.centerY - LAUNCH_RAIL.radius * Math.sin(angle);
       ball.vx = -speed * Math.sin(angle);
       ball.vy = -speed * Math.cos(angle);
-      return leftover;
+      if (speed <= 0) ball.returning = true;
+    }
+
+    _advanceRail(ball, dt) {
+      const motion = this._railMotionAfter(ball, dt);
+      const canExit = ball.power > EXIT_POWER_THRESHOLD;
+      const upperAngle = LAUNCH_RAIL.angle - (canExit ? 0 : RAIL_RETURN_MARGIN);
+      const crossesBottom = motion.angle <= 0 && motion.velocity < 0;
+      const crossesTop = motion.angle >= upperAngle && motion.velocity > 0;
+      if (crossesBottom || crossesTop) {
+        const boundary = crossesBottom ? 0 : upperAngle;
+        let low = 0, high = dt;
+        for (let i = 0; i < 30; i++) {
+          const middle = (low + high) / 2;
+          const nextAngle = this._railMotionAfter(ball, middle).angle;
+          if (crossesBottom ? nextAngle > boundary : nextAngle < boundary) low = middle;
+          else high = middle;
+        }
+        if (crossesBottom) {
+          this._setRailState(ball, 0, -1);
+          ball.phase = 'launch';
+        } else if (canExit) {
+          this._setRailState(ball, LAUNCH_RAIL.angle, 1);
+          ball.phase = 'board';
+          this.onExit({ ballId: ball.id, power: ball.power, x: ball.x, y: ball.y });
+        } else {
+          // Remove only the vanishing kinetic remainder; the position stays
+          // below the summit, where gravity supplies the return acceleration.
+          ball.railEntrySpeed = Math.sqrt(2 * GRAVITY * LAUNCH_RAIL.radius * Math.sin(upperAngle));
+          this._setRailState(ball, upperAngle, 0);
+        }
+        return Math.max(0, dt - high);
+      }
+      const energyFraction = ball.railEntrySpeed * ball.railEntrySpeed / (2 * GRAVITY * LAUNCH_RAIL.radius);
+      const turningAngle = energyFraction < 1 ? Math.asin(energyFraction) : LAUNCH_RAIL.angle;
+      const angle = clamp(motion.angle, 0, turningAngle);
+      this._setRailState(ball, angle, motion.velocity > 0 ? 1 : -1);
+      return 0;
     }
 
     _impact(ball, kind, speed, x = ball.x, y = ball.y) {
@@ -537,15 +594,10 @@ button:disabled{opacity:.45}
           continue;
         }
         let motionDt = dt;
-        if (ball.phase === 'launch') {
-          motionDt = this._advanceLaunch(ball, motionDt);
-          if (ball.phase === 'launch') continue;
+        for (let transition = 0; motionDt > 0 && transition < 4 && (ball.phase === 'launch' || ball.phase === 'rail'); transition++) {
+          motionDt = ball.phase === 'launch' ? this._advanceLaunch(ball, motionDt) : this._advanceRail(ball, motionDt);
         }
-        if (ball.phase === 'rail') {
-          motionDt = this._advanceRail(ball, motionDt);
-          if (ball.phase === 'rail') continue;
-        }
-        if (motionDt <= 0) continue;
+        if (motionDt <= 0 || ball.phase === 'launch' || ball.phase === 'rail' || ball.phase === 'returned') continue;
 
         ball.vy += GRAVITY * motionDt;
         // Air resistance is deliberately small; impacts provide most damping.
@@ -661,7 +713,7 @@ button:disabled{opacity:.45}
     getSnapshot() {
       return {
         width: WIDTH, height: HEIGHT, time: this.time,
-        balls: this.balls.map(({ id, x, y, vx, vy, radius, phase, power, age, fade, slotIndex, trail }) => ({ id, x, y, vx, vy, radius, phase, power, age, fade, slotIndex, trail: trail.map(point => ({ ...point })) })),
+        balls: this.balls.map(({ id, x, y, vx, vy, radius, phase, power, originY, returning, age, fade, slotIndex, trail }) => ({ id, x, y, vx, vy, radius, phase, power, originY, returning, age, fade, slotIndex, trail: trail.map(point => ({ ...point })) })),
         pegs: this.pegs.map(peg => ({ ...peg })),
         slots: this.slots.map(slot => ({ ...slot }))
       };
@@ -991,17 +1043,58 @@ button:disabled{opacity:.45}
 
   const WIDTH = 600, HEIGHT = 136;
   const LAUNCH_X = 562, LAUNCH_Y = 78;
-  const DROP_TIME = .16, ROLL_TIME = .32;
+  const DROP_TIME = .16, ROLL_TIME = .95;
   const BRANCH_TIME = DROP_TIME + ROLL_TIME;
-  const POINT_LIFE = BRANCH_TIME + .22;
-  const LAUNCH_LIFE = BRANCH_TIME + .36;
+  const POINT_LIFE = BRANCH_TIME + .02;
+  const POINT_HANDOFF = BRANCH_TIME;
+  const LAUNCH_LIFE = BRANCH_TIME + .22;
   const FIRST_POINT_DELAY = .26;
-  const GATE_DELAY = .11, GATE_TURN_TIME = .12;
+  const GATE_DELAY = .10, GATE_TURN_TIME = .08;
   const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  // The flat storage floor is separate from the elevated curved chute.
+  const LEFT = 32, RIGHT = 526, FLOOR = 126;
+  const floorAt = () => FLOOR;
+  const slopeAt = () => 0;
+  const centerAt = (x, radius) => ({ x, y: FLOOR - radius,
+    contactX: x, contactY: FLOOR, nx: 0, ny: -1 });
+  const CHUTE_LEFT = 56, CHUTE_RIGHT = 476, CHUTE_SPAN = CHUTE_RIGHT - CHUTE_LEFT;
+  const chuteFloorAt = x => {
+    // Continue the curve to the left for normal contact at the inlet. The
+    // outlet is flat, so neither side introduces a discontinuous contact.
+    const t = Math.min(1, (x - CHUTE_LEFT) / CHUTE_SPAN);
+    return 43 + 26 * (2 * t - t * t);
+  };
+  const chuteSlopeAt = x => x >= CHUTE_RIGHT ? 0 : 52 * (1 - (x - CHUTE_LEFT) / CHUTE_SPAN) / CHUTE_SPAN;
+  const chuteCenterAt = (x, radius) => {
+    // Invert the normal offset because x denotes the bead centre rather than
+    // its contact point on the curved surface.
+    let contactX = x;
+    for (let i = 0; i < 6; i++) {
+      const slope = chuteSlopeAt(contactX);
+      contactX = x - radius * slope / Math.hypot(1, slope);
+    }
+    const slope = chuteSlopeAt(contactX), length = Math.hypot(1, slope);
+    const contactY = chuteFloorAt(contactX);
+    return { x, y: contactY - radius / length, contactX, contactY,
+      nx: slope / length, ny: -1 / length };
+  };
+  const CHUTE = Object.freeze({ LEFT: CHUTE_LEFT, RIGHT: CHUTE_RIGHT,
+    floorAt: chuteFloorAt, slopeAt: chuteSlopeAt, centerAt: chuteCenterAt,
+    bottomAt: x => chuteFloorAt(x) + 6 });
+  const INTAKE_X = CHUTE.RIGHT, INTAKE_Y = CHUTE.centerAt(INTAKE_X, 11).y;
+  const TRAY = Object.freeze({ LEFT, RIGHT, FLOOR, INTAKE_X, floorAt, slopeAt, centerAt, topAt: x => floorAt(x) - 54 });
+  const launchPoint = progress => {
+    const t = clamp(progress, 0, 1), start = CHUTE.centerAt(INTAKE_X, 8.5);
+    const span = LAUNCH_X - INTAKE_X, tangent = CHUTE.slopeAt(start.contactX) * span;
+    const t2 = t * t, t3 = t2 * t;
+    return { x: INTAKE_X + span * t,
+      y: (2 * t3 - 3 * t2 + 1) * start.y + (t3 - 2 * t2 + t) * tangent + (-2 * t3 + 3 * t2) * LAUNCH_Y };
+  };
 
   class PinballFeeder {
     constructor(callbacks = {}) {
       this.onCollect = typeof callbacks.onCollect === 'function' ? callbacks.onCollect : function () {};
+      this.onDrop = typeof callbacks.onDrop === 'function' ? callbacks.onDrop : function () {};
       this.onReady = typeof callbacks.onReady === 'function' ? callbacks.onReady : function () {};
       this.onComplete = typeof callbacks.onComplete === 'function' ? callbacks.onComplete : function () {};
       this._run = 0;
@@ -1018,9 +1111,9 @@ button:disabled{opacity:.45}
       this._busy = true;
       this._hasLaunch = launchBall;
       const pointCount = count - Number(launchBall);
-      // Small batches remain individually readable. Large batches overlap in
-      // a continuous stream, but every ball still has its own arrival event.
-      const interval = pointCount > 1 ? Math.min(.085, 1 / (pointCount - 1)) : 0;
+      // Keep the physical bead size at every stake. A full handful takes a
+      // little longer instead of becoming a stream of miniature beads.
+      const interval = pointCount > 1 ? .085 : 0;
       for (let index = 0; index < count; index++) {
         const kind = launchBall && index === 0 ? 'launch' : 'point';
         const pointIndex = index - Number(launchBall);
@@ -1030,10 +1123,11 @@ button:disabled{opacity:.45}
           id: index + 1, kind, born, life, done: false,
           tokenIndex: kind === 'point' ? pointOffset + index + Number(!launchBall) : null,
           lane: kind === 'point' ? (pointIndex % 3) - 1 : 0,
-          scale: kind === 'launch' ? 1 : count >= 40 ? .72 : count > 16 ? .9 : 1
+          scale: 1
         };
         this._balls.push(ball);
-        this._events.push({ due: born + life, ball });
+        if (kind === 'point') this._events.push({ due: born + POINT_HANDOFF, ball, type: 'drop' });
+        this._events.push({ due: born + life, ball, type: 'arrival' });
       }
       this._events.sort((a, b) => a.due - b.due || a.ball.id - b.ball.id);
       this._duration = this._events[this._events.length - 1].due;
@@ -1044,46 +1138,60 @@ button:disabled{opacity:.45}
     step(dt) {
       if (!this._busy || !Number.isFinite(dt) || dt <= 0) return;
       const run = this._run;
-      this._elapsed = Math.min(this._duration, this._elapsed + dt);
-      while (this._eventIndex < this._events.length && this._events[this._eventIndex].due <= this._elapsed + 1e-10) {
-        const { ball } = this._events[this._eventIndex++];
+      const target = Math.min(this._duration, this._elapsed + dt);
+      while (this._eventIndex < this._events.length && this._events[this._eventIndex].due <= target + 1e-10) {
+        const { ball, type, due } = this._events[this._eventIndex];
+        this._elapsed = due;
+        if (type === 'drop') {
+          // The right diverter slows the bead and directs it down through the
+          // open chute outlet; the storage simulation owns the fall from here.
+          const accepted = this.onDrop({ ...this._position(ball, POINT_HANDOFF), id: ball.tokenIndex,
+            radius: 11, vx: -180, vy: 220 });
+          if (run !== this._run) return;
+          // A full outlet holds the entire feed line at this instant. The
+          // collector keeps moving independently until it accepts this bead.
+          // Undefined remains acceptance for existing notification callbacks.
+          if (accepted === false) return;
+          ball.handedOff = true;
+          this._eventIndex++;
+          continue;
+        }
         // Mark before calling out, so repeated frames or a callback-triggered
         // reset can never credit this arrival for a second time.
+        this._eventIndex++;
         ball.done = true;
         if (ball.kind === 'launch') this.onReady();
         else this.onCollect(ball.tokenIndex);
         if (run !== this._run) return;
       }
+      this._elapsed = target;
       if (this._eventIndex === this._events.length) {
         this._busy = false;
         this.onComplete();
       }
     }
 
-    _position(ball) {
-      const age = clamp(this._elapsed - ball.born, 0, ball.life);
+    _position(ball, age = clamp(this._elapsed - ball.born, 0, ball.life)) {
       let x, y, opacity = 1;
+      const radius = ball.kind === 'launch' ? 8.5 : 11;
       if (age < DROP_TIME) {
         const fall = (age / DROP_TIME) ** 2;
         x = 48 + 8 * fall;
-        y = -12 + 68 * fall;
+        y = -12 + (CHUTE.centerAt(CHUTE.LEFT, radius).y + 12) * fall;
         // The ball becomes visible as it emerges from the dark inlet, instead
         // of materializing halfway along the trough.
         opacity = clamp((y + 10) / 18, 0, 1);
       } else if (age < BRANCH_TIME) {
         const t = (age - DROP_TIME) / ROLL_TIME;
         const roll = .65 * t + .35 * t * t;
-        x = 56 + 204 * roll;
-        y = 56 + 14 * roll + ball.lane * 1.9 * Math.sin(Math.PI * roll);
+        x = CHUTE.LEFT + (INTAKE_X - CHUTE.LEFT) * roll;
+        y = CHUTE.centerAt(x, radius).y;
       } else if (ball.kind === 'launch') {
         const t = (age - BRANCH_TIME) / (LAUNCH_LIFE - BRANCH_TIME);
-        x = 260 + (LAUNCH_X - 260) * t;
-        y = 70 + (LAUNCH_Y - 70) * (2 * t - t * t);
+        ({ x, y } = launchPoint(t));
       } else {
-        const t = (age - BRANCH_TIME) / (POINT_LIFE - BRANCH_TIME);
-        x = 260 + 40 * Math.sin(t * Math.PI / 2);
-        y = 70 + 44 * t * t;
-        opacity = 1 - clamp((y - 94) / 20, 0, 1);
+        x = INTAKE_X;
+        y = INTAKE_Y;
       }
       return { id: ball.id, kind: ball.kind, x, y, opacity, scale: ball.scale };
     }
@@ -1091,10 +1199,9 @@ button:disabled{opacity:.45}
     getSnapshot() {
       return {
         busy: this._busy,
-        balls: this._balls.filter(ball => !ball.done && this._elapsed >= ball.born).map(ball => this._position(ball)),
-        // 0 bridges the hole for the first ball; 1 opens the collection route.
-        // Wait until the whole launch ball clears the bridge at x=336, then
-        // open it completely before the first point ball reaches the split.
+        balls: this._balls.filter(ball => !ball.done && !ball.handedOff && this._elapsed >= ball.born).map(ball => this._position(ball)),
+        // The right-hand diverter clears the first bead before switching to
+        // the downward outlet above the stored pile.
         gate: this._hasLaunch ? clamp((this._elapsed - BRANCH_TIME - GATE_DELAY) / GATE_TURN_TIME, 0, 1) : 1,
         inletOpen: this._busy && this._elapsed <= this._lastEntry,
         elapsed: this._elapsed,
@@ -1119,8 +1226,236 @@ button:disabled{opacity:.45}
   PinballFeeder.HEIGHT = HEIGHT;
   PinballFeeder.LAUNCH_X = LAUNCH_X;
   PinballFeeder.LAUNCH_Y = LAUNCH_Y;
+  Object.assign(PinballFeeder, { INTAKE_X, INTAKE_Y, BRANCH_TIME, TRAY, CHUTE, launchPoint });
   if (typeof module !== 'undefined' && module.exports) module.exports = PinballFeeder;
   root.PinballFeeder = PinballFeeder;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+  <script>
+(function (root) {
+  'use strict';
+
+  const Feeder = typeof module !== 'undefined' && module.exports ? require('./feeder.js') : root.PinballFeeder;
+  const TRAY = Feeder.TRAY;
+  const { LEFT, RIGHT, FLOOR, INTAKE_X, floorAt, slopeAt, centerAt } = TRAY;
+  const CHUTE = Feeder.CHUTE, INTAKE_Y = Feeder.INTAKE_Y;
+  // The feed chute is a real roof over the storage bowl. Its terminal section
+  // opens into the diverter, leaving room for a bead to fall from the outlet.
+  const ROOF_END = INTAKE_X - 36;
+  const GATE_TOP = CHUTE.centerAt(INTAKE_X, 12.5).y - 12.5;
+  const topAt = x => x <= ROOF_END ? CHUTE.bottomAt(x) : GATE_TOP;
+  const TOP = topAt(LEFT);
+  const STEP = 1 / 240, GRAVITY = 1480;
+  const clamp = (n, low, high) => Math.max(low, Math.min(high, n));
+
+  // This independent simulation is only the shallow, open collection tray.
+  // Feeder arrival callbacks remain the authority for points and readiness.
+  class PinballCollector {
+    constructor() { this.reset(); }
+
+    reset() {
+      this._balls = [];
+      this._queue = [];
+      this._ids = new Set();
+      this._remainder = 0;
+      this._drainWait = 0;
+      this._blockedFor = 0;
+      this._admitted = 0;
+      this._stored = 0;
+      this._admitWait = 0;
+      this._feedingFor = 0;
+      this._drainX = INTAKE_X;
+    }
+
+    add({ id, x = INTAKE_X, y = INTAKE_Y, radius = 11, vx = -180, vy = 220 } = {}) {
+      if ((typeof id !== 'number' && typeof id !== 'string') || (typeof id === 'number' && !Number.isFinite(id)) || this._ids.has(id)
+          || ![x, y, radius, vx, vy].every(Number.isFinite)
+          || radius < 4 || radius > 12.5) return false;
+      this._ids.add(id);
+      this._feedingFor = .3;
+      const entryX = clamp(x, LEFT + radius, RIGHT - radius);
+      const dropHeight = Math.max(0, centerAt(entryX, radius).y - y);
+      const fallTime = (Math.sqrt(vy * vy + 2 * GRAVITY * dropHeight) - vy) / GRAVITY;
+      this._drainX = clamp(entryX + vx * fallTime, LEFT + radius, RIGHT - radius);
+      this._queue.push({
+        id, radius, x: entryX,
+        y: clamp(y, topAt(entryX) + radius, centerAt(entryX, radius).y),
+        vx: clamp(vx, -220, 220), vy: clamp(vy, 50, 400)
+      });
+      return true;
+    }
+
+    tryAdd(ball = {}) {
+      const { id, x = INTAKE_X, y = INTAKE_Y, radius = 11, vx = -180, vy = 220 } = ball;
+      if ((typeof id !== 'number' && typeof id !== 'string') || (typeof id === 'number' && !Number.isFinite(id)) || this._ids.has(id)
+          || ![x, y, radius, vx, vy].every(Number.isFinite) || radius < 4 || radius > 12.5) return false;
+      const entryX = clamp(x, LEFT + radius, RIGHT - radius);
+      const entryY = clamp(y, topAt(entryX) + radius, centerAt(entryX, radius).y);
+      // The feeder holds this visible bead at the diverter when the throat
+      // backs up. A refusal never consumes its identity or hides it in a queue.
+      this._feedingFor = .3;
+      if (this._queue.length || this._admitWait > 0
+          || this._balls.filter(item => !item.draining).length >= this._targetCount() + 2
+          || this._balls.some(item => Math.hypot(entryX - item.x, entryY - item.y) < radius + item.radius + .2)) return false;
+      if (!this.add(ball)) return false;
+      const accepted = this._admit();
+      if (accepted) this._feedingFor = 0;
+      return accepted;
+    }
+
+    step(dt) {
+      if (!Number.isFinite(dt) || dt <= 0) return;
+      this._remainder += Math.min(dt, 60);
+      const steps = Math.floor((this._remainder + 1e-10) / STEP);
+      this._remainder = Math.max(0, this._remainder - steps * STEP);
+      for (let n = 0; n < steps; n++) this._step();
+    }
+
+    _targetCount() {
+      const active = this._balls.filter(b => !b.draining);
+      const samples = active.length ? active : this._queue;
+      const radius = samples.length ? samples.reduce((sum, b) => sum + b.radius, 0) / samples.length : 11;
+      // This is an upper capacity, not a target filled by relocating beads.
+      // A crowded outlet may open the drain before the full capacity is used.
+      // Stake size never shrinks the balls or changes this limit.
+      return Math.min(28, Math.max(8, Math.floor((RIGHT - LEFT) / (2 * radius) * 1.27)));
+    }
+
+    _admit() {
+      if (this._admitWait > 0) return false;
+      while (this._queue.length) {
+        const next = this._queue[0], r = next.radius;
+        const active = this._balls.filter(ball => !ball.draining).length;
+        if (active >= this._targetCount() + 2) break;
+        // Transfer at exactly the chute outlet, including its velocity. Wait
+        // for a clear throat rather than inserting a bead into the pile.
+        if (this._balls.some(ball => Math.hypot(next.x - ball.x, next.y - ball.y) < r + ball.radius + .2)) break;
+        this._balls.push({ ...next, draining: false });
+        this._queue.shift();
+        this._admitted++;
+        // Background completion may enqueue a whole handful at once. Meter
+        // these insertions so contacts have time to move the existing pile.
+        this._admitWait = .08;
+        return true;
+      }
+    }
+
+    _startDrain() {
+      if (this._drainWait > 0) return;
+      const active = this._balls.filter(b => !b.draining);
+      const target = this._targetCount();
+      // Backpressure in the fixed outlet also opens the concealed bottom
+      // drain. This lets the existing pile settle before another bead enters.
+      const pressure = (this._queue.length || this._feedingFor > 0) && active.length > 12
+        && active.some(ball => Math.hypot(ball.x - INTAKE_X, ball.y - INTAKE_Y) < ball.radius + 28);
+      const blocked = this._queue.length && this._blockedFor > .28 && active.length > 12;
+      if (active.length <= target && !pressure && !blocked) return;
+      const lowest = active.filter(b => b.y >= centerAt(b.x, b.radius).y - .8)
+        .sort((a, b) => Math.abs(a.x - this._drainX) - Math.abs(b.x - this._drainX) || b.y - a.y)[0];
+      if (!lowest) return;
+      // It keeps colliding while sinking. The front lip conceals the exit.
+      lowest.draining = true;
+      lowest.vy = Math.max(400, lowest.vy);
+      this._drainWait = .04;
+    }
+
+    _bounds(ball, bounce) {
+      const r = ball.radius;
+      if (ball.x < LEFT + r) { ball.x = LEFT + r; if (bounce && ball.vx < 0) ball.vx *= -.13; }
+      if (ball.x > RIGHT - r) { ball.x = RIGHT - r; if (bounce && ball.vx > 0) ball.vx *= -.13; }
+      const top = topAt(ball.x) + r;
+      if (ball.y < top) { ball.y = top; if (bounce && ball.vy < 0) ball.vy = 0; }
+      // A round contact at the end of the solid chute roof prevents lower
+      // beads from clipping its corner while the open throat remains clear.
+      if (ball.x > ROOF_END && ball.x < ROOF_END + r) {
+        const dx = ball.x - ROOF_END, dy = ball.y - CHUTE.bottomAt(ROOF_END);
+        const distance = Math.hypot(dx, dy);
+        if (distance < r) {
+          const nx = distance > 1e-8 ? dx / distance : 1, ny = distance > 1e-8 ? dy / distance : 0;
+          ball.x = ROOF_END + nx * r; ball.y = CHUTE.bottomAt(ROOF_END) + ny * r;
+          const normal = ball.vx * nx + ball.vy * ny;
+          if (bounce && normal < 0) { ball.vx -= normal * nx; ball.vy -= normal * ny; }
+        }
+      }
+      const contact = centerAt(ball.x, r), floor = contact.y;
+      if (!ball.draining && ball.y > floor) {
+        ball.y = floor;
+        const { nx, ny } = contact;
+        const normal = ball.vx * nx + ball.vy * ny;
+        if (bounce && normal < 0) {
+          const impulse = -(normal < -30 ? 1.13 : 1) * normal;
+          ball.vx += impulse * nx; ball.vy += impulse * ny;
+        }
+      }
+    }
+
+    _contacts(velocity) {
+      for (let i = 0; i < this._balls.length; i++) {
+        const a = this._balls[i];
+        for (let j = i + 1; j < this._balls.length; j++) {
+          const b = this._balls[j];
+          const dx = b.x - a.x, dy = b.y - a.y, minimum = a.radius + b.radius;
+          const distance = Math.hypot(dx, dy);
+          if (distance >= minimum) continue;
+          const nx = distance > 1e-8 ? dx / distance : 1;
+          const ny = distance > 1e-8 ? dy / distance : 0;
+          const invA = 1 / (a.radius * a.radius), invB = 1 / (b.radius * b.radius), invSum = invA + invB;
+          const correction = (minimum - distance) / invSum;
+          a.x -= nx * correction * invA; a.y -= ny * correction * invA;
+          b.x += nx * correction * invB; b.y += ny * correction * invB;
+          if (!velocity) continue;
+          const normal = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+          if (normal >= 0) continue;
+          const impulse = -(1 + (normal < -30 ? .12 : 0)) * normal / invSum;
+          a.vx -= impulse * nx * invA; a.vy -= impulse * ny * invA;
+          b.vx += impulse * nx * invB; b.vy += impulse * ny * invB;
+          const tangent = (b.vx - a.vx) * -ny + (b.vy - a.vy) * nx;
+          const friction = clamp(-tangent / invSum, -impulse * .28, impulse * .28);
+          a.vx -= friction * -ny * invA; a.vy -= friction * nx * invA;
+          b.vx += friction * -ny * invB; b.vy += friction * nx * invB;
+        }
+      }
+    }
+
+    _step() {
+      this._drainWait = Math.max(0, this._drainWait - STEP);
+      this._admitWait = Math.max(0, this._admitWait - STEP);
+      this._feedingFor = Math.max(0, this._feedingFor - STEP);
+      const entered = this._admit();
+      this._blockedFor = this._queue.length && !entered ? this._blockedFor + STEP : 0;
+      this._startDrain();
+      const drag = Math.exp(-.7 * STEP);
+      for (const ball of this._balls) {
+        ball.vx *= drag;
+        ball.vy = ball.vy * drag + GRAVITY * STEP;
+        ball.x += ball.vx * STEP; ball.y += ball.vy * STEP;
+        this._bounds(ball, true);
+      }
+      // Extra position recovery is needed only when a bead enters a crowded
+      // mouth; ordinary frames retain the lightweight contact budget.
+      for (let pass = 0; pass < (entered ? 256 : 48); pass++) {
+        this._contacts(pass < 3);
+        for (const ball of this._balls) this._bounds(ball, pass < 3);
+      }
+      this._balls = this._balls.filter(ball => {
+        if (ball.draining && ball.y - ball.radius > floorAt(ball.x) + 1) { this._stored++; return false; }
+        return true;
+      });
+    }
+
+    getSnapshot() {
+      return {
+        balls: this._balls.map(ball => ({ ...ball, opacity: 1 })),
+        pending: this._queue.length, admitted: this._admitted, stored: this._stored,
+        total: this._ids.size
+      };
+    }
+  }
+
+  Object.assign(PinballCollector, { LEFT, RIGHT, TOP, FLOOR, INTAKE_X, INTAKE_Y, MOUTH_LEFT: ROOF_END, floorAt, slopeAt, centerAt, topAt });
+  if (typeof module !== 'undefined' && module.exports) module.exports = PinballCollector;
+  root.PinballCollector = PinballCollector;
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
@@ -1488,23 +1823,24 @@ button:disabled{opacity:.45}
   let lastFrame = performance.now(), toastTimer, endTimer, roundAnnounced = false;
   let rollingUntil = 0, lastRollDigit = -1, lastPower = .65, dragStartY = 0;
   let helpPage = 0, layoutFrame = 0;
-  let launchReady = false, feedRound = null, feedDirty = false, feedCollected = 0;
+  let launchReady = false, launchAttempt = null, feedRound = null, feedDirty = false, feedCollected = 0;
   let feedPointAt = -Infinity, lastFeedSound = -Infinity;
   const audio = new PinballAudio({ enabled: sound });
   const haptics = new PinballHaptics({ enabled: readStorage('piggyHaptics', 'true') !== 'false' });
   const hits = new Map(), slotFlashes = new Map(), particles = [], recent = loadPractice();
   lastPower = normalizePower(recent[0]?.power ?? .65);
-  const engine = new PinballPhysics({ onPegHit, onScore, onImpact, onLaunch: event => { playSound('launch'); haptics.launch(event.power); } });
-  const feeder = new PinballFeeder({ onCollect: collectFeedPoint, onReady: readyFeedBall, onComplete: finishFeed });
+  const engine = new PinballPhysics({ onPegHit, onScore, onImpact, onExit: onGuideExit, onReturn: onGuideReturn, onLaunch: event => { playSound('launch'); haptics.launch(event.power); } });
+  const collector = new PinballCollector();
+  const feeder = new PinballFeeder({ onCollect: collectFeedPoint, onDrop: ball => collector.tryAdd(ball), onReady: readyFeedBall, onComplete: finishFeed });
 
   function readStorage(key, fallback) { try { return localStorage.getItem(key) ?? fallback; } catch { return fallback; } }
   function saveStorage(key, value) { try { localStorage.setItem(key, String(value)); } catch { /* Game remains playable without storage. */ } }
   function normalizePower(value) { return Math.max(.01, Math.min(1, Math.round(value * 100) / 100)); }
   function loadPractice() {
     try {
-      const saved = JSON.parse(readStorage('piggyPracticeFeederV1', '[]'));
+      const saved = JSON.parse(readStorage('piggyPracticeThresholdV3', '[]'));
       if (!Array.isArray(saved)) return [];
-      return saved.filter(s => s && Number.isFinite(s.power) && s.power >= .01 && s.power <= 1 && Number.isInteger(s.slot) && s.slot >= 1 && s.slot <= 10 && typeof s.hit === 'boolean' && Number.isSafeInteger(s.reward) && s.reward >= 0).slice(0, 3);
+      return saved.filter(s => s && Number.isFinite(s.power) && s.power > .1 && s.power <= 1 && Number.isInteger(s.slot) && s.slot >= 1 && s.slot <= 10 && typeof s.hit === 'boolean' && Number.isSafeInteger(s.reward) && s.reward >= 0).slice(0, 3);
     } catch { return []; }
   }
   function renderPractice() {
@@ -1560,45 +1896,116 @@ button:disabled{opacity:.45}
     c.restore();
   }
 
-  function drawBackground() {
-    const gradient = bg.createLinearGradient(0, 0, 520, 760);
+  function launchChuteFinish(c, curved = false) {
+    const rail = PinballPhysics.LAUNCH_RAIL;
+    // At the straight/arc join r = x - centerX, so the same colour stops
+    // follow the channel's normal without a diagonal band through the bend.
+    const chute = curved
+      ? c.createRadialGradient(rail.centerX, rail.centerY, 540 - rail.centerX,
+        rail.centerX, rail.centerY, 580 - rail.centerX)
+      : c.createLinearGradient(540, 0, 580, 0);
+    chute.addColorStop(0, '#b88e58'); chute.addColorStop(.3, '#cfa76f');
+    chute.addColorStop(.7, '#c89d64'); chute.addColorStop(1, '#b88950');
+    return chute;
+  }
+  function drawCabinetSurface(c, offsetY = 0) {
+    // Both canvases are windows onto one continuous cabinet, in global units.
+    const totalHeight = H + PinballFeeder.HEIGHT;
+    c.save(); c.translate(0, -offsetY);
+    const gradient = c.createLinearGradient(0, 0, 520, totalHeight);
     gradient.addColorStop(0, '#ed9750'); gradient.addColorStop(.5, '#e9a143'); gradient.addColorStop(1, '#e38b3c');
-    bg.fillStyle = gradient; bg.fillRect(0, 0, W, H);
-    bg.save(); bg.beginPath(); bg.rect(30, 15, 492, 721); bg.clip();
+    c.fillStyle = gradient; c.fillRect(0, 0, W, totalHeight);
+    c.save(); c.beginPath(); c.rect(30, 15, 492, totalHeight - 25); c.clip();
     for (let i = 0; i < 16; i++) {
       const a = i / 16 * Math.PI * 2;
-      bg.beginPath(); bg.moveTo(278, 430); bg.lineTo(278 + Math.cos(a) * 900, 430 + Math.sin(a) * 900); bg.lineTo(278 + Math.cos(a + .095) * 900, 430 + Math.sin(a + .095) * 900); bg.closePath(); bg.fillStyle = '#b65c3023'; bg.fill();
+      c.beginPath(); c.moveTo(278, 430); c.lineTo(278 + Math.cos(a) * 900, 430 + Math.sin(a) * 900); c.lineTo(278 + Math.cos(a + .095) * 900, 430 + Math.sin(a + .095) * 900); c.closePath(); c.fillStyle = '#b65c3023'; c.fill();
     }
-    bg.restore();
-    // Painted edge stripes, bolts, and raised metal rails.
-    rounded(bg, 11, 10, 523, 737, 28, null, '#ac5735', 18);
-    rounded(bg, 11, 10, 523, 737, 28, null, '#f9d39a', 3);
+    c.restore();
+    // Only the bottom of the complete cabinet turns the outside corners.
+    rounded(c, 11, 10, 578, totalHeight - 20, 28, null, '#ac5735', 18);
+    rounded(c, 11, 10, 578, totalHeight - 20, 28, null, '#f9d39a', 3);
+    // The playfield's inner trim continues down to the level storage tray.
+    c.beginPath(); c.moveTo(58, 20); c.lineTo(497, 20);
+    c.quadraticCurveTo(522, 20, 522, 45);
+    c.lineTo(522, H + traySurface.floorAt(522));
+    traceTrayFloor(c, 522, 33, H);
+    c.lineTo(33, 45); c.quadraticCurveTo(33, 20, 58, 20); c.closePath();
+    c.strokeStyle = '#994c2e'; c.lineWidth = 6; c.stroke();
+    c.strokeStyle = '#ffe1a1'; c.lineWidth = 2; c.stroke();
+    // The loading bay spans both canvases, so the new insert has no canvas seam.
+    c.save(); c.translate(0, H);
+    const bowl = makeTrayBowlPath(); c.clip(bowl);
+    const well = c.createLinearGradient(0, 12, 0, 127);
+    [[0,'#252c22'],[.35,'#343e2d'],[.8,'#414b35'],[1,'#2a3124']].forEach(([at,color]) => well.addColorStop(at,color));
+    c.fillStyle = well; c.fillRect(30, -24, 498, 154);
+    const ambient = c.createRadialGradient(158, 25, 0, 192, 46, 280);
+    ambient.addColorStop(0, '#f4d48216'); ambient.addColorStop(1, '#f4d48200');
+    c.fillStyle = ambient; c.fillRect(32, 13, 494, 113);
+    // Warm enamel and champagne metal share the cabinet's existing palette.
+    const bridge = c.createLinearGradient(0, -24, 0, 15);
+    bridge.addColorStop(0, '#fff0ce'); bridge.addColorStop(1, '#ddbd8d');
+    rounded(c, 32, -24, 494, 39, 9, bridge);
+    line(c, 78, 15, 510, 15, '#242b1e', 3);
+    line(c, 83, 17, 506, 17, '#e0c17d55', 1);
+    text(c, '投 珠 仓', 279, -5, 17, '#665036', 'Microsoft YaHei, sans-serif');
+    rounded(c, 105, -8, 62, 5, 2.5, '#b69a6c');
+    rounded(c, 392, -8, 62, 5, 2.5, '#b69a6c');
+    rounded(c, 461, -10, 23, 9, 4.5, '#ef8b46');
+    // The lower tray's satin highlight follows its horizontal supporting floor.
+    c.beginPath(); traceTrayFloor(c, 34, 524, -12, true);
+    traceTrayFloor(c, 524, 34, -1); c.closePath();
+    c.fillStyle = '#f5dfaa0e'; c.fill();
+    for (const x of [33, 525]) {
+      line(c, x, 15, x, traySurface.floorAt(x) - 4, '#e7c78f', 7);
+      line(c, x + (x < 100 ? 4 : -4), 19, x + (x < 100 ? 4 : -4), traySurface.floorAt(x) - 6, '#96784d', 1.2);
+    }
+    // Inlet and upper channel are one continuous moulding across the seam.
+    drawChuteBack(c);
+    c.restore();
+    c.restore();
+  }
+  function drawBackground() {
+    drawCabinetSurface(bg);
+    // Painted edge stripes and raised metal rails.
     for (let y = 65; y < 628; y += 35) {
       bg.beginPath(); bg.moveTo(12, y); bg.lineTo(25, y + 11); bg.lineTo(25, y + 21); bg.lineTo(12, y + 10); bg.fillStyle = '#f8ca88'; bg.fill();
-      bg.beginPath(); bg.moveTo(519, y); bg.lineTo(532, y - 11); bg.lineTo(532, y - 1); bg.lineTo(519, y + 10); bg.fill();
     }
-    rounded(bg, 33, 20, 489, 715, 25, null, '#994c2e', 4);
-    rounded(bg, 36, 23, 483, 710, 23, null, '#ffe1a1', 3);
     const rail = PinballPhysics.LAUNCH_RAIL;
-    rounded(bg, 542, rail.startY, 42, 735 - rail.startY, 19, '#a55f35', '#7e4a2c', 3);
-    const chute = bg.createLinearGradient(544, 0, 584, 0);
-    chute.addColorStop(0, '#725d40'); chute.addColorStop(.16, '#dfcf9c'); chute.addColorStop(.28, '#b8a473'); chute.addColorStop(.7, '#d0b47d'); chute.addColorStop(1, '#7c603d');
+    const chute = launchChuteFinish(bg);
     // The painted channel and the simulation share one quarter-turn centerline.
     // Paint over the cabinet edge so the outlet is visibly open to the playfield.
     bg.save(); bg.lineCap = 'butt';
     bg.beginPath(); bg.moveTo(rail.startX, H); bg.lineTo(rail.startX, rail.startY);
     bg.arc(rail.centerX, rail.centerY, rail.radius, 0, -rail.angle, true);
-    bg.strokeStyle = '#795132'; bg.lineWidth = rail.halfWidth * 2 + 4; bg.stroke();
+    bg.strokeStyle = '#a57848'; bg.lineWidth = rail.halfWidth * 2 + 3; bg.stroke();
     bg.strokeStyle = chute; bg.lineWidth = rail.halfWidth * 2; bg.stroke();
+    // Paint the bend over the continuous undercoat so no butt-cap gap opens
+    // where its radial finish meets the straight shaft's linear finish.
+    bg.beginPath(); bg.arc(rail.centerX, rail.centerY, rail.radius, 0, -rail.angle, true);
+    bg.strokeStyle = launchChuteFinish(bg, true); bg.stroke();
     // A softly flared, open mouth blends the channel floor into the playfield.
     // Only the lip finish changes; the physical 90-degree guide stays intact.
-    const mouth = bg.createLinearGradient(rail.exitX - 20, 0, rail.exitX + 2, 0);
-    mouth.addColorStop(0, '#b8a47300'); mouth.addColorStop(1, '#b8a473');
+    const mouthLeft = rail.exitX - 20, mouthTop = rail.exitY - rail.halfWidth - 6;
+    const mouthWidth = 22, mouthHeight = (rail.halfWidth + 6) * 2;
+    const mouthArt = document.createElement('canvas');
+    mouthArt.width = mouthWidth * dpr; mouthArt.height = mouthHeight * dpr;
+    const mouthCtx = mouthArt.getContext('2d'); mouthCtx.scale(dpr, dpr);
+    mouthCtx.translate(-mouthLeft, -mouthTop);
+    mouthCtx.fillStyle = launchChuteFinish(mouthCtx, true);
+    mouthCtx.fillRect(mouthLeft, mouthTop, mouthWidth, mouthHeight);
+    // Fade only the isolated outlet layer; retain the bend's cross-section
+    // colours instead of covering it with a separate, flat dark-gold patch.
+    mouthCtx.globalCompositeOperation = 'destination-in';
+    const mouthFade = mouthCtx.createLinearGradient(mouthLeft, 0, rail.exitX, 0);
+    mouthFade.addColorStop(0, '#0000'); mouthFade.addColorStop(1, '#000');
+    mouthCtx.fillStyle = mouthFade;
+    mouthCtx.fillRect(mouthLeft, mouthTop, mouthWidth, mouthHeight);
     bg.beginPath(); bg.moveTo(rail.exitX + 1, rail.exitY - rail.halfWidth);
     bg.bezierCurveTo(rail.exitX - 6, rail.exitY - rail.halfWidth, rail.exitX - 10, rail.exitY - rail.halfWidth - 6, rail.exitX - 20, rail.exitY - rail.halfWidth - 6);
     bg.lineTo(rail.exitX - 20, rail.exitY + rail.halfWidth + 6);
     bg.bezierCurveTo(rail.exitX - 10, rail.exitY + rail.halfWidth + 6, rail.exitX - 6, rail.exitY + rail.halfWidth, rail.exitX + 1, rail.exitY + rail.halfWidth);
-    bg.closePath(); bg.fillStyle = mouth; bg.fill();
+    bg.closePath(); bg.save(); bg.clip();
+    bg.drawImage(mouthArt, mouthLeft, mouthTop, mouthWidth, mouthHeight); bg.restore();
     bg.lineCap = 'round'; bg.lineJoin = 'round';
     for (const side of [-1, 1]) {
       const radius = rail.radius + side * rail.halfWidth;
@@ -1606,12 +2013,12 @@ button:disabled{opacity:.45}
       bg.arc(rail.centerX, rail.centerY, radius, 0, -rail.angle, true);
       const endY = rail.centerY - radius;
       bg.bezierCurveTo(rail.exitX - 6, endY, rail.exitX - 10, endY - side * 6, rail.exitX - 20, endY - side * 6);
-      bg.strokeStyle = '#775131'; bg.lineWidth = 4; bg.stroke();
-      bg.strokeStyle = side < 0 ? '#ffdf9f' : '#dac99b'; bg.lineWidth = 1.6; bg.stroke();
+      bg.strokeStyle = '#a57848'; bg.lineWidth = 2.6; bg.stroke();
+      bg.strokeStyle = side < 0 ? '#f3d39b' : '#e8c18a'; bg.lineWidth = 1.1; bg.stroke();
     }
     bg.restore();
     for (let y = 258; y < 615; y += 100) {
-      bg.beginPath(); bg.moveTo(555, y + 10); bg.lineTo(562, y); bg.lineTo(569, y + 10); bg.strokeStyle = '#fff0bc99'; bg.lineWidth = 3; bg.lineCap = 'round'; bg.stroke();
+      bg.beginPath(); bg.moveTo(555, y + 10); bg.lineTo(562, y); bg.lineTo(569, y + 10); bg.strokeStyle = '#f6d99b66'; bg.lineWidth = 2; bg.lineCap = 'round'; bg.stroke();
     }
     bg.save(); bg.translate(562, 155); bg.rotate(Math.PI / 2); text(bg, 'LAUNCH LANE', 0, 0, 9, '#78512e', 'monospace'); bg.restore();
     // The playfield's printed artwork.
@@ -1671,10 +2078,9 @@ button:disabled{opacity:.45}
       ellipse(bg, peg.x, peg.y - 1, 6.2, 7, metal, '#777459', .8);
       ellipse(bg, peg.x - 1.5, peg.y - 3.5, 1.7, 2, '#fffde9');
     });
-    [ [22, 37], [519, 37], [21, 721], [523, 722] ].forEach(([x, y]) => {
+    [ [22, 37], [519, 37] ].forEach(([x, y]) => {
       ellipse(bg, x, y, 5, 5, '#cfbd90', '#795331', 1.5); line(bg, x - 2, y + 2, x + 2, y - 2, '#715332', 1);
     });
-    text(bg, 'PIGGY PINBALL CLUB', 278, 746, 8, '#98512d', 'monospace');
   }
 
   function drawBall(c, x, y, radius, alpha = 1) {
@@ -1760,105 +2166,304 @@ button:disabled{opacity:.45}
     $('pointCount').title = `${game.points} 积分`;
     saveProgress();
   }
-  let feederArtwork;
+  function finishFeedMotion() {
+    // The outlet can hold a bead while the lower pile settles. Advance both
+    // mechanisms together when skipping motion, so a full mouth can clear.
+    for (let frame = 0; frame < 60 * 60 && feeder.busy; frame++) {
+      feeder.step(1 / 60); collector.step(1 / 60);
+    }
+    collector.step(10);
+    flushFeedPoints();
+  }
+  let feederArtwork, shownFeederGate = 1, lastGateFrame = 0;
+  const traySurface = PinballFeeder.TRAY;
+  const chuteSurface = PinballFeeder.CHUTE;
+  function traceTrayFloor(path, from, to, offset = 0, move = false) {
+    const step = from <= to ? 4 : -4;
+    if (move) path.moveTo(from, traySurface.floorAt(from) + offset);
+    else path.lineTo(from, traySurface.floorAt(from) + offset);
+    for (let x = from + step; step > 0 ? x < to : x > to; x += step) path.lineTo(x, traySurface.floorAt(x) + offset);
+    path.lineTo(to, traySurface.floorAt(to) + offset);
+  }
+  function traceChuteFloor(path, from, to, offset = 0, move = false) {
+    const step = from <= to ? 4 : -4;
+    if (move) path.moveTo(from, chuteSurface.floorAt(from) + offset);
+    else path.lineTo(from, chuteSurface.floorAt(from) + offset);
+    for (let x = from + step; step > 0 ? x < to : x > to; x += step) path.lineTo(x, chuteSurface.floorAt(x) + offset);
+    path.lineTo(to, chuteSurface.floorAt(to) + offset);
+  }
+  function makeChuteBackPath(inner = false) {
+    const path = new Path2D(), end = PinballCollector.MOUTH_LEFT;
+    const left = inner ? 43 : 37, right = inner ? 69 : 75;
+    const top = inner ? -14 : -18, bottomOffset = inner ? 0 : 6;
+    const upperOffset = inner ? -23 : -25, shoulder = inner ? 82 : 88;
+    const joinY = chuteSurface.floorAt(52) + bottomOffset;
+    path.moveTo(50, top); path.quadraticCurveTo(left, top, left, -6);
+    path.lineTo(left, inner ? 24 : 30);
+    path.bezierCurveTo(left, inner ? 34 : 42, inner ? 46 : 43,
+      joinY - chuteSurface.slopeAt(52) * (inner ? 6 : 9), 52, joinY);
+    traceChuteFloor(path, 52, end, bottomOffset);
+    traceChuteFloor(path, end, shoulder, upperOffset);
+    const shoulderY = chuteSurface.floorAt(shoulder) + upperOffset;
+    path.bezierCurveTo(shoulder - 8, shoulderY - chuteSurface.slopeAt(shoulder) * 8,
+      right, inner ? 17 : 16, right, inner ? 10 : 8);
+    path.lineTo(right, -6); path.quadraticCurveTo(right, top, 61, top);
+    path.closePath(); return path;
+  }
+  function drawChuteBack(c) {
+    const bezel = c.createLinearGradient(0, -18, 0, 76);
+    [[0,'#fff0ce'],[.4,'#e1c593'],[.75,'#b59a69'],[1,'#8b734c']].forEach(([at,color]) => bezel.addColorStop(at,color));
+    const outer = makeChuteBackPath();
+    c.fillStyle = bezel; c.fill(outer);
+    c.strokeStyle = '#8d754c'; c.lineWidth = 1.2; c.stroke(outer);
+    const inner = makeChuteBackPath(true);
+    const well = c.createLinearGradient(0, -14, 0, 76);
+    [[0,'#1e271c'],[.4,'#46533b'],[1,'#2c3626']].forEach(([at,color]) => well.addColorStop(at,color));
+    c.fillStyle = well; c.fill(inner);
+    c.strokeStyle = '#806d49'; c.lineWidth = 1; c.stroke(inner);
+    c.beginPath(); c.moveTo(40, -6); c.lineTo(40, 27);
+    c.bezierCurveTo(40, 40, 45, 45, 52, chuteSurface.bottomAt(52) - 1);
+    c.strokeStyle = '#fff0c48c'; c.lineWidth = 1.3; c.stroke();
+    c.beginPath(); traceChuteFloor(c, 84, PinballCollector.MOUTH_LEFT, -24, true);
+    c.strokeStyle = '#f7dfac88'; c.lineWidth = 1; c.stroke();
+    for (const x of [100, 275, 424]) {
+      const y = chuteSurface.floorAt(x) - 17;
+      ellipse(c, x, y, 2.4, 2.4, '#c5aa78');
+      line(c, x - 1, y, x + 1, y, '#75613f', 1);
+    }
+  }
+  function launchFloorAt(x) {
+    return PinballFeeder.launchPoint((x - PinballFeeder.INTAKE_X)
+      / (PinballFeeder.LAUNCH_X - PinballFeeder.INTAKE_X)).y + 8.5;
+  }
+  function traceLaunchFloor(path, from, to, offset = 0, move = false) {
+    const step = from <= to ? 2 : -2;
+    const floor = x => launchFloorAt(x) + offset;
+    if (move) path.moveTo(from, floor(from)); else path.lineTo(from, floor(from));
+    for (let x = from + step; step > 0 ? x < to : x > to; x += step) path.lineTo(x, floor(x));
+    path.lineTo(to, floor(to));
+  }
+  function traceDiverter(c) {
+    c.beginPath(); c.moveTo(0, 0); c.lineTo(-4, 6);
+    c.quadraticCurveTo(8, 19, -14, 26);
+  }
+  function makeTrayBowlPath() {
+    const bowl = new Path2D(); bowl.moveTo(traySurface.LEFT, -24);
+    bowl.lineTo(traySurface.RIGHT, -24);
+    traceTrayFloor(bowl, traySurface.RIGHT, traySurface.LEFT);
+    bowl.closePath();
+    return bowl;
+  }
+  function makeTrayApronPath() {
+    const apron = new Path2D(), top = traySurface.FLOOR + 1;
+    apron.moveTo(traySurface.LEFT, top); apron.lineTo(traySurface.RIGHT, top);
+    apron.quadraticCurveTo(530, top, 530, 131);
+    apron.quadraticCurveTo(530, 134, traySurface.RIGHT, 134);
+    apron.lineTo(traySurface.LEFT, 134);
+    apron.quadraticCurveTo(28, 134, 28, 131);
+    apron.quadraticCurveTo(28, top, traySurface.LEFT, top);
+    apron.closePath();
+    return apron;
+  }
   function makeFeederArtwork() {
     const art = document.createElement('canvas'); art.width = W * dpr; art.height = PinballFeeder.HEIGHT * dpr;
     const c = art.getContext('2d'); c.scale(dpr, dpr); c.lineCap = 'round'; c.lineJoin = 'round';
-    const gradient = (y1, y2, stops) => { const g = c.createLinearGradient(0, y1, 0, y2); stops.forEach(([at, color]) => g.addColorStop(at, color)); return g; };
-    const copper = gradient(4, 131, [[0,'#ffe2a9'],[.06,'#c46c32'],[.12,'#ffb969'],[.2,'#8a3d1e'],[.55,'#b36632'],[.87,'#69351e'],[.94,'#f5b76e'],[1,'#70321c']]);
-    const recess = gradient(18, 118, [[0,'#20150e'],[.38,'#57331c'],[.8,'#81502a'],[1,'#372014']]);
-    const rim = gradient(63, 112, [[0,'#fff0bb'],[.2,'#d49851'],[.48,'#80441e'],[.7,'#f3bf73'],[1,'#713e24']]);
-    c.fillStyle = '#823e23'; c.fillRect(0, 0, W, 136);
-    line(c, 12, 3, 585, 3, '#472516', 7);
-    rounded(c, 3, 7, 594, 127, 22, '#5e2e1b', '#e5a66b', 2);
-    rounded(c, 7, 9, 586, 119, 19, copper, '#ffdfaa', 1.8);
-    rounded(c, 14, 16, 572, 104, 15, '#582b19', '#672e19', 4);
-    rounded(c, 18, 19, 564, 98, 13, recess, '#efad65', 1.8);
-    rounded(c, 22, 23, 556, 90, 11, null, '#29170e', 3);
-    // The trough and well share one rim, with an open throat at the left.
-    c.beginPath(); c.moveTo(31, 32); c.bezierCurveTo(27, 63, 36, 81, 60, 84);
-    c.bezierCurveTo(122, 88, 204, 85, 245, 95); c.bezierCurveTo(253, 97, 249, 104, 257, 114);
-    c.bezierCurveTo(275, 137, 329, 135, 347, 115); c.bezierCurveTo(365, 95, 337, 69, 300, 70);
-    c.bezierCurveTo(275, 69, 269, 82, 254, 80); c.lineTo(64, 62);
-    c.quadraticCurveTo(45, 61, 47, 33); c.closePath(); c.fillStyle = rim; c.fill();
-    // The dark well stays recessed; no closed left arc cuts across the inlet.
-    const well = c.createRadialGradient(293, 86, 3, 300, 101, 43);
-    well.addColorStop(0, '#775333'); well.addColorStop(.48, '#32251a'); well.addColorStop(.9, '#100f0c'); well.addColorStop(1, '#48311e');
-    ellipse(c, 300, 99, 40, 23, well);
-    ellipse(c, 300, 110, 25, 9, '#0d0d0a');
-    // The rear highlight flows from the trough around the back of the well.
-    c.beginPath(); c.moveTo(34, 32); c.bezierCurveTo(31, 56, 39, 67, 56, 67);
-    c.bezierCurveTo(122, 72, 213, 77, 254, 80);
-    c.bezierCurveTo(269, 82, 275, 69, 300, 70); c.ellipse(300, 98, 47, 28, 0, -Math.PI / 2, .1);
-    c.strokeStyle = '#492716'; c.lineWidth = 9; c.stroke();
-    c.strokeStyle = '#f6c882'; c.lineWidth = 5; c.stroke();
-    c.strokeStyle = '#fff0bd'; c.lineWidth = 1.3; c.stroke();
-    // Smooth lower ramp into the existing right-hand launch shaft.
-    c.beginPath(); c.moveTo(334, 82); c.bezierCurveTo(383, 86, 472, 91, 562, 90);
-    c.quadraticCurveTo(583, 88, 580, 65); c.lineTo(578, 108);
-    c.bezierCurveTo(469, 111, 387, 103, 339, 93); c.closePath(); c.fillStyle = rim; c.fill();
-    c.beginPath(); c.moveTo(335, 82); c.bezierCurveTo(402, 86, 485, 90, 562, 90);
-    c.strokeStyle = '#482718'; c.lineWidth = 8; c.stroke();
-    c.strokeStyle = '#e5ac68'; c.lineWidth = 5; c.stroke();
-    c.strokeStyle = '#ffedb1'; c.lineWidth = 1.4; c.stroke();
-    // Subtle engraved direction cue above the ramp.
-    c.beginPath(); c.moveTo(371, 57); c.quadraticCurveTo(398, 58, 422, 68);
-    c.strokeStyle = '#e68a3c88'; c.lineWidth = 3; c.stroke();
-    c.beginPath(); c.moveTo(416, 60); c.lineTo(427, 70); c.lineTo(412, 71); c.fillStyle = '#e4a24caa'; c.fill();
-    // Open at the top: this is the same shaft as the launch lane on the board.
-    const shaft = c.createLinearGradient(548, 0, 576, 0);
-    shaft.addColorStop(0, '#dfcf9c'); shaft.addColorStop(.18, '#baa474'); shaft.addColorStop(.45, '#ccb17b'); shaft.addColorStop(.78, '#a2804d'); shaft.addColorStop(1, '#6b4c2a');
-    c.fillStyle = shaft; c.fillRect(548, 0, 28, 121);
-    line(c, 548, 0, 548, 64, '#ffe8b0', 2); line(c, 576, 0, 576, 119, '#ffe1a0', 2);
-    line(c, 579, 7, 579, 116, '#56341d', 2);
-    // The physical inlet is behind a hood; labels sit above the cavity.
-    rounded(c, 31, -10, 36, 53, 8, '#452c1b', '#c39458', 2);
-    rounded(c, 38, -12, 22, 49, 5, '#171610', '#795735', 1);
-    line(c, 35, 39, 64, 39, '#f7ca89', 3);
-    for (const [x,y] of [[21,15],[583,16],[21,122],[582,122]]) {
-      ellipse(c, x, y, 3.4, 3.4, '#d7a266', '#61351f', 1); line(c, x - 1.5, y + 1.5, x + 1.5, y - 1.5, '#6b4527', 1);
-    }
+    const gradient = (x1, y1, x2, y2, stops) => {
+      const g = c.createLinearGradient(x1, y1, x2, y2); stops.forEach(([at, color]) => g.addColorStop(at, color)); return g;
+    };
+    drawCabinetSurface(c, H);
+    // A level warm-enamel apron supports the olive well. It stays behind
+    // the beads; only the transparent, half-bead-high guard is foreground art.
+    const apron = makeTrayApronPath();
+    c.save(); c.clip(apron);
+    c.fillStyle = gradient(0, 127, 0, 136, [[0,'#fff0ce'],[.4,'#f1d1a2'],[.8,'#c7a576'],[1,'#9a794e']]);
+    c.fillRect(23, 126, 507, 10);
+    c.beginPath(); traceTrayFloor(c, traySurface.LEFT, traySurface.RIGHT, 3, true);
+    c.strokeStyle = '#fff0ce'; c.lineWidth = 1; c.stroke();
+    rounded(c, 55, 131, 45, 2, 1, '#a08255');
+    rounded(c, 105, 131, 15, 2, 1, '#ef8b46');
+    c.restore();
+    // Rear support is painted before the receiver so neither its upright nor
+    // the tray wall can cross the open branch. Bury the round foot in the casting.
+    line(c, 421, 41, 548, 41, '#73502f33', 8);
+    line(c, 421, 40, 548, 40, '#c9a16b', 5);
+    line(c, 422, 38, 547, 38, '#eed0a0', 1);
+    rounded(c, 494, 15, 28, 32, 6, gradient(0, 15, 0, 47, [[0,'#e5bd86'],[1,'#c49a64']]), '#ad824e', 1);
+    line(c, 516, 44, 516, launchFloorAt(516), '#c69b63', 6);
+    // The open upper recess receives the same fixed-size arm when folded up.
+    c.save(); c.translate(500, 43); c.rotate(Math.PI); traceDiverter(c);
+    c.strokeStyle = '#8c7752'; c.lineWidth = 9; c.stroke();
+    c.strokeStyle = '#293322'; c.lineWidth = 6; c.stroke(); c.restore();
+    // The receiver and shaft form one casting; its left wall opens into the
+    // branch instead of crossing it. All ball-contact geometry stays unchanged.
+    const branchStart = 504, branchEnd = PinballFeeder.LAUNCH_X, shoulderX = 532;
+    c.beginPath(); c.moveTo(548, -10); c.lineTo(576, -10);
+    c.lineTo(576, 119); c.quadraticCurveTo(576, 126, 569, 126);
+    c.lineTo(555, 126); c.quadraticCurveTo(548, 126, 548, 119);
+    c.lineTo(548, 99);
+    c.quadraticCurveTo(548, 94, 540, launchFloorAt(540) + 6);
+    traceLaunchFloor(c, 540, branchStart, 6);
+    traceLaunchFloor(c, branchStart, shoulderX, -25);
+    c.quadraticCurveTo(548, 62, 548, 48); c.closePath();
+    c.fillStyle = launchChuteFinish(c); c.fill();
+    // A soft recess gives depth without an olive/gold seam across the shaft.
+    c.save(); c.clip();
+    const recess = gradient(504, 0, 563, 0, [[0,'#6f59354d'],[.55,'#8e683329'],[1,'#8e683300']]);
+    c.beginPath(); traceLaunchFloor(c, branchStart, branchEnd, -23, true);
+    traceLaunchFloor(c, branchEnd, branchStart, -3); c.closePath();
+    c.fillStyle = recess; c.fill(); c.restore();
+    // One fine highlight follows each continuous outer edge of the junction.
+    c.beginPath(); c.moveTo(548, 0); c.lineTo(548, 48);
+    c.quadraticCurveTo(548, 62, shoulderX, launchFloorAt(shoulderX) - 25);
+    traceLaunchFloor(c, shoulderX, branchStart, -25);
+    c.moveTo(548, 99); c.lineTo(548, 119);
+    c.quadraticCurveTo(548, 126, 555, 126); c.lineTo(569, 126);
+    c.quadraticCurveTo(576, 126, 576, 119); c.lineTo(576, 0);
+    c.strokeStyle = '#a57848'; c.lineWidth = 2.6; c.stroke();
+    c.strokeStyle = '#edcb95'; c.lineWidth = 1.1; c.stroke();
+    rounded(c, 582, 94, 4, 23, 2, '#e7c78f');
     return art;
+  }
+  function drawChuteFront(c, gate) {
+    const end = PinballCollector.MOUTH_LEFT, branchX = 504;
+    const branch = PinballFeeder.launchPoint((branchX - PinballFeeder.INTAKE_X)
+      / (PinballFeeder.LAUNCH_X - PinballFeeder.INTAKE_X));
+    const pivotY = chuteSurface.floorAt(end);
+    const dx = branchX - end, dy = branch.y + 8.5 - pivotY;
+    // A rigid bridge slides back into the left channel. The lip conceals the
+    // retracted length; no part grows, shrinks or fades into existence.
+    c.save(); c.beginPath(); c.rect(end - 1, pivotY - 5, dx + 3, 20); c.clip();
+    line(c, end - gate * dx, pivotY - gate * dy,
+      branchX - gate * dx, branch.y + 8.5 - gate * dy, '#b59a69', 6);
+    line(c, end - gate * dx, pivotY - gate * dy - 2,
+      branchX - gate * dx, branch.y + 6.5 - gate * dy, '#ffe5b3', 1.5); c.restore();
+    // The inlet's lower cheek turns into the same continuous six-pixel lip.
+    c.beginPath(); c.moveTo(43, 24);
+    const innerY = chuteSurface.floorAt(52) - 3;
+    c.bezierCurveTo(43, 32, 46, innerY - chuteSurface.slopeAt(52) * 6, 52, innerY);
+    traceChuteFloor(c, 52, end, -3);
+    traceChuteFloor(c, end, 52, 6);
+    c.bezierCurveTo(43, chuteSurface.bottomAt(52) - chuteSurface.slopeAt(52) * 9, 37, 42, 37, 30);
+    c.lineTo(37, 24); c.closePath();
+    c.fillStyle = '#b59a69'; c.fill();
+    c.beginPath(); c.moveTo(43, 24);
+    c.bezierCurveTo(43, 32, 46, innerY - chuteSurface.slopeAt(52) * 6, 52, innerY);
+    traceChuteFloor(c, 52, end, -3);
+    c.strokeStyle = '#ffe5b3'; c.lineWidth = 1.8; c.stroke();
+    c.beginPath(); c.moveTo(37, 24); c.lineTo(37, 30);
+    c.bezierCurveTo(37, 42, 43, chuteSurface.bottomAt(52) - chuteSurface.slopeAt(52) * 9,
+      52, chuteSurface.bottomAt(52));
+    traceChuteFloor(c, 52, end, 6);
+    c.strokeStyle = '#695737'; c.lineWidth = 1.5; c.stroke();
+    // Fold the low lip into the near wall before the spring well. Its right
+    // edge stays left of x547, clear of the seat even at full compression.
+    const turnX = 532, wallX = 546;
+    const traceReceiverLip = (path, lower = false) => {
+      traceLaunchFloor(path, branchX, turnX, lower ? 6 : -3, true);
+      if (lower) path.bezierCurveTo(542, launchFloorAt(turnX) + 10, wallX - 4, 94, wallX - 4, 99);
+      else path.bezierCurveTo(542, launchFloorAt(turnX), wallX, 88, wallX, 99);
+    };
+    c.beginPath(); traceReceiverLip(c); c.lineTo(wallX, 102);
+    c.quadraticCurveTo(wallX - 4, 102, wallX - 4, 99);
+    c.bezierCurveTo(wallX - 4, 94, 542, launchFloorAt(turnX) + 10, turnX, launchFloorAt(turnX) + 6);
+    traceLaunchFloor(c, turnX, branchX, 6); c.closePath();
+    c.fillStyle = launchChuteFinish(c); c.fill();
+    c.beginPath(); traceReceiverLip(c); c.lineTo(wallX, 102);
+    c.strokeStyle = '#edcb95'; c.lineWidth = 1.2; c.stroke();
+    c.beginPath(); traceReceiverLip(c, true);
+    c.strokeStyle = '#a57848'; c.lineWidth = 1.2; c.stroke();
+    rounded(c, end - 3, pivotY - 3, 5, 10, 1.5, '#b59a69', '#e9cf9d', 1);
+  }
+  function drawFeederBall(c, x, y, radius, opacity = 1) {
+    drawBall(c, x, y, radius, opacity);
+  }
+  function drawCollectorFront(c) {
+    // Nearly clear glass reflects the cabinet's warm colors. Its top edge
+    // stays horizontal with the physical floor and the same low guard height.
+    c.beginPath(); traceTrayFloor(c, traySurface.LEFT, traySurface.RIGHT, -6, true);
+    traceTrayFloor(c, traySurface.RIGHT, traySurface.LEFT, 8); c.closePath();
+    const glass = c.createLinearGradient(0, 80, 0, 134);
+    glass.addColorStop(0, '#fff0ce20'); glass.addColorStop(1, '#d3c2a533');
+    c.fillStyle = glass; c.fill();
+    c.beginPath(); traceTrayFloor(c, traySurface.LEFT, traySurface.RIGHT, -6, true);
+    c.strokeStyle = '#fff0ce'; c.lineWidth = 2; c.stroke();
+    c.beginPath(); traceTrayFloor(c, traySurface.LEFT, traySurface.RIGHT, 6, true);
+    c.strokeStyle = '#a58b60aa'; c.lineWidth = 1.5; c.stroke();
+    for (const [x, direction] of [[traySurface.LEFT,1],[traySurface.RIGHT,-1]]) {
+      const y = traySurface.floorAt(x);
+      c.beginPath(); c.moveTo(x, y + 6); c.quadraticCurveTo(x - direction * 5, y + 5, x - direction * 5, y - 3);
+      c.strokeStyle = '#edcfa0'; c.lineWidth = 4; c.stroke();
+    }
   }
   function drawFeeder(now) {
     const c = feederCtx, snapshot = feeder.getSnapshot();
+    const gateStep = Math.max(0, Math.min(.05, (now - lastGateFrame) / 1000));
+    lastGateFrame = now;
+    // Rearm visibly before the first bead reaches the outlet. Opening follows
+    // the feeder's existing gate timing so collection always has a clear path.
+    shownFeederGate = snapshot.gate < shownFeederGate
+      ? Math.max(snapshot.gate, shownFeederGate - gateStep / .16) : snapshot.gate;
     if (!feederArtwork) feederArtwork = makeFeederArtwork();
     c.clearRect(0, 0, W, PinballFeeder.HEIGHT); c.drawImage(feederArtwork, 0, 0, W, PinballFeeder.HEIGHT);
     c.save(); c.lineCap = 'round'; c.lineJoin = 'round';
-    // A substantial copper bridge swings upward after the first ball clears it.
-    c.save(); c.translate(336, 88); c.rotate(-Math.PI + .028 + snapshot.gate * (Math.PI - .38));
-    const bridge = c.createLinearGradient(0, -6, 0, 7);
-    bridge.addColorStop(0,'#ffe4a7'); bridge.addColorStop(.3,'#d99951'); bridge.addColorStop(.7,'#995126'); bridge.addColorStop(1,'#f3b66d');
-    rounded(c, -6, -6, 82, 13, 6, '#321d1266');
-    rounded(c, -7, -8, 82, 13, 6, bridge, '#ffe4ad', 1.5);
-    line(c, 4, -4, 63, -4, '#fff1bf', 1.4);
-    ellipse(c, 67, -1.5, 4, 4, '#774020', '#efc07e', 1.2); c.restore();
-    ellipse(c, 336, 86, 6.5, 6.5, '#d49750', '#ffe6b6', 1.6);
-    ellipse(c, 336, 86, 2.8, 2.8, '#75421f', '#f5c17a', 1);
+    const pointAge = (now - feedPointAt) / 650;
+    // Status light belongs to the open inlet; it never overlays the roll path.
+    rounded(c, 38, 0, 3, 17, 1.5, snapshot.inletOpen ? '#ffe5a2' : '#7a7952');
+    if (snapshot.inletOpen) {
+      const glow = c.createRadialGradient(40, 10, 0, 40, 10, 14);
+      glow.addColorStop(0, '#ffda8b30'); glow.addColorStop(1, '#ffda8b00');
+      ellipse(c, 40, 10, 14, 14, glow);
+    }
+    if (pointAge >= 0 && pointAge < 1) {
+      c.save(); c.globalAlpha = 1 - pointAge;
+      ellipse(c, 481, PinballFeeder.INTAKE_Y + 18, 15 + pointAge * 4, 5, '#ffb57530', '#ffc08a', 1.5);
+      c.restore();
+    }
     const springTop = 89 + (charging ? power * 10 : 0);
     c.beginPath(); c.moveTo(552, springTop);
     for (let i = 0; i <= 9; i++) c.lineTo(i % 2 ? 571 : 553, springTop + i * (120 - springTop) / 9);
-    c.strokeStyle = '#665539'; c.lineWidth = 3; c.stroke();
-    c.strokeStyle = '#d4bc87'; c.lineWidth = 1.3; c.stroke();
-    line(c, 551, springTop - 2, 573, springTop - 2, '#f5dfaa', 3);
-    snapshot.balls.forEach(ball => drawBall(c, ball.x, ball.y, (ball.kind === 'point' ? 11 : 8.5) * ball.scale, ball.opacity));
-    if (launchReady) drawBall(c, PinballFeeder.LAUNCH_X, PinballFeeder.LAUNCH_Y + (charging ? power * 10 : 0), 8.5);
-    for (const ball of engine.balls) if (ball.y + ball.radius >= H) drawBall(c, ball.x, ball.y - H, ball.radius, Math.max(0, ball.fade));
-    // Foreground hood and well lip hide the source and the depth transition.
-    rounded(c, 31, -10, 36, 39, 7, '#704822', '#e6b475', 2);
-    rounded(c, 35, -12, 28, 35, 4, '#2f2418', '#976a3e', 1);
-    line(c, 34, 29, 65, 29, '#ffdda2', 2.5);
-    // One continuous front lip connects the bowl floor to the collection well.
-    c.beginPath(); c.moveTo(31, 32); c.bezierCurveTo(27, 63, 36, 81, 60, 84);
-    c.bezierCurveTo(122, 88, 204, 85, 245, 95); c.bezierCurveTo(253, 97, 253, 105, 260, 110);
-    c.bezierCurveTo(269, 120, 283, 125, 300, 125); c.ellipse(300, 99, 44, 26, 0, Math.PI / 2, .1, true);
-    c.strokeStyle = '#7b431f'; c.lineWidth = 7; c.stroke();
-    c.strokeStyle = '#e9ba79'; c.lineWidth = 3; c.stroke();
-    c.strokeStyle = '#fff0bd'; c.lineWidth = .9; c.stroke();
-    const age = (now - feedPointAt) / 650;
+    c.strokeStyle = '#413f2c'; c.lineWidth = 3.5; c.stroke();
+    c.strokeStyle = '#e0c797'; c.lineWidth = 1.4; c.stroke();
+    line(c, 551, springTop - 2, 573, springTop - 2, '#9a8154', 3.5);
+    line(c, 551, springTop - 2, 573, springTop - 2, '#fff0c6', 1.5);
+    // The fixed-size guide rotates on a visible bearing into its upper recess.
+    c.save(); c.translate(500, 43); c.rotate(Math.PI * (1 - shownFeederGate));
+    traceDiverter(c);
+    c.strokeStyle = '#ef8b46'; c.lineWidth = 4; c.stroke();
+    c.strokeStyle = '#ffdda7'; c.lineWidth = 1; c.stroke(); c.restore();
+    ellipse(c, 500, 43, 4.4, 4.4, '#d9bd88', '#78613e', 1.2);
+    line(c, 498.5, 43, 501.5, 43, '#77613e', 1);
+    // Falling and stacked balls share the playfield's silver finish.
+    const trayBalls = collector.getSnapshot().balls;
+    c.save(); c.clip(makeTrayBowlPath());
+    for (const ball of snapshot.balls) if (ball.x >= 56 && ball.x <= PinballFeeder.INTAKE_X) {
+      const radius = ball.kind === 'point' ? 11 : 8.5;
+      const contact = chuteSurface.centerAt(ball.x, radius);
+      ellipse(c, contact.contactX, contact.contactY - 1, radius * .85, 1.8, '#17190f66');
+    }
+    c.restore();
+    snapshot.balls.forEach(ball => {
+      c.save();
+      if (ball.x < chuteSurface.LEFT) c.clip(makeChuteBackPath(true));
+      drawFeederBall(c, ball.x, ball.y, (ball.kind === 'point' ? 11 : 8.5) * ball.scale, ball.opacity);
+      c.restore();
+    });
+    c.save(); c.clip(makeTrayBowlPath());
+    // Silver beads and soft contact shadows stay distinct on the olive floor.
+    for (const ball of trayBalls) ellipse(c, ball.x + 1.5, Math.min(traySurface.floorAt(ball.x), ball.y + ball.radius - 1), ball.radius * .9, 2.2, '#17190f66');
+    trayBalls.slice().sort((a, b) => a.y - b.y).forEach(ball => drawFeederBall(c, ball.x, ball.y, ball.radius, ball.opacity));
+    c.restore();
+    drawChuteFront(c, shownFeederGate);
+    drawCollectorFront(c);
+    if (launchReady) {
+      const seatY = PinballFeeder.LAUNCH_Y + (charging ? power * 10 : 0);
+      drawFeederBall(c, PinballFeeder.LAUNCH_X, seatY, 8.5);
+    }
+    for (const ball of engine.balls) if (ball.y + ball.radius >= H) drawFeederBall(c, ball.x, ball.y - H, ball.radius, Math.max(0, ball.fade));
+    const age = pointAge;
     if (age >= 0 && age < 1) {
-      c.globalAlpha = Math.min(1, (1 - age) * 1.5); c.shadowColor = '#ff9b2f'; c.shadowBlur = 10;
-      text(c, '+1 积分', 304, 62 - age * 9, 16, '#ffe2a0', 'Microsoft YaHei, sans-serif');
+      c.globalAlpha = Math.min(1, (1 - age) * 1.5);
+      text(c, '+1', 482, 32 - age * 12, 17, '#ffd3aa', 'Microsoft YaHei, sans-serif');
     }
     c.restore();
   }
@@ -1871,13 +2476,27 @@ button:disabled{opacity:.45}
     haptics.impact(event.speed);
     if (event.kind !== 'peg') playSound('bounce', event.speed);
   }
+  function onGuideExit(event) {
+    if (launchAttempt !== event.ballId || !game.launchBall(event.ballId)) return;
+    launchAttempt = null;
+    lastPower = event.power;
+    $('feederReady').textContent = '已发射'; $('feederStatus').textContent = '弹珠已发射，等待落袋';
+    saveProgress(); updateUI();
+  }
+  function onGuideReturn(event) {
+    if (launchAttempt !== event.ballId) return;
+    launchAttempt = null; launchReady = true;
+    $('feederReady').textContent = '待发射 1 颗'; $('feederStatus').textContent = '弹珠已回位，请重新拉杆';
+    updateUI();
+    $('leverInstruction').textContent = '弹珠已回位 · 请重新拉杆';
+  }
   function onScore(event) {
     const result = game.landBall(event.ballId, event.slotIndex);
     if (!result.accepted) return;
     saveProgress();
     recent.unshift({ hit: result.hit, reward: result.reward, slot: event.slotIndex + 1, power: event.power ?? lastPower });
     recent.length = Math.min(3, recent.length);
-    saveStorage('piggyPracticeFeederV1', JSON.stringify(recent)); renderPractice();
+    saveStorage('piggyPracticeThresholdV3', JSON.stringify(recent)); renderPractice();
     if (result.hit) {
       slotFlashes.set(event.slotIndex, performance.now());
       const pop = document.createElement('span'); pop.className = 'score-pop big';
@@ -1892,8 +2511,8 @@ button:disabled{opacity:.45}
   }
   function activeCount() { return engine.balls.filter(ball => !ball.scored).length; }
   function isOpenRound() { return !!game.round && game.round.phase !== 'settled'; }
-  function canLaunch() { return launchReady && !feeder.busy && game.round?.phase === 'ready' && game.round.remaining === 1 && performance.now() >= rollingUntil; }
-  function canDeposit() { return !charging && !feeder.busy && performance.now() >= rollingUntil && (!isOpenRound() || ['activated', 'ready'].includes(game.round.phase)); }
+  function canLaunch() { return launchReady && launchAttempt === null && !feeder.busy && game.round?.phase === 'ready' && game.round.remaining === 1 && performance.now() >= rollingUntil; }
+  function canDeposit() { return !charging && launchAttempt === null && !feeder.busy && performance.now() >= rollingUntil && (!isOpenRound() || ['activated', 'ready'].includes(game.round.phase)); }
   function depositLimit() { return Math.min(game.wallet, 99 - (isOpenRound() ? game.round.stake : 0)); }
   function currentStake() { return Number($('stakeInput').value); }
   function isMobile() { return matchMedia('(max-width:650px), (max-width:950px) and (max-height:500px)').matches; }
@@ -1928,7 +2547,7 @@ button:disabled{opacity:.45}
     $('litCount').textContent = r?.multiplier ? `${r.litSlots.length} / 10 条轨道亮灯` : '低倍率亮灯轨道更多';
     $('roundProgress').style.width = `${r?.phase === 'settled' ? 100 : 0}%`;
     $('roundProgressText').textContent = !r ? '每局本金 1–99 颗 · 只发射一次' : r.phase === 'playing' ? '已发射 1 / 1 次 · 等待落袋' : r.phase === 'settled' ? '本局已结束' : '剩余发射机会 1 / 1';
-    $('roundStatus').textContent = feeder.busy ? '弹珠正从进珠口流入 · 入洞即时加分' : rolling ? '首次投珠成功，自动获取倍率…' : !r ? '点击投珠，自动激活并获取倍率' : r.phase === 'settled' ? '本局已结算，积分卡已入账' : r.phase === 'playing' ? '本金已锁定，等待这唯一一发落袋' : `可继续投珠加注 · 命中返还 ${principal} × ${r.multiplier} = ${principal * r.multiplier} 颗`;
+    $('roundStatus').textContent = feeder.busy ? '弹珠正从进珠口流入 · 入洞即时加分' : rolling ? '首次投珠成功，自动获取倍率…' : !r ? '点击投珠，自动激活并获取倍率' : r.phase === 'settled' ? '本局已结算，积分卡已入账' : r.phase === 'playing' ? '本金已锁定，等待这唯一一发落袋' : launchAttempt !== null ? '弹珠运动中 · 请稍候' : `可继续投珠加注 · 命中返还 ${principal} × ${r.multiplier} = ${principal * r.multiplier} 颗`;
     $('stakeInput').disabled = !editable || limit === 0;
     $('stakeInput').max = Math.max(1, limit);
     $('stakeSlider').max = Math.max(1, limit);
@@ -1941,7 +2560,7 @@ button:disabled{opacity:.45}
     $('stakePlus').disabled = !editable || stake >= limit;
     $('stakeLimit').textContent = r?.phase === 'playing' ? '发射后本金已锁定' : open ? `还可加注 ${limit} 颗` : '本金共 1—99 颗';
     document.querySelectorAll('[data-stake]').forEach(button => { button.disabled = !editable || Number(button.dataset.stake) > limit; button.classList.toggle('selected', Number(button.dataset.stake) === stake); });
-    $('stakeHint').textContent = r?.phase === 'playing' ? '已发射，本局不能再加注或发射' : charging ? '蓄力中，本金暂时锁定' : rolling ? '等待倍率确定后可继续加注' : limit === 0 ? '已达本局上限或弹珠余额不足' : !Number.isInteger(stake) || stake < 1 ? '请输入至少 1 颗的整数' : stake > limit ? `本次最多可投入 ${limit} 颗` : '设置数量不会扣珠，回到台面点击投珠按钮后投入。';
+    $('stakeHint').textContent = r?.phase === 'playing' ? '已发射，本局不能再加注或发射' : launchAttempt !== null ? '弹珠运动中，请稍候' : charging ? '蓄力中，本金暂时锁定' : rolling ? '等待倍率确定后可继续加注' : limit === 0 ? '已达本局上限或弹珠余额不足' : !Number.isInteger(stake) || stake < 1 ? '请输入至少 1 颗的整数' : stake > limit ? `本次最多可投入 ${limit} 颗` : '设置数量不会扣珠，回到台面点击投珠按钮后投入。';
     $('depositButton').disabled = !editable || !valid;
     $('depositButton').textContent = `投珠 ${Number.isFinite(stake) ? stake : '—'} 颗`;
     $('saveStakeButton').disabled = !editable || (limit > 0 && !valid);
@@ -1950,10 +2569,10 @@ button:disabled{opacity:.45}
     launchButton.disabled = !canLaunch();
     $('leverHandle').disabled = !canLaunch();
     $('addStakeButton').disabled = !editable;
-    $('leverInstruction').textContent = feeder.busy ? '正在入珠 · 请稍候' : rolling ? '投珠成功 · 正在获取倍率' : !r ? '投珠后自动获取倍率' : r.phase === 'playing' ? '本局已发射 · 等待落袋' : r.phase === 'settled' ? '投珠开始下一局' : '下拉松手 · 本局仅此一发';
+    $('leverInstruction').textContent = feeder.busy ? '正在入珠 · 请稍候' : rolling ? '投珠成功 · 正在获取倍率' : !r ? '投珠后自动获取倍率' : r.phase === 'playing' ? '本局已发射 · 等待落袋' : r.phase === 'settled' ? '投珠开始下一局' : launchAttempt !== null ? '弹珠运动中 · 请稍候' : '下拉蓄力 · 松手发射';
     $('rescueButton').hidden = game.wallet >= 1 || open;
     if (!charging) {
-      $('launchLabel').textContent = feeder.busy ? '弹珠入槽中…' : rolling ? '正在获取倍率…' : !r || r.phase === 'settled' ? '先投珠 · 自动激活游戏' : r.phase === 'playing' ? '等待弹珠落袋…' : '按住蓄力 · 仅发射一次';
+      $('launchLabel').textContent = feeder.busy ? '弹珠入槽中…' : rolling ? '正在获取倍率…' : !r || r.phase === 'settled' ? '先投珠 · 自动激活游戏' : r.phase === 'playing' ? '等待弹珠落袋…' : launchAttempt !== null ? '弹珠运动中…' : '按住蓄力 · 松手发射';
       $('launchSublabel').textContent = !r ? '1–99 PRINCIPAL / ONE SHOT' : canLaunch() ? `本金 ${principal} 颗 · ${r.multiplier} 倍好运` : 'PIGGY PINBALL CLUB';
     }
     $('shopCardCount').textContent = game.cards;
@@ -1985,9 +2604,9 @@ button:disabled{opacity:.45}
     force = normalizePower(force);
     if (!engine.launch(force, { startY: H + PinballFeeder.LAUNCH_Y + force * 10 })) return false;
     const ball = engine.balls[engine.balls.length - 1];
-    if (!game.launchBall(ball.id)) { engine.balls.pop(); return false; }
-    launchReady = false; $('feederReady').textContent = '已发射'; $('feederStatus').textContent = '弹珠已发射，等待落袋';
-    lastPower = force; saveProgress(); $('boardHint').classList.add('hide');
+    launchAttempt = ball.id;
+    launchReady = false; $('feederReady').textContent = '弹珠运动中'; $('feederStatus').textContent = '弹珠运动中，请稍候';
+    $('boardHint').classList.add('hide');
     updateUI(); return true;
   }
   function releaseCharge() {
@@ -2002,7 +2621,7 @@ button:disabled{opacity:.45}
   function prepareRound() {
     clearTimeout(endTimer); endTimer = undefined; rollingUntil = 0;
     if (!game.clearRound()) return;
-    feeder.reset(); launchReady = false; feedRound = null; feedPointAt = -Infinity; feedDirty = false;
+    feeder.reset(); collector.reset(); launchReady = false; launchAttempt = null; feedRound = null; feedPointAt = -Infinity; feedDirty = false;
     $('feederReady').textContent = '待发射 0 颗'; $('feederStatus').textContent = '等待投珠';
     engine.reset(); hits.clear(); slotFlashes.clear(); particles.length = 0; roundAnnounced = false;
     $('floatingScores').replaceChildren();
@@ -2019,6 +2638,7 @@ button:disabled{opacity:.45}
     const result = adding ? game.addStake(amount) : game.startRound(amount);
     if (!result.ok) { toast(result.error); return; }
     if (!adding) {
+      collector.reset();
       clearTimeout(endTimer); endTimer = undefined; roundAnnounced = false;
       engine.reset(); hits.clear(); slotFlashes.clear(); particles.length = 0;
       $('floatingScores').replaceChildren();
@@ -2033,7 +2653,7 @@ button:disabled{opacity:.45}
     if (limit > 0 && currentStake() > limit) $('stakeInput').value = limit;
     saveProgress(); initAudio(); drawBackground(); updateUI();
     if ($('stakeDialog').open) $('stakeDialog').close();
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { feeder.step(10); flushFeedPoints(); }
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) finishFeedMotion();
   }
   function finishRound() {
     const r = game.round;
@@ -2177,7 +2797,7 @@ button:disabled{opacity:.45}
   document.addEventListener('keyup', e => { if (e.code === 'Space' && chargeSource === 'keyboard') { e.preventDefault(); releaseCharge(); } });
   window.addEventListener('blur', cancelCharge);
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { cancelCharge(); audio.pause(); feeder.step(10); flushFeedPoints(); }
+    if (document.hidden) { cancelCharge(); audio.pause(); finishFeedMotion(); }
     else audio.recover();
     lastFrame = performance.now();
   });
@@ -2246,7 +2866,7 @@ button:disabled{opacity:.45}
         $('boardHint').innerHTML = '<span class="hint-star">✦</span> 可继续加注 · 只发射一次 <span class="hint-star">✦</span>';
       }
     }
-    feeder.step(dt); flushFeedPoints(); engine.step(dt); draw(now, dt); drawFeeder(now); finishRound(); requestAnimationFrame(frame);
+    feeder.step(dt); collector.step(dt); flushFeedPoints(); engine.step(dt); draw(now, dt); drawFeeder(now); finishRound(); requestAnimationFrame(frame);
   }
   const layoutObserver = new ResizeObserver(scheduleLayout);
   layoutObserver.observe(document.querySelector('.machine-section'));
@@ -2256,7 +2876,7 @@ button:disabled{opacity:.45}
   fitViewport(); showHelpPage(0);
   saveProgress(); drawBackground(); renderPractice(); updatePower(); updateUI(); updateSound(); updateHaptics(); requestAnimationFrame(frame);
   if (game.recovered) toast(`上局未完成，已退回 ${game.recovered.refunded} 颗弹珠并保留已结算奖励`);
-  window.PiggyGame = { getState: () => ({ ...game.serialize(), charging, power, activeBalls: activeCount(), feeding: feeder.busy, launchReady }), engine };
+  window.PiggyGame = { getState: () => ({ ...game.serialize(), charging, power, activeBalls: activeCount(), feeding: feeder.busy, launchReady, guideBusy: launchAttempt !== null }), engine };
 })();
 
 </script>
